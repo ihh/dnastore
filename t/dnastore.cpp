@@ -1,6 +1,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <iomanip>
+#include <random>
 #include <boost/program_options.hpp>
 
 #include "../src/vguard.h"
@@ -14,8 +15,8 @@ typedef unsigned long long Kmer;
 typedef unsigned char Base;
 typedef int Pos;
 
-typedef unsigned char KmerFlags;
-#define KmerValid 0x80
+typedef unsigned char EdgeFlags;
+typedef unsigned long long State;
 
 const char* alphabet = "ATGC";
 inline char baseToChar (Base base) {
@@ -28,7 +29,7 @@ inline Base getBase (Kmer kmer, Pos pos) {
 
 inline Kmer setBase (Kmer kmer, Pos pos, Base base) {
   const int shift = (pos - 1) << 1;
-  return (kmer & (((Kmer) -1) ^ (3 << shift))) | (base << shift);
+  return (kmer & (((Kmer) -1) ^ (3 << shift))) | (((Kmer) base) << shift);
 }
 
 inline string kmerString (Kmer kmer, Pos len) {
@@ -84,45 +85,72 @@ inline Kmer kmerRevComp (Kmer kmer, Pos len) {
 
 inline void getOutgoing (Kmer kmer, Pos len, vguard<Kmer>& outgoing) {
   Assert (outgoing.size() == 4, "oops");
-  Kmer prefix = (kmer << 2) & kmerMask(len);
+  const Kmer prefix = (kmer << 2) & kmerMask(len);
   iota (outgoing.begin(), outgoing.end(), prefix);
 }
 
 inline void getIncoming (Kmer kmer, Pos len, vguard<Kmer>& incoming) {
   Assert (incoming.size() == 4, "oops");
-  Kmer prefix = kmer >> 2;
+  const Kmer prefix = kmer >> 2;
   const int shift = (len - 1) << 1;
   for (Base b = 0; b < 4; ++b)
-    incoming[b] = prefix | (b << shift);
+    incoming[b] = prefix | (((Kmer) b) << shift);
 }
 
-inline KmerFlags outgoingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& outgoing, const vguard<KmerFlags>& flags) {
+inline EdgeFlags outgoingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& outgoing, const vguard<bool>& validFlag) {
   getOutgoing (kmer, len, outgoing);
-  KmerFlags f = 0;
+  EdgeFlags f = 0;
   for (size_t n = 0; n < 4; ++n)
-    if (flags[outgoing[n]] & KmerValid)
+    if (validFlag[outgoing[n]])
       f = f | (1 << n);
   return f;
 }
 
-int flagsToCountLookup[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
-inline int flagsToCount (KmerFlags flags) {
-  return flagsToCountLookup[flags & 0xf];
+int edgeFlagsToCountLookup[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
+inline int edgeFlagsToCount (EdgeFlags flags) {
+  return edgeFlagsToCountLookup[flags & 0xf];
 }
 
-inline void pruneDeadEnds (Kmer kmer, Pos len, vguard<Kmer>& outgoing, vguard<KmerFlags>& flags) {
-  if (flags[kmer] & KmerValid) {
-    const KmerFlags outgoingFlags = outgoingEdgeFlags(kmer,len,outgoing,flags);
-    if (outgoingFlags == 0) {
+void pruneKmer (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid);
+inline void pruneDeadEnds (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid) {
+  if (valid[kmer]) {
+    const EdgeFlags outFlags = outgoingEdgeFlags(kmer,len,out,valid);
+    if (outFlags == 0) {
       LogThisAt(9,"Pruning " << kmerString(kmer,len) << endl);
-      flags[kmer] = 0;
-      vguard<Kmer> incoming (4);
-      getIncoming (kmer, len, incoming);
-      for (auto kmerIn: incoming)
-      	pruneDeadEnds (kmerIn, len, outgoing, flags);
+      pruneKmer(kmer,len,out,valid);
     } else
-      LogThisAt(9,"Keeping " << kmerString(kmer,len) << " with " << flagsToCount(outgoingFlags) << " outgoing edges" << endl);
+      LogThisAt(9,"Keeping " << kmerString(kmer,len) << " with " << edgeFlagsToCount(outFlags) << " outgoing edges" << endl);
   }
+}
+
+inline void pruneKmer (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid) {
+  valid[kmer] = 0;
+  vguard<Kmer> incoming (4);
+  getIncoming (kmer, len, incoming);
+  for (auto kmerIn: incoming)
+    pruneDeadEnds (kmerIn, len, out, valid);
+}
+
+inline list<Kmer> pruneDeadEnds (const list<Kmer>& kmers, Pos len, vguard<bool>& valid) {
+  const Kmer maxKmer = kmerMask(len);
+  vguard<Kmer> outgoing (4);
+  ProgressLog (plogPrune, 1);
+  plogPrune.initProgress ("Pruning dead ends");
+  for (auto kmer: kmers)
+    pruneDeadEnds (kmer, len, outgoing, valid);
+  const unsigned long long nKmers = kmers.size();
+  unsigned long long nPruned = 0, nUnpruned = 0;
+  list<Kmer> unprunedKmers;
+  for (auto kmer: kmers) {
+    ++nPruned;
+    plogPrune.logProgress (nPruned / (double) nKmers, "sequence %llu/%llu", nPruned, nKmers);
+    if (valid[kmer]) {
+      unprunedKmers.push_back (kmer);
+      ++nUnpruned;
+    }
+  }
+  LogThisAt(2,"Dead-end pruning left " << nUnpruned << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
+  return unprunedKmers;
 }
 
 inline bool hasExactTandemRepeat (Kmer seq, Pos len, Pos maxRepeatLen) {
@@ -159,60 +187,6 @@ inline bool hasExactInvertedRepeat (Kmer seq, Pos len, Pos repeatLen) {
   return false;
 }
 
-struct MutPosIterator {
-  const Pos len;
-  const int maxDistance;
-  vguard<Pos> pos;
-  int nPos;
-  vguard<Kmer> neighbors;
-  int transversionDistance;
-  MutPosIterator (Pos len, int maxDistance)
-    : len(len),
-      maxDistance(maxDistance),
-      pos(maxDistance+1),
-      transversionDistance(2)
-  { }
-  inline void reset() {
-    pos[0] = 1;
-    nPos = 1;
-  }
-  inline bool done() const {
-    return nPos > maxDistance;
-  }
-  inline void next() {
-    int nInc = nPos - 1;
-    while (nInc >= 0)
-      if (++pos[nInc] + (nPos - nInc - 1) <= len) {
-	iota (pos.begin() + nInc + 1, pos.begin() + nPos, pos[nInc] + 1);
-	break;
-      } else
-	--nInc;
-    if (nInc < 0) {
-      ++nPos;
-      iota (pos.begin(), pos.begin() + nPos, 1);
-    }
-  }
-  void getNeighbors (Kmer seq) {
-    neighbors.clear();
-    int nNbrs = 1;
-    for (int n = 0; n < nPos; ++n)
-      nNbrs *= 3;
-    for (int nbrIdx = 0; nbrIdx < nNbrs; ++nbrIdx) {
-      int d = 0;
-      int tmp = nbrIdx;
-      Kmer nbr = seq;
-      for (int n = 0; n < nPos; ++n) {
-	const int delta = (tmp % 3) + 1;
-	tmp = tmp / 3;
-	d += (delta == 2) ? 1 : transversionDistance;
-	nbr = setBase (nbr, pos[n], (getBase (seq, pos[n]) + delta) & 3);
-      }
-      if (d <= maxDistance)
-	neighbors.push_back (nbr);
-    }
-  }
-};
-
 int main (int argc, char** argv) {
 
   try {
@@ -221,10 +195,9 @@ int main (int argc, char** argv) {
     desc.add_options()
       ("help,h", "display this help message")
       ("kmerlen,k", po::value<int>()->default_value(15), "length of k-mers in de Bruijn graph")
-      ("tandem,t", po::value<int>()->default_value(3), "reject local tandem duplications up to this length")
+      ("tandem,t", po::value<int>()->default_value(5), "reject local tandem duplications up to this length")
       ("invrep,i", po::value<int>()->default_value(5), "reject inverted repeats of this length (separated by at least 2 bases)")
-      ("nbrdist,d", po::value<int>()->default_value(3), "exclude neighbors at up to this (transition+2*transversion)-distance")
-      ("verbose,v", po::value<int>()->default_value(1), "verbosity level")
+      ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ;
 
     po::variables_map vm;
@@ -243,14 +216,13 @@ int main (int argc, char** argv) {
     
     const Pos maxTandemRepeatLen = vm.at("tandem").as<int>();
     const Pos invertedRepeatLen = vm.at("invrep").as<int>();
-    const int nbrDist = vm.at("nbrdist").as<int>();
 
     const Kmer maxKmer = kmerMask(len);
 
     // Remove repeats
     ProgressLog (plogReps, 1);
     plogReps.initProgress ("Filtering %d-mer repeats", len);
-    vguard<KmerFlags> kmerFlags (maxKmer+1);
+    vguard<bool> kmerValid (maxKmer+1);
     unsigned long long nKmersWithoutReps = 0;
     list<Kmer> kmersWithoutReps;
     for (Kmer kmer = 0; kmer <= maxKmer; ++kmer) {
@@ -259,55 +231,51 @@ int main (int argc, char** argv) {
       if (!hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
 	  && !hasExactInvertedRepeat(kmer,len,invertedRepeatLen)) {
 	LogThisAt(9,"Accepting " << kmerString(kmer,len) << endl);
-	kmerFlags[kmer] = KmerValid;
+	kmerValid[kmer] = true;
 	kmersWithoutReps.push_back (kmer);
 	++nKmersWithoutReps;
       }
     }
     LogThisAt(2,"Found " << nKmersWithoutReps << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutReps/(1.+(double)maxKmer) << "%)" << endl);
 
-    // Remove neighbors
-    ProgressLog (plogNbrs, 1);
-    plogNbrs.initProgress ("Rejecting neighbors up to (transition+2*transversion)-distance %d", nbrDist);
-    unsigned long long nbrScans = 0, nbrsRejected = 0, nKmersWithoutNeighbors = 0;
-    MutPosIterator mutPosIter (len, nbrDist);
-    list<Kmer> kmersWithoutNeighbors;
-    for (auto kmer: kmersWithoutReps) {
-      ++nbrScans;
-      plogNbrs.logProgress (nbrScans / (double) nKmersWithoutReps, "sequence %llu/%llu", nbrScans, nKmersWithoutReps);
-      if (kmerFlags[kmer] & KmerValid) {
-	kmersWithoutNeighbors.push_back (kmer);
-	++nKmersWithoutNeighbors;
-	for (mutPosIter.reset(); !mutPosIter.done(); mutPosIter.next()) {
-	  mutPosIter.getNeighbors (kmer);
-	  for (auto nbr: mutPosIter.neighbors)
-	    if (kmerFlags[nbr] & KmerValid) {
-	      LogThisAt(5,"Rejecting " << kmerString(kmer,len) << " neighbor " << kmerString(nbr,len) << endl);
-	      kmerFlags[nbr] = 0;
-	    }
-	}
-      }
-    }
-    LogThisAt(2,"Neighbor elimination left " << nKmersWithoutNeighbors << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nKmersWithoutNeighbors/(1.+(double)maxKmer) << "%)" << endl);
-
     // Remove dead ends
-    ProgressLog (plogPrune, 1);
-    plogNbrs.initProgress ("Pruning dead ends");
-    vguard<Kmer> outgoing (4);
-    for (auto kmer: kmersWithoutNeighbors)
-      pruneDeadEnds (kmer, len, outgoing, kmerFlags);
-    unsigned long long nPruned = 0, nUnpruned = 0;
-    list<Kmer> unprunedKmers;
-    for (auto kmer: kmersWithoutNeighbors) {
-      ++nPruned;
-      plogNbrs.logProgress (nPruned / (double) nKmersWithoutNeighbors, "sequence %llu/%llu", nPruned, nKmersWithoutNeighbors);
-      if (kmerFlags[kmer] & KmerValid) {
-	unprunedKmers.push_back (kmer);
-	++nUnpruned;
-      }
+    const list<Kmer> prunedKmersWithoutReps = pruneDeadEnds (kmersWithoutReps, len, kmerValid);
+    const unsigned long long nPrunedKmersWithoutReps = prunedKmersWithoutReps.size();
+
+    Require (nPrunedKmersWithoutReps > 0, "No valid %d-mers left!", len);
+
+    // Index the states
+    map<Kmer,State> kmerState;
+    State n = 0;
+    for (auto kmer: prunedKmersWithoutReps)
+      kmerState[kmer] = ++n;
+
+    // Output the transducer
+    vguard<Kmer> out (4);
+    vguard<char> outChar;
+    vguard<State> outState;
+    for (auto kmer: prunedKmersWithoutReps) {
+      const EdgeFlags outFlags = outgoingEdgeFlags(kmer,len,out,kmerValid);
+      outChar.clear();
+      outState.clear();
+      for (size_t n = 0; n < 4; ++n)
+	if (outFlags & (1 << n)) {
+	  outChar.push_back (baseToChar(n));
+	  outState.push_back (kmerState.at(out[n]));
+	}
+      cout << kmerState.at(kmer) << " " << kmerString(kmer,len);
+      if (outChar.size() == 1)
+	cout << " /" << outChar[0] << ":" << outState[0];
+      else if (outChar.size() == 2)
+	cout << " 0/" << outChar[0] << ":" << outState[0]
+	     << " 1/" << outChar[1] << ":" << outState[1];
+      else if (outChar.size() == 3)
+	cout << " 00/" << outChar[0] << ":" << outState[0]
+	     << " 01/" << outChar[1] << ":" << outState[1]
+	     << " 1/" << outChar[2] << ":" << outState[2];
+      cout << endl;
     }
-    LogThisAt(2,"Dead-end pruning left " << nUnpruned << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
-    
+
   } catch (const std::exception& e) {
     cerr << e.what() << endl;
   }
