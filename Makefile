@@ -1,10 +1,26 @@
 .SECONDARY:
 
+BOOSTPREFIX = /usr
+ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
+BOOSTPREFIX = /usr/local
+ifeq (,$(wildcard $(BOOSTPREFIX)/include/boost/regex.h))
+BOOSTPREFIX =
+endif
+endif
+
+BOOSTFLAGS =
+BOOSTLIBS =
+ifneq (,$(BOOSTPREFIX))
+BOOSTFLAGS := -I$(BOOSTPREFIX)/include
+BOOSTLIBS := -L$(BOOSTPREFIX)/lib -lboost_regex -lboost_program_options
+endif
+
 # install dir
 PREFIX = /usr/local
 
 # other flags
-CPPFLAGS = -std=c++11 -g -O3
+CPPFLAGS = -std=c++11 -g -O3 $(BOOSTFLAGS)
+LIBFLAGS = -lstdc++ -lz $(BOOSTLIBS)
 
 CPPFILES = $(wildcard src/*.cpp)
 OBJFILES = $(subst src/,obj/,$(subst .cpp,.o,$(CPPFILES)))
@@ -41,3 +57,6 @@ obj/%.o: t/%.cpp
 	$(CPP) $(CPPFLAGS) -c -o $@ $<
 
 $(MAIN): bin/$(MAIN)
+
+clean:
+	rm -rf bin/* obj/*
