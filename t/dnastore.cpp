@@ -1,5 +1,6 @@
 #include <cstdlib>
 #include <stdexcept>
+#include <iomanip>
 #include <boost/program_options.hpp>
 
 #include "../src/vguard.h"
@@ -13,7 +14,10 @@ typedef unsigned long long Kmer;
 typedef unsigned char Base;
 typedef int Pos;
 
-const char* alphabet = "ACGT";
+typedef unsigned char KmerFlags;
+#define KmerValid 0x80
+
+const char* alphabet = "ATGC";
 inline char baseToChar (Base base) {
   return alphabet[base & 3];
 }
@@ -22,10 +26,15 @@ inline Base getBase (Kmer kmer, Pos pos) {
   return (kmer >> ((pos - 1) << 1)) & 3;
 }
 
-inline string kmerToString (Kmer kmer, Pos len) {
+inline Kmer setBase (Kmer kmer, Pos pos, Base base) {
+  const int shift = (pos - 1) << 1;
+  return (kmer & (((Kmer) -1) ^ (3 << shift))) | (base << shift);
+}
+
+inline string kmerString (Kmer kmer, Pos len) {
   string s (len, '*');
   for (Pos i = 1; i <= len; ++i)
-    s[i-1] = baseToChar(getBase(kmer,i));
+    s[len-i] = baseToChar(getBase(kmer,i));
   return s;
 }
 
@@ -37,13 +46,33 @@ inline bool isComplement (Base x, Base y) {
   return (x ^ 3) == y;
 }
 
+inline bool isGC (Base x) {
+  return (x & 2) == 1;
+}
+
 inline Kmer kmerMask (Pos len) {
   // 4^len - 1 = 2^(2*len) - 1 = (1 << (2*len)) - 1 = (1 << (len << 1)) - 1
   return (((Kmer) 1) << (len << 1)) - 1;
 }
 
-inline Kmer kmerSubstring (Kmer kmer, Pos start, Pos len) {
+inline Kmer kmerSub (Kmer kmer, Pos start, Pos len) {
   return (kmer >> ((start - 1) << 1)) & kmerMask (len);
+}
+
+inline string kmerSubstring (Kmer kmer, Pos start, Pos len) {
+  return kmerString (kmerSub (kmer, start, len), len);
+}
+
+inline int kmerLeftCoord (Pos pos, Pos len) {
+  return len - pos + 1;
+}
+
+inline string kmerSubCoords (Pos start, Pos len, Pos kmerLen) {
+  return string("[") + to_string(kmerLeftCoord(start+len-1,kmerLen)) + ".." + to_string(kmerLeftCoord(start,kmerLen)) + "]";
+}
+
+inline string kmerSubAt (Kmer kmer, Pos start, Pos len, Pos kmerLen) {
+  return kmerString (kmerSub (kmer, start, len), len) + kmerSubCoords(start,len,kmerLen);
 }
 
 inline Kmer kmerRevComp (Kmer kmer, Pos len) {
@@ -53,74 +82,57 @@ inline Kmer kmerRevComp (Kmer kmer, Pos len) {
   return rc;
 }
 
-struct EditDistanceMatrix {
-  typedef short Score;
-  const Pos len, minMatchLen;
-  const Score editDistanceThreshold;
-  vguard<vguard<Score> > editScore;
-  EditDistanceMatrix (Pos len, Pos minMatchLen, Score editDistanceThreshold)
-    : len (len),
-      minMatchLen (minMatchLen),
-      editDistanceThreshold (editDistanceThreshold),
-      editScore (len+1, vguard<Score> (len+1, 0))
-  { }
-  static inline Score hammingEditScore (Base x, Base y) {
-    return x == y ? 0 : 1;
-  }
-  inline bool pastThreshold (Kmer seq) {
-    if (minMatchLen > len)
-      return false;
-    for (Pos i = len - minMatchLen + 1; i <= len; ++i)
-      for (Pos j = 1; j < i; ++j) {
-	Score sc = min (editScore[i-1][j-1] + hammingEditScore (getBase(seq,i), getBase(seq,j)),
-			editScore[i-1][j] + 1);
-	if (j > 1)
-	  sc = min (sc, (Score) (editScore[i][j-1] + 1));
-	if (i == len) {
-	  if (sc < editDistanceThreshold)
-	    return true;
-	} else
-	  editScore[i][j] = sc;
-      }
-    return false;
-  }
-};
+inline void getOutgoing (Kmer kmer, Pos len, vguard<Kmer>& outgoing) {
+  Assert (outgoing.size() == 4, "oops");
+  Kmer prefix = (kmer << 2) & kmerMask(len);
+  iota (outgoing.begin(), outgoing.end(), prefix);
+}
 
-struct FoldMatrix {
-  typedef unsigned short Score;
-  const Pos len;
-  const Score threshold;
-  Pos minBetween;
-  vguard<vguard<Score> > basepairs;
-  FoldMatrix (Pos len, Score threshold)
-    : len (len),
-      threshold (threshold),
-      basepairs (len+1, vguard<Score> (len+1, 0)),
-      minBetween (2)
-  { }
-  inline Score basepairScore (Base x, Base y) const {
-    return isComplement(x,y) ? 1 : 0;
+inline void getIncoming (Kmer kmer, Pos len, vguard<Kmer>& incoming) {
+  Assert (incoming.size() == 4, "oops");
+  Kmer prefix = kmer >> 2;
+  const int shift = (len - 1) << 1;
+  for (Base b = 0; b < 4; ++b)
+    incoming[b] = prefix | (b << shift);
+}
+
+inline KmerFlags outgoingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& outgoing, const vguard<KmerFlags>& flags) {
+  getOutgoing (kmer, len, outgoing);
+  KmerFlags f = 0;
+  for (size_t n = 0; n < 4; ++n)
+    if (flags[outgoing[n]] & KmerValid)
+      f = f | (1 << n);
+  return f;
+}
+
+int flagsToCountLookup[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
+inline int flagsToCount (KmerFlags flags) {
+  return flagsToCountLookup[flags & 0xf];
+}
+
+inline void pruneDeadEnds (Kmer kmer, Pos len, vguard<Kmer>& outgoing, vguard<KmerFlags>& flags) {
+  if (flags[kmer] & KmerValid) {
+    const KmerFlags outgoingFlags = outgoingEdgeFlags(kmer,len,outgoing,flags);
+    if (outgoingFlags == 0) {
+      LogThisAt(9,"Pruning " << kmerString(kmer,len) << endl);
+      flags[kmer] = 0;
+      vguard<Kmer> incoming (4);
+      getIncoming (kmer, len, incoming);
+      for (auto kmerIn: incoming)
+      	pruneDeadEnds (kmerIn, len, outgoing, flags);
+    } else
+      LogThisAt(9,"Keeping " << kmerString(kmer,len) << " with " << flagsToCount(outgoingFlags) << " outgoing edges" << endl);
   }
-  inline bool pastThreshold (Kmer seq) {
-    for (Pos i = len - 1 - minBetween; i >= 1; --i)
-      for (Pos j = i + minBetween + 1; j <= len; ++j) {
-	Score sc = max ((Score) (basepairScore (getBase(seq,i), getBase(seq,j)) + basepairs[i+1][j-1]),
-			max (basepairs[i+1][j], basepairs[i][j-1]));
-	for (Pos k = i + minBetween + 2; k <= j - minBetween - 2; ++k)
-	  sc = max (sc, (Score) (basepairs[i][k] + basepairs[k+1][j]));
-	if (sc >= threshold)
-	  return true;
-	basepairs[i][j] = sc;
-      }
-    return false;
-  }
-};
+}
 
 inline bool hasExactTandemRepeat (Kmer seq, Pos len, Pos maxRepeatLen) {
   for (Pos repeatLen = 1; repeatLen <= maxRepeatLen; ++repeatLen)
-    for (Pos i = 1; i <= len - repeatLen; ++i)
-      if (kmerSubstring (seq, i, repeatLen) == kmerSubstring (seq, i + repeatLen, repeatLen))
+    for (Pos i = len - repeatLen; i >= 1; --i)
+      if (kmerSub (seq, i, repeatLen) == kmerSub (seq, i + repeatLen, repeatLen)) {
+	const int logLevel = max(5,8-repeatLen);
+	LogThisAt(logLevel,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,i+repeatLen,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (exact tandem repeat)" << endl);
 	return true;
+      }
   return false;
 }
 
@@ -133,30 +145,73 @@ inline bool tooManyMismatches (Kmer seq1, Kmer seq2, Pos len, unsigned int maxMi
   return false;
 }
 
-inline bool hasApproxTandemRepeat (Kmer seq, Pos len, Pos repeatLen, double minIdentity) {
-  if (repeatLen < 1)
-    return false;
-  const unsigned int maxMismatches = (unsigned int) ((1. - minIdentity) * repeatLen);
-  for (Pos i = 1; i <= len - repeatLen; ++i)
-    if (!tooManyMismatches (kmerSubstring (seq, i, repeatLen),
-			    kmerSubstring (seq, i + repeatLen, repeatLen),
-			    repeatLen,
-			    maxMismatches))
-      return true;
-  return false;
-}
-
 inline bool hasExactInvertedRepeat (Kmer seq, Pos len, Pos repeatLen) {
   const Kmer rc = kmerRevComp (seq, len);
-  for (Pos i = len - repeatLen*2; i > 0; --i) {
-    const Kmer invRep = kmerSubstring (rc, len - i + 1, repeatLen);
-    const Pos jMin = i + repeatLen;
+  for (Pos i = len - repeatLen*2 - 2; i > 0; --i) {
+    const Kmer invRep = kmerSub (rc, len - i + 1, repeatLen);
+    const Pos jMin = i + repeatLen + 2;
     for (Pos j = len - repeatLen + 1; j >= jMin; --j)
-      if (invRep == kmerSubstring (seq, j, repeatLen))
+      if (invRep == kmerSub (seq, j, repeatLen)) {
+	LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,j,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (exact inverted repeat)" << endl);
 	return true;
+      }
   }
   return false;
 }
+
+struct MutPosIterator {
+  const Pos len;
+  const int maxDistance;
+  vguard<Pos> pos;
+  int nPos;
+  vguard<Kmer> neighbors;
+  int transversionDistance;
+  MutPosIterator (Pos len, int maxDistance)
+    : len(len),
+      maxDistance(maxDistance),
+      pos(maxDistance+1),
+      transversionDistance(2)
+  { }
+  inline void reset() {
+    pos[0] = 1;
+    nPos = 1;
+  }
+  inline bool done() const {
+    return nPos > maxDistance;
+  }
+  inline void next() {
+    int nInc = nPos - 1;
+    while (nInc >= 0)
+      if (++pos[nInc] + (nPos - nInc - 1) <= len) {
+	iota (pos.begin() + nInc + 1, pos.begin() + nPos, pos[nInc] + 1);
+	break;
+      } else
+	--nInc;
+    if (nInc < 0) {
+      ++nPos;
+      iota (pos.begin(), pos.begin() + nPos, 1);
+    }
+  }
+  void getNeighbors (Kmer seq) {
+    neighbors.clear();
+    int nNbrs = 1;
+    for (int n = 0; n < nPos; ++n)
+      nNbrs *= 3;
+    for (int nbrIdx = 0; nbrIdx < nNbrs; ++nbrIdx) {
+      int d = 0;
+      int tmp = nbrIdx;
+      Kmer nbr = seq;
+      for (int n = 0; n < nPos; ++n) {
+	const int delta = (tmp % 3) + 1;
+	tmp = tmp / 3;
+	d += (delta == 2) ? 1 : transversionDistance;
+	nbr = setBase (nbr, pos[n], (getBase (seq, pos[n]) + delta) & 3);
+      }
+      if (d <= maxDistance)
+	neighbors.push_back (nbr);
+    }
+  }
+};
 
 int main (int argc, char** argv) {
 
@@ -166,13 +221,9 @@ int main (int argc, char** argv) {
     desc.add_options()
       ("help,h", "display this help message")
       ("kmerlen,k", po::value<int>()->default_value(15), "length of k-mers in de Bruijn graph")
-      ("invrep,i", po::value<int>()->default_value(5), "minimum length at which to reject exact nonlocal inverted repeats")
-      ("tandem,t", po::value<int>()->default_value(4), "maximum length of exact local tandem repeats")
-      ("approx,a", po::value<double>()->default_value(.5), "minimum identity level at which to reject approximate local tandem repeats")
-      ("remotelen,l", po::value<int>()->default_value(5), "minimum length at which to reject approximate nonlocal tandem repeats")
-      ("remotedist,r", po::value<int>()->default_value(3), "maximum Levenshtein edit distance at which to reject approximate nonlocal tandem repeats")
-      ("basepairs,b", po::value<int>()->default_value(6), "minimum number of nested complementary base-pairs at which to reject k-mer")
-      ("debug,d", "print all sequences and tests")
+      ("tandem,t", po::value<int>()->default_value(3), "reject local tandem duplications up to this length")
+      ("invrep,i", po::value<int>()->default_value(5), "reject inverted repeats of this length (separated by at least 2 bases)")
+      ("nbrdist,d", po::value<int>()->default_value(3), "exclude neighbors at up to this (transition+2*transversion)-distance")
       ("verbose,v", po::value<int>()->default_value(1), "verbosity level")
       ;
 
@@ -181,7 +232,6 @@ int main (int argc, char** argv) {
     po::notify(vm);    
 
     logger.setVerbose (vm.at("verbose").as<int>());
-    const bool debug = vm.count("debug");
     
     if (vm.count("help")) {
       cout << desc << "\n";
@@ -189,46 +239,75 @@ int main (int argc, char** argv) {
     }
 
     const Pos len = vm.at("kmerlen").as<int>();
-
-    const Pos maxExactTandemRepeatLen = vm.at("tandem").as<int>();
-    const Pos minApproxTandemRepeatLen = maxExactTandemRepeatLen;
-    const double minApproxTandemRepeatIdentity = vm.at("approx").as<double>();
-
-    const Pos minInvRepLen = vm.at("invrep").as<int>();
-
-    EditDistanceMatrix edit (len, vm.at("remotelen").as<int>(), vm.at("remotedist").as<int>());
-    FoldMatrix fold (len, vm.at("basepairs").as<int>());
+    Assert (len <= 31, "Maximum context is 31 bases");
+    
+    const Pos maxTandemRepeatLen = vm.at("tandem").as<int>();
+    const Pos invertedRepeatLen = vm.at("invrep").as<int>();
+    const int nbrDist = vm.at("nbrdist").as<int>();
 
     const Kmer maxKmer = kmerMask(len);
 
-    ProgressLog (plog, 1);
-    plog.initProgress ("Iterating over %d-mers", len);
-
+    // Remove repeats
+    ProgressLog (plogReps, 1);
+    plogReps.initProgress ("Filtering %d-mer repeats", len);
+    vguard<KmerFlags> kmerFlags (maxKmer+1);
+    unsigned long long nKmersWithoutReps = 0;
+    list<Kmer> kmersWithoutReps;
     for (Kmer kmer = 0; kmer <= maxKmer; ++kmer) {
-      plog.logProgress (kmer / (double) maxKmer, "sequence %llu/%llu", kmer, maxKmer);
-      if (debug) {
-
-	cout << kmerToString(kmer,len)
-	     << " exactLocalTandem=" << hasExactTandemRepeat(kmer,len,maxExactTandemRepeatLen)
-	     << " approxLocalTandem=" << hasApproxTandemRepeat(kmer,len,minApproxTandemRepeatLen,minApproxTandemRepeatIdentity)
-	     << " exactRemoteInvRep=" << hasExactInvertedRepeat(kmer,len,minInvRepLen)
-	     << " approxRemoteTandem=" << edit.pastThreshold(kmer)
-	     << " tooManyBasepairs=" << fold.pastThreshold(kmer)
-	     << endl;
-
-      } else {
-
-	plog.logProgress (kmer / (double) maxKmer, "sequence %llu/%llu", kmer, maxKmer);
-	
-	if (!hasExactTandemRepeat(kmer,len,maxExactTandemRepeatLen)
-	    && !hasApproxTandemRepeat(kmer,len,minApproxTandemRepeatLen,minApproxTandemRepeatIdentity)
-	    && !hasExactInvertedRepeat(kmer,len,minInvRepLen)
-	    && !edit.pastThreshold(kmer)
-	    && !fold.pastThreshold(kmer))
-	  cout << kmerToString(kmer,len) << endl;
+      plogReps.logProgress (kmer / (double) maxKmer, "sequence %llu/%llu", kmer, maxKmer);
+      
+      if (!hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
+	  && !hasExactInvertedRepeat(kmer,len,invertedRepeatLen)) {
+	LogThisAt(9,"Accepting " << kmerString(kmer,len) << endl);
+	kmerFlags[kmer] = KmerValid;
+	kmersWithoutReps.push_back (kmer);
+	++nKmersWithoutReps;
       }
     }
+    LogThisAt(2,"Found " << nKmersWithoutReps << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutReps/(1.+(double)maxKmer) << "%)" << endl);
 
+    // Remove neighbors
+    ProgressLog (plogNbrs, 1);
+    plogNbrs.initProgress ("Rejecting neighbors up to (transition+2*transversion)-distance %d", nbrDist);
+    unsigned long long nbrScans = 0, nbrsRejected = 0, nKmersWithoutNeighbors = 0;
+    MutPosIterator mutPosIter (len, nbrDist);
+    list<Kmer> kmersWithoutNeighbors;
+    for (auto kmer: kmersWithoutReps) {
+      ++nbrScans;
+      plogNbrs.logProgress (nbrScans / (double) nKmersWithoutReps, "sequence %llu/%llu", nbrScans, nKmersWithoutReps);
+      if (kmerFlags[kmer] & KmerValid) {
+	kmersWithoutNeighbors.push_back (kmer);
+	++nKmersWithoutNeighbors;
+	for (mutPosIter.reset(); !mutPosIter.done(); mutPosIter.next()) {
+	  mutPosIter.getNeighbors (kmer);
+	  for (auto nbr: mutPosIter.neighbors)
+	    if (kmerFlags[nbr] & KmerValid) {
+	      LogThisAt(5,"Rejecting " << kmerString(kmer,len) << " neighbor " << kmerString(nbr,len) << endl);
+	      kmerFlags[nbr] = 0;
+	    }
+	}
+      }
+    }
+    LogThisAt(2,"Neighbor elimination left " << nKmersWithoutNeighbors << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nKmersWithoutNeighbors/(1.+(double)maxKmer) << "%)" << endl);
+
+    // Remove dead ends
+    ProgressLog (plogPrune, 1);
+    plogNbrs.initProgress ("Pruning dead ends");
+    vguard<Kmer> outgoing (4);
+    for (auto kmer: kmersWithoutNeighbors)
+      pruneDeadEnds (kmer, len, outgoing, kmerFlags);
+    unsigned long long nPruned = 0, nUnpruned = 0;
+    list<Kmer> unprunedKmers;
+    for (auto kmer: kmersWithoutNeighbors) {
+      ++nPruned;
+      plogNbrs.logProgress (nPruned / (double) nKmersWithoutNeighbors, "sequence %llu/%llu", nPruned, nKmersWithoutNeighbors);
+      if (kmerFlags[kmer] & KmerValid) {
+	unprunedKmers.push_back (kmer);
+	++nUnpruned;
+      }
+    }
+    LogThisAt(2,"Dead-end pruning left " << nUnpruned << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
+    
   } catch (const std::exception& e) {
     cerr << e.what() << endl;
   }
