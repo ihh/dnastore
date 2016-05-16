@@ -110,12 +110,6 @@ inline double kmerEntropy (Kmer kmer, Pos len) {
   return S / log(2);
 }
 
-inline bool kmerEqualOrBetter (Kmer x, Kmer y, Pos len) {
-  const double xgc = gcNonuniformity(x,len);
-  const double ygc = gcNonuniformity(y,len);
-  return xgc == ygc ? (kmerEntropy(x,len) >= kmerEntropy(y,len)) : (xgc < ygc);
-}
-
 inline Kmer kmerMask (Pos len) {
   // 4^len - 1 = 2^(2*len) - 1 = (1 << (2*len)) - 1 = (1 << (len << 1)) - 1
   return (((Kmer) 1) << (len << 1)) - 1;
@@ -147,5 +141,9 @@ inline Kmer kmerRevComp (Kmer kmer, Pos len) {
     rc = (rc << 2) | complementBase (getBase(kmer,i));
   return rc;
 }
+
+struct EdgeVector : vguard<Kmer> {
+  EdgeVector() : vguard<Kmer>(4) { }
+};
 
 #endif /* KMER_INCLUDED */

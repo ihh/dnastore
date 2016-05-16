@@ -10,30 +10,42 @@
 using namespace std;
 
 struct TransBuilder {
+  static vguard<int> edgeFlagsToCountLookup;
+
+  // specified at creation
   const Pos len;
   const Kmer maxKmer;
-  vguard<bool> kmerValid;
+
+  // config
   Pos maxTandemRepeatLen, invertedRepeatLen;
   set<KmerLen> excludedMotif, excludedMotifRevComp;
   set<KmerLen> sourceMotif;
-
+  int controlWords;
+  
+  // work variables
+  vguard<bool> kmerValid;
   list<Kmer> kmers;
   map<Kmer,State> kmerState;
-  static vguard<int> edgeFlagsToCountLookup;
-
+  map<Kmer,int> timesAvoided;
+  
   TransBuilder (Pos len);
 
   void removeRepeats();
-  void keepDFS();
+  void pruneUnreachable();
   void pruneDeadEnds();
   void indexStates();
   
   void output (ostream& out);
 
-  void doDFS (Kmer kmer, set<Kmer>& seen) const;
+  void doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) const;
+
+  set<Kmer> neighbors (const set<Kmer>& start, int steps, bool forwards) const;
+  set<Kmer> neighbors (Kmer start, int steps, bool forwards) const;
+
+  int stepsToReach (KmerLen motif, int maxSteps = 64) const;
 
   inline void pruneDeadEnds (Kmer kmer) {
-    vguard<Kmer> in (4), out (4);
+    EdgeVector in, out;
     if (kmerValid[kmer] && !endsWithMotif(kmer,len,sourceMotif)) {
       const EdgeFlags inFlags = incomingEdgeFlags(kmer,in);
       const EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
@@ -49,13 +61,13 @@ struct TransBuilder {
     }
   }
  
-  inline void getOutgoing (Kmer kmer, vguard<Kmer>& outgoing) const {
+  inline void getOutgoing (Kmer kmer, EdgeVector& outgoing) const {
     Assert (outgoing.size() == 4, "oops");
     const Kmer prefix = (kmer << 2) & kmerMask(len);
     iota (outgoing.begin(), outgoing.end(), prefix);
   }
 
-  inline void getIncoming (Kmer kmer, vguard<Kmer>& incoming) const {
+  inline void getIncoming (Kmer kmer, EdgeVector& incoming) const {
     Assert (incoming.size() == 4, "oops");
     const Kmer prefix = kmer >> 2;
     const int shift = (len - 1) << 1;
@@ -63,7 +75,7 @@ struct TransBuilder {
       incoming[b] = prefix | (((Kmer) b) << shift);
   }
 
-  inline EdgeFlags outgoingEdgeFlags (Kmer kmer, vguard<Kmer>& outgoing) {
+  inline EdgeFlags outgoingEdgeFlags (Kmer kmer, EdgeVector& outgoing) {
     getOutgoing (kmer, outgoing);
     EdgeFlags f = 0;
     for (size_t n = 0; n < 4; ++n)
@@ -72,7 +84,7 @@ struct TransBuilder {
     return f;
   }
 
-  inline EdgeFlags incomingEdgeFlags (Kmer kmer, vguard<Kmer>& incoming) {
+  inline EdgeFlags incomingEdgeFlags (Kmer kmer, EdgeVector& incoming) {
     getIncoming (kmer, incoming);
     EdgeFlags f = 0;
     for (size_t n = 0; n < 4; ++n)
@@ -85,6 +97,16 @@ struct TransBuilder {
     return edgeFlagsToCountLookup[flags & 0xf];
   }
 
+  inline bool betterDest (Kmer x, Kmer y) {  // true if x is preferred target
+    const int xa = timesAvoided[x], ya = timesAvoided[y];
+    const double xgc = gcNonuniformity(x,len);
+    const double ygc = gcNonuniformity(y,len);
+    return xa == ya
+      ? (xgc == ygc
+	 ? (kmerEntropy(x,len) >= kmerEntropy(y,len))
+	 : (xgc < ygc))
+      : (xa < ya);
+  }
 };
 
 #endif /* TRANSBUILDER_INCLUDED */

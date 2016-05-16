@@ -6,9 +6,10 @@ vguard<int> TransBuilder::edgeFlagsToCountLookup ({ 0, 1, 1, 2, 1, 2, 2, 3, 1, 2
 TransBuilder::TransBuilder (Pos len)
   : len (len),
     maxKmer (kmerMask (len)),
-    kmerValid (maxKmer + 1),
     maxTandemRepeatLen (len / 2),
-    invertedRepeatLen (0)
+    invertedRepeatLen (0),
+    controlWords (0),
+    kmerValid (maxKmer + 1)
 { }
 
 void TransBuilder::removeRepeats() {
@@ -32,45 +33,93 @@ void TransBuilder::removeRepeats() {
   LogThisAt(2,"Found " << nKmersWithoutReps << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutReps/(1.+(double)maxKmer) << "%)" << endl);
 }
 
-void TransBuilder::keepDFS() {
-  set<Kmer> seen;
+void TransBuilder::pruneUnreachable() {
+  map<Kmer,int> dist;
   for (const auto& kl: sourceMotif)
     if (kl.len == len)
-      doDFS (kl.kmer, seen);
-  if (kmers.size() && !seen.size())
-    doDFS (kmers.front(), seen);
+      doDFS (kl.kmer, dist, true);
+  if (kmers.size() && !dist.size())
+    doDFS (kmers.front(), dist, true);
   unsigned long long nDropped = 0;
   for (auto kmer: kmers)
-    if (!seen.count(kmer)) {
+    if (!dist.count(kmer)) {
       LogThisAt(6,"Dropping " << kmerString(kmer,len) << " as it was not seen in depth-first search" << endl);
       kmerValid[kmer] = false;
       ++nDropped;
     }
   if (nDropped) {
     LogThisAt(2,"Dropped " << nDropped << " " << len << "-mers that were unreachable in depth-first search" << endl);
-    list<Kmer> seenKmers (seen.begin(), seen.end());
-    kmers.swap (seenKmers);
+    kmers.clear();
+    for (const auto& kd: dist)
+      kmers.push_back (kd.first);
     pruneDeadEnds();
   } else
     LogThisAt(2,"All " << kmers.size() << " " << len << "-mers were reached in depth-first search" << endl);
 }
 
-void TransBuilder::doDFS (Kmer kmer, set<Kmer>& seen) const {
-  vguard<Kmer> out (4);
+void TransBuilder::doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) const {
+  EdgeVector nbr;
   list<Kmer> kqueue;
+  list<int> kdist;
   kqueue.push_back (kmer);
+  kdist.push_back (0);
   while (!kqueue.empty()) {
     kmer = kqueue.back();
+    const auto d = kdist.back();
     LogThisAt(9,"Depth-first search: visiting " << kmerString(kmer,len) << endl);
     kqueue.pop_back();
-    if (!seen.count(kmer)) {
-      seen.insert (kmer);
-      getOutgoing (kmer, out);
-      for (auto dest: out)
-	if (kmerValid[dest] && !seen.count(dest))
-	  kqueue.push_back (dest);
+    kdist.pop_back();
+    if (!distance.count(kmer)) {
+      distance[kmer] = d;
+      if (forwards)
+	getOutgoing (kmer, nbr);
+      else
+	getIncoming (kmer, nbr);
+      for (auto n: nbr)
+	if (kmerValid[n] && !distance.count(n)) {
+	  kqueue.push_back (n);
+	  kdist.push_back (d + 1);
+	}
     }
   }
+}
+
+set<Kmer> TransBuilder::neighbors (const set<Kmer>& start, int steps, bool forwards) const {
+  if (steps > 1)
+    return neighbors (neighbors(start,steps-1,forwards), 1, forwards);
+  set<Kmer> nbr;
+  EdgeVector next;
+  for (auto kmer: start) {
+    if (forwards)
+      getOutgoing (kmer, next);
+    else
+      getIncoming (kmer, next);
+    for (auto n: next)
+      if (kmerValid[n])
+	nbr.insert (n);
+  }
+  return nbr;
+}
+
+set<Kmer> TransBuilder::neighbors (Kmer start, int steps, bool forwards) const {
+  set<Kmer> startSet;
+  startSet.insert (start);
+  return neighbors (startSet, steps, forwards);
+}
+
+int TransBuilder::stepsToReach (KmerLen motif, int maxSteps) const {
+  set<KmerLen> motifs;
+  motifs.insert (motif);
+  set<Kmer> nbr;
+  for (auto kmer: kmers)
+    if (endsWithMotif(kmer,len,motifs))
+      nbr.insert(kmer);
+  for (int steps = 0; steps < maxSteps; ++steps) {
+    if (nbr.size() == kmers.size())
+      return steps;
+    nbr = neighbors (nbr, 1, false);
+  }
+  return -1;
 }
 
 void TransBuilder::pruneDeadEnds() {
@@ -100,11 +149,12 @@ void TransBuilder::indexStates() {
 }
 
 void TransBuilder::output (ostream& outs) {
-  vguard<Kmer> out (4);
+  EdgeVector out;
   vguard<char> outChar;
   vguard<State> outState;
   for (auto kmer: kmers) {
-    const EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
+    EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
+    // WRITE ME: if we have a transition degeneracy, skip one of them
     outChar.clear();
     outState.clear();
     for (size_t n = 0; n < 4; ++n)
@@ -127,6 +177,8 @@ void TransBuilder::output (ostream& outs) {
 	   << " 01/" << outChar[1] << "->#" << outState[1]
 	   << " 10/" << outChar[2] << "->#" << outState[2]
 	   << " 11/" << outChar[3] << "->#" << outState[3];
+    // number of steps with which this state can be reached
+    //    outs << " (" << stepsToReach(KmerLen(kmer,len),len*2) << ")";
     outs << endl;
   }
 }

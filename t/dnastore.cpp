@@ -36,6 +36,7 @@ int main (int argc, char** argv) {
       ("invrep,i", po::value<int>()->default_value(5), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,s", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
+      ("control,c", po::value<int>()->default_value(0), "number of control words")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -65,10 +66,12 @@ int main (int argc, char** argv) {
     getMotifs (vm, "exclude", builder.excludedMotif, builder.excludedMotifRevComp);
     getMotifs (vm, "source", builder.sourceMotif, builder.excludedMotifRevComp);
 
+    builder.controlWords = vm.at("control").as<int>();
+    
     // build transducer
     builder.removeRepeats();
     builder.pruneDeadEnds();
-    builder.keepDFS();
+    builder.pruneUnreachable();
     builder.indexStates();
 
     // Output the transducer
