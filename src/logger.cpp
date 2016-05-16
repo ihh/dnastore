@@ -43,50 +43,14 @@ void Logger::colorOff() {
   useAnsiColor = false;
 }
 
-bool Logger::parseLogArgs (deque<string>& argvec) {
-  smatch sm;
-  if (argvec.size()) {
-    const string& arg = argvec[0];
-    if (arg == "-log") {
-      Require (argvec.size() > 1, "%s must have an argument", arg.c_str());
-      addTag (argvec[1]);
-      argvec.pop_front();
-      argvec.pop_front();
-      return true;
+void Logger::parseLogArgs (boost::program_options::variables_map& vm) {
+  setVerbose (vm.at("verbose").as<int>());
+  if (vm.count("log"))
+    for (const auto& x: vm.at("log").as<vector<string> >())
+      addTag (x);
 
-    } else if (arg == "-verbose") {
-      setVerbose (1);
-      argvec.pop_front();
-      return true;
-
-    } else if (regex_match (arg, all_v)) {
-      setVerbose ((unsigned int) (arg.size() - 1));
-      argvec.pop_front();
-      return true;
-
-    } else if (regex_match (arg, sm, numeric_v)) {
-      setVerbose (atoi (sm.str(1).c_str()));
-      argvec.pop_front();
-      return true;
-
-    } else if (arg == "-nocolor") {
-      useAnsiColor = false;
-      argvec.pop_front();
-      return true;
-    }
-  }
-  return false;
-}
-
-string Logger::args() const {
-  string a;
-  if (verbosity > 0)
-    a += " -v" + to_string(verbosity);
-  for (const auto& t : logTags)
-    a += " -log " + t;
-  if (!useAnsiColor)
-    a += " -nocolor";
-  return a;
+  if (vm.count("nocolor"))
+    useAnsiColor = false;
 }
 
 void Logger::lock (int color, const char* file, int line, bool banner) {
