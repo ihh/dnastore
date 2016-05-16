@@ -213,23 +213,19 @@ inline list<Kmer> pruneDeadEnds (const list<Kmer>& kmers, Pos len, vguard<bool>&
   return unprunedKmers;
 }
 
-inline bool containsMotif (Kmer seq, Pos len, Kmer motif, Pos motifLen) {
-  const Kmer rc = kmerRevComp (seq, len);
+inline bool containsMotif (Kmer seq, Pos len, Kmer motif, Pos motifLen, const char* desc) {
   for (Pos i = len - motifLen + 1; i >= 1; --i)
     if (kmerSub (seq, i, motifLen) == motif) {
-      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because it contains " << kmerSubAt(seq,i,motifLen,len) << " (excluded motif)" << endl);
-      return true;
-    } else if (kmerSub (rc, i, motifLen) == motif) {
-      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because reverse-complement " << kmerString(rc,len) << " contains " << kmerSubAt(rc,i,motifLen,len) << " (excluded motif)" << endl);
+      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because it contains " << kmerSubAt(seq,i,motifLen,len) << " (" << desc << ")" << endl);
       return true;
     }
 
   return false;
 }
 
-inline bool containsMotifs (Kmer seq, Pos len, const vguard<Kmer>& motifs, const vguard<Pos>& motifLengths) {
+inline bool containsMotifs (Kmer seq, Pos len, const vguard<Kmer>& motifs, const vguard<Pos>& motifLengths, const char* desc) {
   for (size_t n = 0; n < motifs.size(); ++n)
-    if (containsMotif (seq, len, motifs[n], motifLengths[n]))
+    if (containsMotif (seq, len, motifs[n], motifLengths[n], desc))
       return true;
   return false;
 }
@@ -304,12 +300,15 @@ int main (int argc, char** argv) {
     const Pos maxTandemRepeatLen = vm.at("tandem").as<int>();
     const Pos invertedRepeatLen = vm.at("invrep").as<int>();
 
-    vguard<Kmer> excludedMotif;
+    vguard<Kmer> excludedMotif, excludedMotifRevComp;
     vguard<Pos> excludedMotifLen;
     if (vm.count("exclude"))
       for (const auto& x: vm.at("exclude").as<vector<string> >()) {
-	excludedMotif.push_back (stringToKmer (x));
-	excludedMotifLen.push_back (x.size());
+	const Kmer motif = stringToKmer (x);
+	const Pos motifLen = x.size();
+	excludedMotif.push_back (motif);
+	excludedMotifRevComp.push_back (kmerRevComp (motif, motifLen));
+	excludedMotifLen.push_back (motifLen);
       }
 
     const Kmer maxKmer = kmerMask(len);
@@ -323,7 +322,8 @@ int main (int argc, char** argv) {
     for (Kmer kmer = 0; kmer <= maxKmer; ++kmer) {
       plogReps.logProgress (kmer / (double) maxKmer, "sequence %llu/%llu", kmer, maxKmer);
       
-      if (!containsMotifs(kmer,len,excludedMotif,excludedMotifLen)
+      if (!containsMotifs(kmer,len,excludedMotif,excludedMotifLen,"excluded motif")
+	  && !containsMotifs(kmer,len,excludedMotifRevComp,excludedMotifLen,"revcomp of excluded motif")
 	  && !hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
 	  && !hasExactLocalInvertedRepeat(kmer,len,3,maxTandemRepeatLen)
 	  && !hasExactNonlocalInvertedRepeat(kmer,len,invertedRepeatLen,2)) {
