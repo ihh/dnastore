@@ -18,9 +18,15 @@ typedef int Pos;
 typedef unsigned char EdgeFlags;
 typedef unsigned long long State;
 
-const char* alphabet = "ATGC";
+const char* alphabet = "AGTC";
 inline char baseToChar (Base base) {
   return alphabet[base & 3];
+}
+
+inline Base charToBase (char c) {
+  const char* s = strchr (alphabet, toupper(c));
+  Require (s != NULL, "%c is not a nucleotide character", c);
+  return (Base) (s - alphabet);
 }
 
 inline Base getBase (Kmer kmer, Pos pos) {
@@ -32,6 +38,14 @@ inline Kmer setBase (Kmer kmer, Pos pos, Base base) {
   return (kmer & (((Kmer) -1) ^ (3 << shift))) | (((Kmer) base) << shift);
 }
 
+inline Base complementBase (Base b) {
+  return b ^ 2;
+}
+
+inline Kmer makeTransition (Kmer kmer, Pos pos) {
+  return kmer ^ (1 << ((pos - 1) << 1));
+}
+
 inline string kmerString (Kmer kmer, Pos len) {
   string s (len, '*');
   for (Pos i = 1; i <= len; ++i)
@@ -39,16 +53,57 @@ inline string kmerString (Kmer kmer, Pos len) {
   return s;
 }
 
+inline Kmer stringToKmer (const string& s) {
+  Kmer kmer = 0;
+  for (Pos i = 0; i <= s.size(); ++i)
+    kmer = setBase (kmer, s.size() - i, charToBase (s[i]));
+  return kmer;
+}
+
 inline bool isTransition (Base x, Base y) {
-  return (x & 1) == (y & 1);
+  return x != y && (x & 2) == (y & 2);
+}
+
+inline bool isTransversion (Base x, Base y) {
+  return x != y && (x & 2) != (y & 2);
 }
 
 inline bool isComplement (Base x, Base y) {
-  return (x ^ 3) == y;
+  return y == complementBase(x);
 }
 
 inline bool isGC (Base x) {
-  return (x & 2) == 1;
+  return (x & 1) == 1;
+}
+
+inline double gcContent (Kmer kmer, Pos len) {
+  int gc = 0;
+  for (Pos pos = 1; pos <= len; ++pos)
+    if (isGC (getBase (kmer, pos)))
+      ++gc;
+  return gc / (double) len;
+}
+
+inline double gcNonuniformity (Kmer kmer, Pos len) {
+  const double gc = gcContent (kmer, len);
+  return abs (gc - .5);
+}
+
+inline double kmerEntropy (Kmer kmer, Pos len) {
+  vguard<int> freq (4);
+  for (Pos pos = 1; pos <= len; ++pos)
+    ++freq[getBase(kmer,pos)];
+  double S = 0;
+  for (Base b = 0; b < 3; ++b)
+    if (freq[b])
+      S -= freq[b] * log (freq[b] / (double) len);
+  return S / log(2);
+}
+
+inline bool kmerEqualOrBetter (Kmer x, Kmer y, Pos len) {
+  const double xgc = gcNonuniformity(x,len);
+  const double ygc = gcNonuniformity(y,len);
+  return xgc == ygc ? (kmerEntropy(x,len) >= kmerEntropy(y,len)) : (xgc < ygc);
 }
 
 inline Kmer kmerMask (Pos len) {
@@ -69,7 +124,7 @@ inline int kmerLeftCoord (Pos pos, Pos len) {
 }
 
 inline string kmerSubCoords (Pos start, Pos len, Pos kmerLen) {
-  return string("[") + to_string(kmerLeftCoord(start+len-1,kmerLen)) + ".." + to_string(kmerLeftCoord(start,kmerLen)) + "]";
+  return string("[") + to_string(kmerLeftCoord(start+len-1,kmerLen)) + (len > 1 ? (string("..") + to_string(kmerLeftCoord(start,kmerLen))) : string()) + "]";
 }
 
 inline string kmerSubAt (Kmer kmer, Pos start, Pos len, Pos kmerLen) {
@@ -79,7 +134,7 @@ inline string kmerSubAt (Kmer kmer, Pos start, Pos len, Pos kmerLen) {
 inline Kmer kmerRevComp (Kmer kmer, Pos len) {
   Kmer rc = 0;
   for (Pos i = 1; i <= len; ++i)
-    rc = (rc << 2) | getBase(kmer,i);
+    rc = (rc << 2) | complementBase (getBase(kmer,i));
   return rc;
 }
 
@@ -97,13 +152,22 @@ inline void getIncoming (Kmer kmer, Pos len, vguard<Kmer>& incoming) {
     incoming[b] = prefix | (((Kmer) b) << shift);
 }
 
-inline EdgeFlags outgoingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& outgoing, const vguard<bool>& validFlag) {
-  getOutgoing (kmer, len, outgoing);
+inline EdgeFlags edgeFlags (Kmer kmer, Pos len, vguard<Kmer>& kmers, const vguard<bool>& validFlag) {
   EdgeFlags f = 0;
   for (size_t n = 0; n < 4; ++n)
-    if (validFlag[outgoing[n]])
+    if (validFlag[kmers[n]])
       f = f | (1 << n);
   return f;
+}
+
+inline EdgeFlags outgoingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& outgoing, const vguard<bool>& validFlag) {
+  getOutgoing (kmer, len, outgoing);
+  return edgeFlags (kmer, len, outgoing, validFlag);
+}
+
+inline EdgeFlags incomingEdgeFlags (Kmer kmer, Pos len, vguard<Kmer>& incoming, const vguard<bool>& validFlag) {
+  getIncoming (kmer, len, incoming);
+  return edgeFlags (kmer, len, incoming, validFlag);
 }
 
 int edgeFlagsToCountLookup[] = { 0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4 };
@@ -111,33 +175,29 @@ inline int edgeFlagsToCount (EdgeFlags flags) {
   return edgeFlagsToCountLookup[flags & 0xf];
 }
 
-void pruneKmer (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid);
-inline void pruneDeadEnds (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid) {
+inline void pruneDeadEnds (Kmer kmer, Pos len, vguard<Kmer>& in, vguard<Kmer>& out, vguard<bool>& valid) {
   if (valid[kmer]) {
+    const EdgeFlags inFlags = incomingEdgeFlags(kmer,len,in,valid);
     const EdgeFlags outFlags = outgoingEdgeFlags(kmer,len,out,valid);
-    if (outFlags == 0) {
-      LogThisAt(9,"Pruning " << kmerString(kmer,len) << endl);
-      pruneKmer(kmer,len,out,valid);
+    if (inFlags == 0 || outFlags == 0) {
+      LogThisAt(5,"Pruning " << kmerString(kmer,len) << endl);
+      valid[kmer] = 0;
+      for (auto kmerIn: in)
+	pruneDeadEnds (kmerIn, len, in, out, valid);
+      for (auto kmerOut: out)
+	pruneDeadEnds (kmerOut, len, in, out, valid);
     } else
-      LogThisAt(9,"Keeping " << kmerString(kmer,len) << " with " << edgeFlagsToCount(outFlags) << " outgoing edges" << endl);
+      LogThisAt(9,"Keeping " << kmerString(kmer,len) << " with " << edgeFlagsToCount(inFlags) << " incoming and " << edgeFlagsToCount(outFlags) << " outgoing edges" << endl);
   }
-}
-
-inline void pruneKmer (Kmer kmer, Pos len, vguard<Kmer>& out, vguard<bool>& valid) {
-  valid[kmer] = 0;
-  vguard<Kmer> incoming (4);
-  getIncoming (kmer, len, incoming);
-  for (auto kmerIn: incoming)
-    pruneDeadEnds (kmerIn, len, out, valid);
 }
 
 inline list<Kmer> pruneDeadEnds (const list<Kmer>& kmers, Pos len, vguard<bool>& valid) {
   const Kmer maxKmer = kmerMask(len);
-  vguard<Kmer> outgoing (4);
+  vguard<Kmer> incoming (4), outgoing (4);
   ProgressLog (plogPrune, 1);
   plogPrune.initProgress ("Pruning dead ends");
   for (auto kmer: kmers)
-    pruneDeadEnds (kmer, len, outgoing, valid);
+    pruneDeadEnds (kmer, len, incoming, outgoing, valid);
   const unsigned long long nKmers = kmers.size();
   unsigned long long nPruned = 0, nUnpruned = 0;
   list<Kmer> unprunedKmers;
@@ -149,35 +209,61 @@ inline list<Kmer> pruneDeadEnds (const list<Kmer>& kmers, Pos len, vguard<bool>&
       ++nUnpruned;
     }
   }
-  LogThisAt(2,"Dead-end pruning left " << nUnpruned << " candidate " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
+  LogThisAt(2,"Dead-end pruning left " << nUnpruned << " " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
   return unprunedKmers;
+}
+
+inline bool containsMotif (Kmer seq, Pos len, Kmer motif, Pos motifLen) {
+  const Kmer rc = kmerRevComp (seq, len);
+  for (Pos i = len - motifLen + 1; i >= 1; --i)
+    if (kmerSub (seq, i, motifLen) == motif) {
+      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because it contains " << kmerSubAt(seq,i,motifLen,len) << " (excluded motif)" << endl);
+      return true;
+    } else if (kmerSub (rc, i, motifLen) == motif) {
+      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because reverse-complement " << kmerString(rc,len) << " contains " << kmerSubAt(rc,i,motifLen,len) << " (excluded motif)" << endl);
+      return true;
+    }
+
+  return false;
+}
+
+inline bool containsMotifs (Kmer seq, Pos len, const vguard<Kmer>& motifs, const vguard<Pos>& motifLengths) {
+  for (size_t n = 0; n < motifs.size(); ++n)
+    if (containsMotif (seq, len, motifs[n], motifLengths[n]))
+      return true;
+  return false;
 }
 
 inline bool hasExactTandemRepeat (Kmer seq, Pos len, Pos maxRepeatLen) {
   for (Pos repeatLen = 1; repeatLen <= maxRepeatLen; ++repeatLen)
-    for (Pos i = len - repeatLen; i >= 1; --i)
+    for (Pos i = len - 2*repeatLen + 1; i >= 1; --i)
       if (kmerSub (seq, i, repeatLen) == kmerSub (seq, i + repeatLen, repeatLen)) {
 	const int logLevel = max(5,8-repeatLen);
-	LogThisAt(logLevel,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,i+repeatLen,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (exact tandem repeat)" << endl);
+	LogThisAt(logLevel,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,i+repeatLen,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (" << (repeatLen == 1 ? "repeated base" : "exact tandem repeat") << ")" << endl);
 	return true;
       }
   return false;
 }
 
-inline bool tooManyMismatches (Kmer seq1, Kmer seq2, Pos len, unsigned int maxMismatches) {
-  unsigned int mismatches = 0;
-  for (Pos i = 1; i < len; ++i)
-    if (getBase(seq1,i) != getBase(seq2,i))
-      if (++mismatches > maxMismatches)
+inline bool hasExactLocalInvertedRepeat (Kmer seq, Pos len, Pos minRepeatLen, Pos maxRepeatLen) {
+  const Kmer rc = kmerRevComp (seq, len);
+  for (Pos repeatLen = minRepeatLen; repeatLen <= maxRepeatLen; ++repeatLen)
+    for (Pos i = len - 2*repeatLen + 1; i >= 1; --i) {
+      const Kmer invRep = kmerSub (rc, len - i + 1, repeatLen);
+      if (invRep == kmerSub (seq, i + repeatLen, repeatLen)) {
+	const int logLevel = max(5,8-repeatLen);
+	LogThisAt(logLevel,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,i+repeatLen,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (palindrome)" << endl);
 	return true;
+      }
+    }
   return false;
 }
 
-inline bool hasExactInvertedRepeat (Kmer seq, Pos len, Pos repeatLen) {
+inline bool hasExactNonlocalInvertedRepeat (Kmer seq, Pos len, Pos repeatLen, Pos minSeparation) {
   const Kmer rc = kmerRevComp (seq, len);
-  for (Pos i = len - repeatLen*2 - 2; i > 0; --i) {
+  for (Pos i = len - repeatLen*2 - minSeparation; i > 0; --i) {
     const Kmer invRep = kmerSub (rc, len - i + 1, repeatLen);
-    const Pos jMin = i + repeatLen + 2;
+    const Pos jMin = i + repeatLen + minSeparation;
     for (Pos j = len - repeatLen + 1; j >= jMin; --j)
       if (invRep == kmerSub (seq, j, repeatLen)) {
 	LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,j,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (exact inverted repeat)" << endl);
@@ -195,8 +281,9 @@ int main (int argc, char** argv) {
     desc.add_options()
       ("help,h", "display this help message")
       ("kmerlen,k", po::value<int>()->default_value(15), "length of k-mers in de Bruijn graph")
-      ("tandem,t", po::value<int>()->default_value(5), "reject local tandem duplications up to this length")
-      ("invrep,i", po::value<int>()->default_value(5), "reject inverted repeats of this length (separated by at least 2 bases)")
+      ("tandem,t", po::value<int>()->default_value(5), "reject local tandem duplications & inverted repeats up to this length")
+      ("invrep,i", po::value<int>()->default_value(5), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
+      ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ;
 
@@ -217,6 +304,14 @@ int main (int argc, char** argv) {
     const Pos maxTandemRepeatLen = vm.at("tandem").as<int>();
     const Pos invertedRepeatLen = vm.at("invrep").as<int>();
 
+    vguard<Kmer> excludedMotif;
+    vguard<Pos> excludedMotifLen;
+    if (vm.count("exclude"))
+      for (const auto& x: vm.at("exclude").as<vector<string> >()) {
+	excludedMotif.push_back (stringToKmer (x));
+	excludedMotifLen.push_back (x.size());
+      }
+
     const Kmer maxKmer = kmerMask(len);
 
     // Remove repeats
@@ -228,8 +323,10 @@ int main (int argc, char** argv) {
     for (Kmer kmer = 0; kmer <= maxKmer; ++kmer) {
       plogReps.logProgress (kmer / (double) maxKmer, "sequence %llu/%llu", kmer, maxKmer);
       
-      if (!hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
-	  && !hasExactInvertedRepeat(kmer,len,invertedRepeatLen)) {
+      if (!containsMotifs(kmer,len,excludedMotif,excludedMotifLen)
+	  && !hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
+	  && !hasExactLocalInvertedRepeat(kmer,len,3,maxTandemRepeatLen)
+	  && !hasExactNonlocalInvertedRepeat(kmer,len,invertedRepeatLen,2)) {
 	LogThisAt(9,"Accepting " << kmerString(kmer,len) << endl);
 	kmerValid[kmer] = true;
 	kmersWithoutReps.push_back (kmer);
@@ -238,23 +335,40 @@ int main (int argc, char** argv) {
     }
     LogThisAt(2,"Found " << nKmersWithoutReps << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutReps/(1.+(double)maxKmer) << "%)" << endl);
 
+    // Eliminate transition redundancies where possible
+    list<Kmer> kmersWithoutTransitions;
+    for (Kmer kmer: kmersWithoutReps) {
+      const Kmer transKmer = makeTransition(kmer,1);
+      if (kmerValid[kmer] && kmerValid[transKmer] && kmerEqualOrBetter(transKmer,kmer,len)) {
+	kmerValid[kmer] = false;
+	LogThisAt(4,"Eliminating "
+		  << kmerString(kmer,len) << " (" << setprecision(2) << 100*gcContent(kmer,len) << "% GC, " << setw(3) << kmerEntropy(kmer,len) << " bits)"
+		  << " since we also have "
+		  << kmerString(transKmer,len) << " (" << setprecision(2) << 100*gcContent(transKmer,len) << "% GC, " << setw(3) << kmerEntropy(transKmer,len) << " bits)"
+		  << endl);
+      } else
+	kmersWithoutTransitions.push_back (kmer);
+    }
+    const unsigned long long nKmersWithoutTransitions = kmersWithoutTransitions.size();
+    LogThisAt(2,"Removed " << (nKmersWithoutReps - nKmersWithoutTransitions) << " transition redundancies leaving " << nKmersWithoutTransitions << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutTransitions/(1.+(double)maxKmer) << "%)" << endl);
+    
     // Remove dead ends
-    const list<Kmer> prunedKmersWithoutReps = pruneDeadEnds (kmersWithoutReps, len, kmerValid);
-    const unsigned long long nPrunedKmersWithoutReps = prunedKmersWithoutReps.size();
+    const list<Kmer> prunedKmers = pruneDeadEnds (kmersWithoutTransitions, len, kmerValid);
+    const unsigned long long nPrunedKmers = prunedKmers.size();
 
-    Require (nPrunedKmersWithoutReps > 0, "No valid %d-mers left!", len);
+    Require (nPrunedKmers > 0, "No valid %d-mers left!", len);
 
     // Index the states
     map<Kmer,State> kmerState;
     State n = 0;
-    for (auto kmer: prunedKmersWithoutReps)
+    for (auto kmer: prunedKmers)
       kmerState[kmer] = ++n;
 
     // Output the transducer
     vguard<Kmer> out (4);
     vguard<char> outChar;
     vguard<State> outState;
-    for (auto kmer: prunedKmersWithoutReps) {
+    for (auto kmer: prunedKmers) {
       const EdgeFlags outFlags = outgoingEdgeFlags(kmer,len,out,kmerValid);
       outChar.clear();
       outState.clear();
@@ -263,16 +377,16 @@ int main (int argc, char** argv) {
 	  outChar.push_back (baseToChar(n));
 	  outState.push_back (kmerState.at(out[n]));
 	}
-      cout << kmerState.at(kmer) << " " << kmerString(kmer,len);
+      cout << "#" << kmerState.at(kmer) << " " << kmerString(kmer,len);
       if (outChar.size() == 1)
-	cout << " /" << outChar[0] << ":" << outState[0];
+	cout << " /" << outChar[0] << "->#" << outState[0];
       else if (outChar.size() == 2)
-	cout << " 0/" << outChar[0] << ":" << outState[0]
-	     << " 1/" << outChar[1] << ":" << outState[1];
+	cout << " 0/" << outChar[0] << "->#" << outState[0]
+	     << " 1/" << outChar[1] << "->#" << outState[1];
       else if (outChar.size() == 3)
-	cout << " 00/" << outChar[0] << ":" << outState[0]
-	     << " 01/" << outChar[1] << ":" << outState[1]
-	     << " 1/" << outChar[2] << ":" << outState[2];
+	cout << " 00/" << outChar[0] << "->#" << outState[0]
+	     << " 01/" << outChar[1] << "->#" << outState[1]
+	     << " 1/" << outChar[2] << "->#" << outState[2];
       cout << endl;
     }
 
