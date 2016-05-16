@@ -1,7 +1,12 @@
 #ifndef KMER_INCLUDED
 #define KMER_INCLUDED
 
+#include <cmath>
 #include <string>
+#include "vguard.h"
+#include "util.h"
+
+using namespace std;
 
 typedef unsigned long long Kmer;
 typedef unsigned char Base;
@@ -19,7 +24,7 @@ struct KmerLen {
   }
 };
 
-const char* alphabet = "AGTC";
+extern const char* alphabet;
 inline char baseToChar (Base base) {
   return alphabet[base & 3];
 }

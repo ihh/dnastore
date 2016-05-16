@@ -3,6 +3,7 @@
 
 #include <set>
 #include "kmer.h"
+#include "logger.h"
 
 inline bool endsWithMotif (Kmer seq, Pos len, const set<KmerLen>& motif, const char* desc = NULL) {
   for (const auto& kl: motif)
