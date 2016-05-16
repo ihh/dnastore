@@ -36,10 +36,9 @@ int main (int argc, char** argv) {
       ("invrep,i", po::value<int>()->default_value(5), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,s", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
-      ("keep,k", po::value<bool>(), "keep transition degeneracies")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
-      ("nocolor", po::value<bool>(), "log in monochrome")
+      ("nocolor", "log in monochrome")
       ;
 
     po::variables_map vm;
@@ -66,13 +65,10 @@ int main (int argc, char** argv) {
     getMotifs (vm, "exclude", builder.excludedMotif, builder.excludedMotifRevComp);
     getMotifs (vm, "source", builder.sourceMotif, builder.excludedMotifRevComp);
 
-    if (vm.count("keep"))
-      builder.keepDegenerates = true;
-
     // build transducer
     builder.removeRepeats();
-    builder.removeDegenerates();
     builder.pruneDeadEnds();
+    builder.keepDFS();
     builder.indexStates();
 
     // Output the transducer

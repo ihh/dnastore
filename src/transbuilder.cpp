@@ -8,8 +8,7 @@ TransBuilder::TransBuilder (Pos len)
     maxKmer (kmerMask (len)),
     kmerValid (maxKmer + 1),
     maxTandemRepeatLen (len / 2),
-    invertedRepeatLen (0),
-    keepDegenerates (false)
+    invertedRepeatLen (0)
 { }
 
 void TransBuilder::removeRepeats() {
@@ -33,29 +32,48 @@ void TransBuilder::removeRepeats() {
   LogThisAt(2,"Found " << nKmersWithoutReps << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutReps/(1.+(double)maxKmer) << "%)" << endl);
 }
 
-void TransBuilder::removeDegenerates() {
-  if (keepDegenerates)
-    return;
-  list<Kmer> kmersWithoutTransitions;
-  for (Kmer kmer: kmers) {
-    const Kmer transKmer = makeTransition(kmer,1);
-    if (kmerValid[kmer] && kmerValid[transKmer] && kmerEqualOrBetter(transKmer,kmer,len)) {
+void TransBuilder::keepDFS() {
+  set<Kmer> seen;
+  for (const auto& kl: sourceMotif)
+    if (kl.len == len)
+      doDFS (kl.kmer, seen);
+  if (kmers.size() && !seen.size())
+    doDFS (kmers.front(), seen);
+  unsigned long long nDropped = 0;
+  for (auto kmer: kmers)
+    if (!seen.count(kmer)) {
+      LogThisAt(6,"Dropping " << kmerString(kmer,len) << " as it was not seen in depth-first search" << endl);
       kmerValid[kmer] = false;
-      LogThisAt(4,"Eliminating "
-		<< kmerString(kmer,len) << " (" << setprecision(2) << 100*gcContent(kmer,len) << "% GC, " << setw(3) << kmerEntropy(kmer,len) << " bits)"
-		<< " since we also have "
-		<< kmerString(transKmer,len) << " (" << setprecision(2) << 100*gcContent(transKmer,len) << "% GC, " << setw(3) << kmerEntropy(transKmer,len) << " bits)"
-		<< endl);
-    } else
-      kmersWithoutTransitions.push_back (kmer);
+      ++nDropped;
     }
-  const unsigned long long nKmersWithoutTransitions = kmersWithoutTransitions.size();
-  LogThisAt(2,"Removed " << (kmers.size() - nKmersWithoutTransitions) << " transition redundancies leaving " << nKmersWithoutTransitions << " candidate " << len << "-mers without repeats (" << setprecision(2) << 100*(double)nKmersWithoutTransitions/(1.+(double)maxKmer) << "%)" << endl);
-  kmers.swap (kmersWithoutTransitions);
+  if (nDropped) {
+    LogThisAt(2,"Dropped " << nDropped << " " << len << "-mers that were unreachable in depth-first search" << endl);
+    list<Kmer> seenKmers (seen.begin(), seen.end());
+    kmers.swap (seenKmers);
+    pruneDeadEnds();
+  } else
+    LogThisAt(2,"All " << kmers.size() << " " << len << "-mers were reached in depth-first search" << endl);
+}
+
+void TransBuilder::doDFS (Kmer kmer, set<Kmer>& seen) const {
+  vguard<Kmer> out (4);
+  list<Kmer> kqueue;
+  kqueue.push_back (kmer);
+  while (!kqueue.empty()) {
+    kmer = kqueue.back();
+    LogThisAt(9,"Depth-first search: visiting " << kmerString(kmer,len) << endl);
+    kqueue.pop_back();
+    if (!seen.count(kmer)) {
+      seen.insert (kmer);
+      getOutgoing (kmer, out);
+      for (auto dest: out)
+	if (kmerValid[dest] && !seen.count(dest))
+	  kqueue.push_back (dest);
+    }
+  }
 }
 
 void TransBuilder::pruneDeadEnds() {
-  const Kmer maxKmer = kmerMask(len);
   ProgressLog (plogPrune, 1);
   plogPrune.initProgress ("Pruning dead ends");
   for (auto kmer: kmers)
@@ -71,7 +89,7 @@ void TransBuilder::pruneDeadEnds() {
       ++nUnpruned;
     }
   }
-  LogThisAt(2,"Dead-end pruning left " << nUnpruned << " " << len << "-mers (" << setprecision(2) << 100*(double)nUnpruned/(1.+(double)maxKmer) << "%)" << endl);
+  LogThisAt(2,"Dead-end pruning removed " << (nPruned - nUnpruned) << " " << len << "-mers, leaving " << nUnpruned << endl);
   kmers.swap (unprunedKmers);
 }
 
@@ -104,6 +122,11 @@ void TransBuilder::output (ostream& outs) {
       outs << " 00/" << outChar[0] << "->#" << outState[0]
 	   << " 01/" << outChar[1] << "->#" << outState[1]
 	   << " 1/" << outChar[2] << "->#" << outState[2];
+    else if (outChar.size() == 4)  // kind of silly/obvious, but leave it in for completeness
+      outs << " 00/" << outChar[0] << "->#" << outState[0]
+	   << " 01/" << outChar[1] << "->#" << outState[1]
+	   << " 10/" << outChar[2] << "->#" << outState[2]
+	   << " 11/" << outChar[3] << "->#" << outState[3];
     outs << endl;
   }
 }

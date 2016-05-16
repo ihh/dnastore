@@ -24,7 +24,7 @@ struct KmerLen {
   }
 };
 
-extern const char* alphabet;
+extern const char* alphabet;  // AGTC
 inline char baseToChar (Base base) {
   return alphabet[base & 3];
 }

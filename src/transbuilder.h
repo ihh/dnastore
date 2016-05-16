@@ -16,7 +16,6 @@ struct TransBuilder {
   Pos maxTandemRepeatLen, invertedRepeatLen;
   set<KmerLen> excludedMotif, excludedMotifRevComp;
   set<KmerLen> sourceMotif;
-  bool keepDegenerates;
 
   list<Kmer> kmers;
   map<Kmer,State> kmerState;
@@ -25,11 +24,13 @@ struct TransBuilder {
   TransBuilder (Pos len);
 
   void removeRepeats();
-  void removeDegenerates();
+  void keepDFS();
   void pruneDeadEnds();
   void indexStates();
   
   void output (ostream& out);
+
+  void doDFS (Kmer kmer, set<Kmer>& seen) const;
 
   inline void pruneDeadEnds (Kmer kmer) {
     vguard<Kmer> in (4), out (4);
@@ -48,13 +49,13 @@ struct TransBuilder {
     }
   }
  
-  inline void getOutgoing (Kmer kmer, vguard<Kmer>& outgoing) {
+  inline void getOutgoing (Kmer kmer, vguard<Kmer>& outgoing) const {
     Assert (outgoing.size() == 4, "oops");
     const Kmer prefix = (kmer << 2) & kmerMask(len);
     iota (outgoing.begin(), outgoing.end(), prefix);
   }
 
-  inline void getIncoming (Kmer kmer, vguard<Kmer>& incoming) {
+  inline void getIncoming (Kmer kmer, vguard<Kmer>& incoming) const {
     Assert (incoming.size() == 4, "oops");
     const Kmer prefix = kmer >> 2;
     const int shift = (len - 1) << 1;
