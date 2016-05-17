@@ -9,7 +9,7 @@ TransBuilder::TransBuilder (Pos len)
     maxTandemRepeatLen (len / 2),
     invertedRepeatLen (0),
     keepDegenerates (false),
-    controlWords (0),
+    nControlWords (0),
     kmerValid (maxKmer + 1)
 { }
 
@@ -35,12 +35,12 @@ void TransBuilder::findCandidates() {
 }
 
 void TransBuilder::pruneUnreachable() {
-  map<Kmer,int> dist;
+  map<Kmer,Pos> dist;
   for (const auto& kl: sourceMotif)
     if (kl.len == len)
-      doDFS (kl.kmer, dist, true);
+      doDFS (kl.kmer, dist);
   if (kmers.size() && !dist.size())
-    doDFS (kmers.front(), dist, true);
+    doDFS (kmers.front(), dist);
   unsigned long long nDropped = 0;
   for (auto kmer: kmers)
     if (!dist.count(kmer)) {
@@ -58,10 +58,10 @@ void TransBuilder::pruneUnreachable() {
     LogThisAt(2,"All " << kmers.size() << " " << len << "-mers were reached in depth-first search" << endl);
 }
 
-void TransBuilder::doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) const {
+void TransBuilder::doDFS (Kmer kmer, map<Kmer,Pos>& distance) const {
   EdgeVector nbr;
   list<Kmer> kqueue;
-  list<int> kdist;
+  list<Pos> kdist;
   kqueue.push_back (kmer);
   kdist.push_back (0);
   while (!kqueue.empty()) {
@@ -72,10 +72,7 @@ void TransBuilder::doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) con
     kdist.pop_back();
     if (!distance.count(kmer)) {
       distance[kmer] = d;
-      if (forwards)
-	getOutgoing (kmer, nbr);
-      else
-	getIncoming (kmer, nbr);
+      getOutgoing (kmer, nbr);
       for (auto n: nbr)
 	if (kmerValid[n] && !distance.count(n)) {
 	  kqueue.push_back (n);
@@ -85,42 +82,61 @@ void TransBuilder::doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) con
   }
 }
 
-set<Kmer> TransBuilder::neighbors (const set<Kmer>& start, int steps, bool forwards) const {
-  if (steps > 1)
-    return neighbors (neighbors(start,steps-1,forwards), 1, forwards);
-  set<Kmer> nbr;
-  EdgeVector next;
-  for (auto kmer: start) {
-    if (forwards)
-      getOutgoing (kmer, next);
-    else
-      getIncoming (kmer, next);
-    for (auto n: next)
-      if (kmerValid[n])
-	nbr.insert (n);
-  }
-  return nbr;
-}
-
-set<Kmer> TransBuilder::neighbors (Kmer start, int steps, bool forwards) const {
-  set<Kmer> startSet;
-  startSet.insert (start);
-  return neighbors (startSet, steps, forwards);
-}
-
-int TransBuilder::stepsToReach (KmerLen motif, int maxSteps) const {
+set<Kmer> TransBuilder::kmersEndingWith (KmerLen motif) const {
+  set<Kmer> result;
   set<KmerLen> motifs;
   motifs.insert (motif);
-  set<Kmer> nbr;
   for (auto kmer: kmers)
     if (endsWithMotif(kmer,len,motifs))
-      nbr.insert(kmer);
+      result.insert(kmer);
+  return result;
+}
+
+Pos TransBuilder::stepsToReach (KmerLen motif, int maxSteps) const {
+  set<Kmer> nbr = kmersEndingWith(motif);
+  EdgeVector in;
   for (int steps = 0; steps < maxSteps; ++steps) {
     if (nbr.size() == kmers.size())
       return steps;
-    nbr = neighbors (nbr, 1, false);
+    set<Kmer> prev;
+    for (auto kmer: nbr) {
+      getIncoming (kmer, in);
+      for (auto p: in)
+	if (kmerValid[p])
+	  prev.insert (p);
+    }
+    nbr.swap (prev);
   }
   return -1;
+}
+
+list<Kmer> TransBuilder::path (Kmer src, Kmer dest, int steps) const {
+  set<Kmer> dests;
+  dests.insert (dest);
+  return path (src, dests, steps);
+}
+
+list<Kmer> TransBuilder::path (Kmer src, KmerLen motif, int steps) const {
+  return path (src, kmersEndingWith(motif), steps);
+}
+
+list<Kmer> TransBuilder::path (Kmer src, const set<Kmer>& dests, int steps) const {
+  map<Kmer,list<Kmer> > pathFrom;
+  for (auto& d: dests)
+    pathFrom[d] = list<Kmer> (1, d);
+  EdgeVector in;
+  for (int step = 0; step < steps; ++step) {
+    map<Kmer,list<Kmer> > longerPathFrom;
+    for (auto kp: pathFrom) {
+      getIncoming (kp.first, in);
+      for (auto p: in)
+	if (kmerValid[p])
+	  if (!longerPathFrom.count (p))
+	    (longerPathFrom[p] = kp.second).push_front (p);
+    }
+    pathFrom.swap (longerPathFrom);
+  }
+  return pathFrom.at (src);
 }
 
 void TransBuilder::pruneDeadEnds() {
@@ -195,42 +211,61 @@ void TransBuilder::output (ostream& outs) {
 	   << " 01/" << outChar[1] << "->#" << outState[1]
 	   << " 10/" << outChar[2] << "->#" << outState[2]
 	   << " 11/" << outChar[3] << "->#" << outState[3];
-    // number of steps with which this state can be reached
-    //    outs << " (" << stepsToReach(KmerLen(kmer,len),len*2) << ")";
+    outs << " steps:" << stepsToReach(KmerLen(kmer,len));
+    for (size_t c = 0; c < controlWord.size(); ++c) {
+      list<Kmer> p = path (kmer, controlWord[c], controlWordSteps[c]);
+      p.pop_front();
+      outs << ' ' << (char) ('A' + c) << "/";
+      for (auto step: p)
+	outs << baseToChar(getBase(step,1));
+      outs << "->#CONTROL" << (c+1);
+    }
     outs << endl;
   }
 }
 
-vguard<Kmer> TransBuilder::getControlWords (size_t n) const {
+void TransBuilder::getControlWords() {
+  if (nControlWords == 0)
+    return;
   vguard<Kmer> cand;
-  vguard<int> steps;
+  vguard<Pos> steps;
   vguard<size_t> dist;
+  ProgressLog (plogControl, 1);
+  plogControl.initProgress ("Looking for control words");
+  const size_t nKmers = kmers.size();
+  size_t n = 0;
   for (auto kmer: kmers) {
+    plogControl.logProgress (n / (double) nKmers, "sequence %llu/%llu", n, nKmers);
+    ++n;
     const int s = stepsToReach(KmerLen(kmer,len));
     if (s >= 0) {
       cand.push_back (kmer);
       steps.push_back (s);
-      dist.push_back (0);
+      dist.push_back (len);
     }
   }
-  if (n <= cand.size())
-    return cand;
-  vguard<Kmer> result;
-  while (result.size() < n) {
-    vguard<size_t> idx (cand.size());
-    iota (idx.begin(), idx.end(), 0);
-    sort (idx.begin(),
-	  idx.end(),
-	  [&](const size_t a, const size_t b) -> bool
-	  {
-	    return dist[a] == dist[b]
-	      ? (steps[a] < steps[b])
-	      : (dist[a] > dist[b]);
-	  });
-    const Kmer best = cand[idx[0]];
-    result.push_back (best);
-    for (size_t k = 0; k < cand.size(); ++k)
-      dist[k] = min (dist[k], kmerHammingDistance (cand[k], best, len));
-  }
-  return result;
+  LogThisAt(4,"Found " << cand.size() << " potential control words" << endl);
+  if (nControlWords*2 < cand.size())
+    while (controlWord.size() < nControlWords) {
+      size_t bestIdx = 0;
+      for (size_t idx = 1; idx < cand.size(); ++idx)
+	if (dist[idx] > dist[bestIdx]
+	    || (dist[idx] == dist[bestIdx] && steps[idx] < steps[bestIdx]))
+	  bestIdx = idx;
+      const Kmer best = cand[bestIdx];
+      const Kmer bestRevComp = kmerRevComp (best, len);
+      LogThisAt(3,"Selected control word " << kmerString(best,len)
+		<< " which is reachable from any other words in " << steps[bestIdx] << " steps"
+		<< (controlWord.empty()
+		    ? string()
+		    : (string(" and has at least ")
+		       + to_string(dist[bestIdx])
+		       + " bases different from all other control words"))
+		<< endl);
+      controlWord.push_back (best);
+      controlWordSteps.push_back (steps[bestIdx]);
+      for (size_t k = 0; k < cand.size(); ++k)
+	dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
+				     kmerHammingDistance (cand[k], bestRevComp, len)));
+    }
 }

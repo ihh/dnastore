@@ -21,11 +21,13 @@ struct TransBuilder {
   set<KmerLen> excludedMotif, excludedMotifRevComp;
   set<KmerLen> sourceMotif;
   bool keepDegenerates;
-  int controlWords;
+  size_t nControlWords;
   
   // work variables
   vguard<bool> kmerValid;
   list<Kmer> kmers;
+  vguard<Kmer> controlWord;
+  vguard<Pos> controlWordSteps;
   map<Kmer,EdgeFlags> kmerOutFlags;
   set<pair<Kmer,Kmer> > droppedEdge;
   map<Kmer,State> kmerState;
@@ -40,13 +42,15 @@ struct TransBuilder {
   
   void output (ostream& out);
 
-  void doDFS (Kmer kmer, map<Kmer,int>& distance, bool forwards) const;
+  void doDFS (Kmer kmer, map<Kmer,Pos>& distance) const;
 
-  set<Kmer> neighbors (const set<Kmer>& start, int steps, bool forwards) const;
-  set<Kmer> neighbors (Kmer start, int steps, bool forwards) const;
+  set<Kmer> kmersEndingWith (KmerLen motif) const;
+  Pos stepsToReach (KmerLen motif, int maxSteps = 64) const;
+  void getControlWords();
 
-  int stepsToReach (KmerLen motif, int maxSteps = 64) const;
-  vguard<Kmer> getControlWords (size_t n) const;
+  list<Kmer> path (Kmer src, KmerLen motif, int steps) const;
+  list<Kmer> path (Kmer src, Kmer dest, int steps) const;
+  list<Kmer> path (Kmer src, const set<Kmer>& dests, int steps) const;
 
   inline void pruneDeadEnds (Kmer kmer) {
     EdgeVector in, out;

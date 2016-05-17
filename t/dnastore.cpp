@@ -72,12 +72,13 @@ int main (int argc, char** argv) {
 
     if (vm.count("degen"))
       builder.keepDegenerates = true;
-    builder.controlWords = vm.at("control").as<int>();
+    builder.nControlWords = vm.at("control").as<int>();
     
     // build transducer
     builder.findCandidates();
     builder.pruneDeadEnds();
     builder.pruneUnreachable();
+    builder.getControlWords();
     builder.buildEdges();
     builder.indexStates();
 
