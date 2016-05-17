@@ -54,6 +54,11 @@ State Machine::nStates() const {
   return state.size();
 }
 
+State Machine::startState() const {
+  Assert (nStates() > 0, "Machine has no states");
+  return 0;
+}
+
 Machine::Machine (Pos len)
   : len(len)
 { }

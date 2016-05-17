@@ -40,7 +40,8 @@ struct Machine {
   
   Machine (Pos len);
   State nStates() const;
-
+  State startState() const;
+  
   void write (ostream& out) const;
 
   static string stateName (State s);
