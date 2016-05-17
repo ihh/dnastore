@@ -80,7 +80,7 @@ string Machine::stateName (State s) {
   return string("#") + to_string(s+1);
 }
 
-string controlChars ("XYZVWPQRSDEFIJKLM23456789<>[]!?abcdefghijklmnopqrstuvwxyz");
+string controlChars ("XYZWVPQRSDEFIJKLM23456789<>[]!?abcdefghijklmnopqrstuvwxyz");
 char Machine::controlChar (ControlIndex c) {
   Assert (c < controlChars.size(), "Ran out of control cahrs");
   return controlChars[c];
