@@ -8,7 +8,7 @@
 #include "../src/logger.h"
 #include "../src/kmer.h"
 #include "../src/pattern.h"
-#include "../src/transbuilder.h"
+#include "../src/builder.h"
 
 using namespace std;
 

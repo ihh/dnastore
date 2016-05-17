@@ -1,5 +1,5 @@
-#ifndef TRANSBUILDER_INCLUDED
-#define TRANSBUILDER_INCLUDED
+#ifndef BUILDER_INCLUDED
+#define BUILDER_INCLUDED
 
 #include <string>
 #include "vguard.h"
@@ -150,4 +150,4 @@ struct TransBuilder {
   }
 };
 
-#endif /* TRANSBUILDER_INCLUDED */
+#endif /* BUILDER_INCLUDED */
