@@ -179,8 +179,14 @@ void TransBuilder::buildEdges() {
 void TransBuilder::indexStates() {
   assertKmersCorrect();
   nStates = 0;
-  for (auto kmer: kmers)
+  for (auto kmer: controlWord)
     kmerState[kmer] = nStates++;
+  for (auto kmer: kmers)
+    if (!kmerState.count(kmer) && endsWithMotif(kmer,len,sourceMotif))
+      kmerState[kmer] = nStates++;
+  for (auto kmer: kmers)
+    if (!kmerState.count(kmer))
+      kmerState[kmer] = nStates++;
   for (auto kmer: kmers) {
     const auto nOut = countOutgoing(kmer);
     if (nOut > 2)
