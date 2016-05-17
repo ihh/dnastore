@@ -211,15 +211,15 @@ void TransBuilder::output (ostream& outs) {
 	   << " 01/" << outChar[1] << "->#" << outState[1]
 	   << " 10/" << outChar[2] << "->#" << outState[2]
 	   << " 11/" << outChar[3] << "->#" << outState[3];
-    outs << " steps:" << stepsToReach(KmerLen(kmer,len));
-    for (size_t c = 0; c < controlWord.size(); ++c) {
-      list<Kmer> p = path (kmer, controlWord[c], controlWordSteps[c]);
-      p.pop_front();
-      outs << ' ' << (char) ('A' + c) << "/";
-      for (auto step: p)
-	outs << baseToChar(getBase(step,1));
-      outs << "->#CONTROL" << (c+1);
-    }
+    if (outChar.size() > 1)
+      for (size_t c = 0; c < controlWord.size(); ++c) {
+	list<Kmer> p = path (kmer, controlWord[c], controlWordSteps[c]);
+	p.pop_front();
+	outs << ' ' << (char) ('A' + c) << "/";
+	for (auto step: p)
+	  outs << baseToChar(getBase(step,1));
+	outs << "->#CONTROL" << (c+1);
+      }
     outs << endl;
   }
 }
