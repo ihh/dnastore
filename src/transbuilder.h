@@ -28,8 +28,11 @@ struct TransBuilder {
   list<Kmer> kmers;
   vguard<Kmer> controlWord;
   vguard<Pos> controlWordSteps;
+  vguard<map<Kmer,list<Kmer> > > controlWordPath;
+  vguard<set<Kmer> > controlWordIntermediates;
   map<Kmer,EdgeFlags> kmerOutFlags;
   set<pair<Kmer,Kmer> > droppedEdge;
+
   map<Kmer,State> kmerState;
   
   TransBuilder (Pos len);
@@ -42,15 +45,15 @@ struct TransBuilder {
   
   void output (ostream& out);
 
+  void assertKmersCorrect() const;
+  
   void doDFS (Kmer kmer, map<Kmer,Pos>& distance) const;
 
   set<Kmer> kmersEndingWith (KmerLen motif) const;
   Pos stepsToReach (KmerLen motif, int maxSteps = 64) const;
   void getControlWords();
-
-  list<Kmer> path (Kmer src, KmerLen motif, int steps) const;
-  list<Kmer> path (Kmer src, Kmer dest, int steps) const;
-  list<Kmer> path (Kmer src, const set<Kmer>& dests, int steps) const;
+  
+  map<Kmer,list<Kmer> > pathsTo (Kmer dest, int steps) const;
 
   inline void pruneDeadEnds (Kmer kmer) {
     EdgeVector in, out;

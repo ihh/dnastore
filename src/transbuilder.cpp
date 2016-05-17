@@ -110,33 +110,23 @@ Pos TransBuilder::stepsToReach (KmerLen motif, int maxSteps) const {
   return -1;
 }
 
-list<Kmer> TransBuilder::path (Kmer src, Kmer dest, int steps) const {
-  set<Kmer> dests;
-  dests.insert (dest);
-  return path (src, dests, steps);
-}
-
-list<Kmer> TransBuilder::path (Kmer src, KmerLen motif, int steps) const {
-  return path (src, kmersEndingWith(motif), steps);
-}
-
-list<Kmer> TransBuilder::path (Kmer src, const set<Kmer>& dests, int steps) const {
+map<Kmer,list<Kmer> > TransBuilder::pathsTo (Kmer dest, int steps) const {
   map<Kmer,list<Kmer> > pathFrom;
-  for (auto& d: dests)
-    pathFrom[d] = list<Kmer> (1, d);
+  pathFrom[dest] = list<Kmer>();
   EdgeVector in;
   for (int step = 0; step < steps; ++step) {
     map<Kmer,list<Kmer> > longerPathFrom;
-    for (auto kp: pathFrom) {
-      getIncoming (kp.first, in);
-      for (auto p: in)
-	if (kmerValid[p])
-	  if (!longerPathFrom.count (p))
-	    (longerPathFrom[p] = kp.second).push_front (p);
+    for (auto destPath: pathFrom) {
+      getIncoming (destPath.first, in);
+      for (auto src: in)
+	if (kmerValid[src])
+	  if (!longerPathFrom.count (src))
+	    (longerPathFrom[src] = destPath.second).push_front (destPath.first);
     }
     pathFrom.swap (longerPathFrom);
   }
-  return pathFrom.at (src);
+  Assert (pathFrom.size() == kmers.size(), "Incomplete path map: got %llu kmers, expected %llu", pathFrom.size(), kmers.size());
+  return pathFrom;
 }
 
 void TransBuilder::pruneDeadEnds() {
@@ -157,6 +147,15 @@ void TransBuilder::pruneDeadEnds() {
   }
   LogThisAt(2,"Dead-end pruning removed " << (nPruned - nUnpruned) << " " << len << "-mers, leaving " << nUnpruned << endl);
   kmers.swap (unprunedKmers);
+}
+
+void TransBuilder::assertKmersCorrect() const {
+  const set<Kmer> kmerSet (kmers.begin(), kmers.end());
+  for (Kmer kmer = 0; kmer <= maxKmer; ++kmer)
+    if (kmerValid[kmer])
+      Assert (kmerSet.count(kmer), "Missing kmer %s from kmer list", kmerString(kmer,len).c_str());
+  for (Kmer kmer: kmers)
+    Assert (kmerValid[kmer], "Invalid kmer %s in kmer list", kmerString(kmer,len).c_str());
 }
 
 void TransBuilder::buildEdges() {
@@ -213,8 +212,7 @@ void TransBuilder::output (ostream& outs) {
 	   << " 11/" << outChar[3] << "->#" << outState[3];
     if (outChar.size() > 1)
       for (size_t c = 0; c < controlWord.size(); ++c) {
-	list<Kmer> p = path (kmer, controlWord[c], controlWordSteps[c]);
-	p.pop_front();
+	const list<Kmer>& p = controlWordPath[c].at (kmer);
 	outs << ' ' << (char) ('A' + c) << "/";
 	for (auto step: p)
 	  outs << baseToChar(getBase(step,1));
@@ -264,8 +262,30 @@ void TransBuilder::getControlWords() {
 		<< endl);
       controlWord.push_back (best);
       controlWordSteps.push_back (steps[bestIdx]);
+      controlWordPath.push_back (pathsTo (best, steps[bestIdx]));
       for (size_t k = 0; k < cand.size(); ++k)
 	dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
 				     kmerHammingDistance (cand[k], bestRevComp, len)));
     }
+
+  for (auto cw: controlWord) {
+    sourceMotif.insert (KmerLen (cw, len));
+    kmerValid[kmerRevComp (cw, len)] = false;
+  }
+  
+  pruneDeadEnds();
+  pruneUnreachable();
+
+  assertKmersCorrect();
+  
+  for (size_t c = 0; c < controlWord.size(); ++c) {
+    const Kmer controlKmer = controlWord[c];
+    set<Kmer> intermediates;
+    for (auto kmer: kmers)
+      for (auto inter: controlWordPath[c].at(kmer))
+	if (inter != controlKmer)
+	  intermediates.insert (inter);
+    controlWordIntermediates.push_back (intermediates);
+    LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << intermediates.size() << " intermediate states" << endl);
+  }
 }
