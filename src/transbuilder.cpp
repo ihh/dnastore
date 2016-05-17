@@ -8,11 +8,12 @@ TransBuilder::TransBuilder (Pos len)
     maxKmer (kmerMask (len)),
     maxTandemRepeatLen (len / 2),
     invertedRepeatLen (0),
+    keepDegenerates (false),
     controlWords (0),
     kmerValid (maxKmer + 1)
 { }
 
-void TransBuilder::removeRepeats() {
+void TransBuilder::findCandidates() {
   ProgressLog (plogReps, 1);
   plogReps.initProgress ("Filtering %d-mer repeats", len);
   kmers.clear();
@@ -142,10 +143,27 @@ void TransBuilder::pruneDeadEnds() {
   kmers.swap (unprunedKmers);
 }
 
+void TransBuilder::buildEdges() {
+  EdgeVector out;
+  for (auto kmer: kmers) {
+    EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
+    if (!keepDegenerates) {
+      if ((outFlags & 3) == 3)  // A,G
+	outFlags = dropWorseEdge (kmer, outFlags, out, 0, 1);
+      if ((outFlags & 12) == 12)  // C,T
+	outFlags = dropWorseEdge (kmer, outFlags, out, 2, 3);
+    }
+    kmerOutFlags[kmer] = outFlags;
+  }
+  if (!keepDegenerates)
+    LogThisAt(2,"Dropped " << droppedEdge.size() << " degenerate edges" << endl);
+  pruneDeadEnds();
+}
+
 void TransBuilder::indexStates() {
-   State n = 0;
-    for (auto kmer: kmers)
-      kmerState[kmer] = ++n;
+  State n = 0;
+  for (auto kmer: kmers)
+    kmerState[kmer] = ++n;
 }
 
 void TransBuilder::output (ostream& outs) {
@@ -153,8 +171,8 @@ void TransBuilder::output (ostream& outs) {
   vguard<char> outChar;
   vguard<State> outState;
   for (auto kmer: kmers) {
-    EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
-    // WRITE ME: if we have a transition degeneracy, skip one of them
+    getOutgoing (kmer, out);
+    const EdgeFlags outFlags = kmerOutFlags.at(kmer);
     outChar.clear();
     outState.clear();
     for (size_t n = 0; n < 4; ++n)
@@ -182,5 +200,3 @@ void TransBuilder::output (ostream& outs) {
     outs << endl;
   }
 }
-
-

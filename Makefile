@@ -20,7 +20,7 @@ PREFIX = /usr/local
 
 # other flags
 ifneq (,$(findstring debug,$(MAKECMDGOALS)))
-CPPFLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS $(BOOSTFLAGS)
+CPPFLAGS = -std=c++11 -g -DUSE_VECTOR_GUARDS -DDEBUG $(BOOSTFLAGS)
 else
 CPPFLAGS = -std=c++11 -g -O3 $(BOOSTFLAGS)
 endif

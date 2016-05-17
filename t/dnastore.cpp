@@ -26,7 +26,10 @@ void getMotifs (po::variables_map& vm, const char* arg, set<KmerLen>& motifs, se
 
 int main (int argc, char** argv) {
 
+#ifndef DEBUG
   try {
+#endif /* DEBUG */
+    
     // Declare the supported options.
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -36,6 +39,7 @@ int main (int argc, char** argv) {
       ("invrep,i", po::value<int>()->default_value(5), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,s", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
+      ("degen,d", "keep degenerate transitions")
       ("control,c", po::value<int>()->default_value(0), "number of control words")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
@@ -66,20 +70,25 @@ int main (int argc, char** argv) {
     getMotifs (vm, "exclude", builder.excludedMotif, builder.excludedMotifRevComp);
     getMotifs (vm, "source", builder.sourceMotif, builder.excludedMotifRevComp);
 
+    if (vm.count("degen"))
+      builder.keepDegenerates = true;
     builder.controlWords = vm.at("control").as<int>();
     
     // build transducer
-    builder.removeRepeats();
+    builder.findCandidates();
     builder.pruneDeadEnds();
     builder.pruneUnreachable();
+    builder.buildEdges();
     builder.indexStates();
 
     // Output the transducer
     builder.output (cout);
-    
+
+#ifndef DEBUG
   } catch (const std::exception& e) {
     cerr << e.what() << endl;
   }
+#endif /* DEBUG */
   
   return EXIT_SUCCESS;
 }

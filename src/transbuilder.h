@@ -20,19 +20,22 @@ struct TransBuilder {
   Pos maxTandemRepeatLen, invertedRepeatLen;
   set<KmerLen> excludedMotif, excludedMotifRevComp;
   set<KmerLen> sourceMotif;
+  bool keepDegenerates;
   int controlWords;
   
   // work variables
   vguard<bool> kmerValid;
   list<Kmer> kmers;
+  map<Kmer,EdgeFlags> kmerOutFlags;
+  set<pair<Kmer,Kmer> > droppedEdge;
   map<Kmer,State> kmerState;
-  map<Kmer,int> timesAvoided;
   
   TransBuilder (Pos len);
 
-  void removeRepeats();
+  void findCandidates();
   void pruneUnreachable();
   void pruneDeadEnds();
+  void buildEdges();
   void indexStates();
   
   void output (ostream& out);
@@ -47,10 +50,9 @@ struct TransBuilder {
   inline void pruneDeadEnds (Kmer kmer) {
     EdgeVector in, out;
     if (kmerValid[kmer] && !endsWithMotif(kmer,len,sourceMotif)) {
-      const EdgeFlags inFlags = incomingEdgeFlags(kmer,in);
-      const EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
-      const bool prune = inFlags == 0 || outFlags == 0;
-      LogThisAt(9,(prune ? "Pruning" : "Keeping") << " " << kmerString(kmer,len) << " with " << edgeFlagsToCount(inFlags) << " incoming and " << edgeFlagsToCount(outFlags) << " outgoing edges" << endl);
+      const int inCount = countIncoming(kmer,in), outCount = countOutgoing(kmer,out);
+      const bool prune = inCount == 0 || outCount == 0;
+      LogThisAt(9,(prune ? "Pruning" : "Keeping") << " " << kmerString(kmer,len) << " with " << inCount << " incoming and " << outCount << " outgoing edges" << endl);
       if (prune) {
 	kmerValid[kmer] = 0;
 	for (auto kmerIn: in)
@@ -79,7 +81,9 @@ struct TransBuilder {
     getOutgoing (kmer, outgoing);
     EdgeFlags f = 0;
     for (size_t n = 0; n < 4; ++n)
-      if (kmerValid[outgoing[n]] && !endsWithMotif(outgoing[n],len,sourceMotif))
+      if (kmerValid[outgoing[n]]
+	  && !endsWithMotif(outgoing[n],len,sourceMotif)
+	  && !droppedEdge.count (pair<Kmer,Kmer> (kmer, outgoing[n])))
 	f = f | (1 << n);
     return f;
   }
@@ -88,7 +92,8 @@ struct TransBuilder {
     getIncoming (kmer, incoming);
     EdgeFlags f = 0;
     for (size_t n = 0; n < 4; ++n)
-      if (kmerValid[incoming[n]])
+      if (kmerValid[incoming[n]]
+	  && !droppedEdge.count (pair<Kmer,Kmer> (incoming[n], kmer)))
 	f = f | (1 << n);
     return f;
   }
@@ -97,15 +102,43 @@ struct TransBuilder {
     return edgeFlagsToCountLookup[flags & 0xf];
   }
 
-  inline bool betterDest (Kmer x, Kmer y) {  // true if x is preferred target
-    const int xa = timesAvoided[x], ya = timesAvoided[y];
-    const double xgc = gcNonuniformity(x,len);
-    const double ygc = gcNonuniformity(y,len);
-    return xa == ya
+  inline int countOutgoing (Kmer kmer, EdgeVector& out) {
+    return edgeFlagsToCount (outgoingEdgeFlags (kmer, out));
+  }
+
+  inline int countIncoming (Kmer kmer, EdgeVector& in) {
+    return edgeFlagsToCount (incomingEdgeFlags (kmer, in));
+  }
+
+  inline int countIncoming (Kmer kmer) {
+    EdgeVector e;
+    return countIncoming (kmer, e);
+  }
+
+  inline int countOutgoing (Kmer kmer) {
+    EdgeVector e;
+    return countOutgoing (kmer, e);
+  }
+
+  inline bool betterDest (Kmer x, Kmer y) {  // true if x is preferred over y as destination state
+    const int xi = countIncoming(x), yi = countIncoming(y);
+    const double xgc = gcNonuniformity(x,len), ygc = gcNonuniformity(y,len);
+    return xi == yi
       ? (xgc == ygc
 	 ? (kmerEntropy(x,len) >= kmerEntropy(y,len))
 	 : (xgc < ygc))
-      : (xa < ya);
+      : (xi < yi);
+  }
+
+  inline EdgeFlags dropWorseEdge (Kmer src, EdgeFlags flags, const EdgeVector& out, size_t edge1, size_t edge2) {
+    const size_t e = betterDest(out[edge1],out[edge2]) ? edge2 : edge1;
+    LogThisAt(4,"Dropping "
+	      << (countIncoming(out[e]) == 1 ? "last " : "")
+	      << "edge to " << kmerString(out[e],len)
+	      << " from " << kmerString(src,len)
+	      << endl);
+    droppedEdge.insert (pair<Kmer,Kmer> (src, out[e]));
+    return flags & (0xf ^ (1 << e));
   }
 };
 
