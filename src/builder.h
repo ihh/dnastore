@@ -30,6 +30,7 @@ struct TransBuilder {
   vguard<bool> kmerValid;
   list<Kmer> kmers;
   vguard<Kmer> controlWord;
+  vguard<string> controlWordString;
   vguard<Pos> controlWordSteps;
   vguard<map<Kmer,list<Kmer> > > controlWordPath;
   vguard<vguard<set<Kmer> > > controlWordIntermediates;
@@ -56,7 +57,9 @@ struct TransBuilder {
 
   set<Kmer> kmersEndingWith (KmerLen motif) const;
   Pos stepsToReach (KmerLen motif, int maxSteps = 64) const;
+
   void getControlWords();
+  bool getNextControlWord();
   
   map<Kmer,list<Kmer> > pathsTo (Kmer dest, int steps) const;
   MachineTransition controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const;

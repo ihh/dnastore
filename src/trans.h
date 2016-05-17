@@ -4,7 +4,15 @@
 #include "kmer.h"
 
 typedef unsigned long long State;
-typedef char StateType;
+
+enum StateType { SourceState,
+		 ControlState,
+		 CodeState,
+		 SplitState,
+		 PadState,
+		 UndefinedState };
+
+typedef size_t ControlIndex;
 
 struct MachineTransition {
   char in, out;
@@ -14,23 +22,28 @@ struct MachineTransition {
 
 struct MachineState {
   Kmer context;
-  StateType type;  // 0 for regular coding states
+  StateType type;
+  ControlIndex control;
   vguard<MachineTransition> trans;
   MachineState();
-  MachineState (Kmer, StateType);
+  MachineState (Kmer);
+  string typeString() const;
 };
 
 struct Machine {
   const Pos len;
-  map<char,Kmer> control;
   vguard<MachineState> state;
-
+  
   Machine (Pos len);
   State nStates() const;
 
   void write (ostream& out) const;
+
   static string stateName (State s);
-  static string typeName (StateType t);
+  static char controlChar (ControlIndex c);
+
+  size_t stateNameWidth() const;
+  size_t typeStringWidth() const;
 };
 
 #endif /* TRANSDUCER_INCLUDED */
