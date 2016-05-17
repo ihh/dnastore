@@ -92,15 +92,16 @@ set<Kmer> TransBuilder::kmersEndingWith (KmerLen motif) const {
 
 Pos TransBuilder::stepsToReach (KmerLen motif, int maxSteps) const {
   set<Kmer> nbr = kmersEndingWith(motif);
+  const size_t nKmersWithoutMotif = kmers.size() - nbr.size();
   EdgeVector in;
   for (int steps = 0; steps < maxSteps; ++steps) {
-    if (nbr.size() == kmers.size())
+    if (nbr.size() == nKmersWithoutMotif)
       return steps;
     set<Kmer> prev;
     for (auto kmer: nbr) {
       getIncoming (kmer, in);
       for (auto p: in)
-	if (kmerValid[p])
+	if (kmerValid[p] && (!endsWithMotif(p,len,motif) || steps == maxSteps-2))
 	  prev.insert (p);
     }
     nbr.swap (prev);
@@ -118,16 +119,11 @@ map<Kmer,list<Kmer> > TransBuilder::pathsTo (Kmer dest, int steps) const {
       const Kmer inter = interPath.first;
       getIncoming (inter, in);
       for (auto src: in)
-	if (kmerValid[src])
-	  if (!longerPathFrom.count(src)
-	      || (!longerPathFrom.at(src).empty()
-		  && longerPathFrom.at(src).front() == dest
-		  && inter != dest))
-	    (longerPathFrom[src] = interPath.second).push_front (inter);
+	if (kmerValid[src] && (src != dest || step == steps - 1))
+	  (longerPathFrom[src] = interPath.second).push_front (inter);
     }
     pathFrom.swap (longerPathFrom);
   }
-  Assert (pathFrom.size() == kmers.size(), "Incomplete path map: got %llu kmers, expected %llu", pathFrom.size(), kmers.size());
   return pathFrom;
 }
 
@@ -320,11 +316,14 @@ void TransBuilder::getControlWords() {
   LogThisAt(4,"Found " << cand.size() << " potential control words" << endl);
   Require (nControlWords*2 < cand.size(), "Not enough control words");
   while (controlWord.size() < nControlWords) {
-    size_t bestIdx = 0;
+    size_t bestIdx = cand.size();
     for (size_t idx = 1; idx < cand.size(); ++idx)
-      if (dist[idx] > dist[bestIdx]
-	  || (dist[idx] == dist[bestIdx] && steps[idx] < steps[bestIdx]))
+      if (kmerValid[cand[idx]]
+	  && (bestIdx == cand.size()
+	      || dist[idx] > dist[bestIdx]
+	      || (dist[idx] == dist[bestIdx] && steps[idx] < steps[bestIdx])))
 	bestIdx = idx;
+    Require (bestIdx < cand.size(), "Not enough control words");
     const Kmer best = cand[bestIdx];
     const Kmer bestRevComp = kmerRevComp (best, len);
     LogThisAt(3,"Selected control word " << kmerString(best,len)
@@ -339,17 +338,16 @@ void TransBuilder::getControlWords() {
     controlWordSteps.push_back (steps[bestIdx]);
     controlWordPath.push_back (pathsTo (best, steps[bestIdx]));
     for (size_t k = 0; k < cand.size(); ++k)
-      dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
-				   kmerHammingDistance (cand[k], bestRevComp, len)));
-  }
+      if (kmerValid[cand[k]])
+	dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
+				     kmerHammingDistance (cand[k], bestRevComp, len)));
 
-  for (auto cw: controlWord) {
-    sourceMotif.insert (KmerLen (cw, len));
-    kmerValid[kmerRevComp (cw, len)] = false;
-  }
+    sourceMotif.insert (KmerLen (best, len));
+    kmerValid[bestRevComp] = false;
   
-  pruneDeadEnds();
-  pruneUnreachable();
+    pruneDeadEnds();
+    pruneUnreachable();
+  }
 
   assertKmersCorrect();
   
