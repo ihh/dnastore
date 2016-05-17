@@ -46,6 +46,7 @@ struct TransBuilder {
   set<Kmer> neighbors (Kmer start, int steps, bool forwards) const;
 
   int stepsToReach (KmerLen motif, int maxSteps = 64) const;
+  vguard<Kmer> getControlWords (size_t n) const;
 
   inline void pruneDeadEnds (Kmer kmer) {
     EdgeVector in, out;

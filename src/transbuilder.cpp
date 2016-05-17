@@ -200,3 +200,37 @@ void TransBuilder::output (ostream& outs) {
     outs << endl;
   }
 }
+
+vguard<Kmer> TransBuilder::getControlWords (size_t n) const {
+  vguard<Kmer> cand;
+  vguard<int> steps;
+  vguard<size_t> dist;
+  for (auto kmer: kmers) {
+    const int s = stepsToReach(KmerLen(kmer,len));
+    if (s >= 0) {
+      cand.push_back (kmer);
+      steps.push_back (s);
+      dist.push_back (0);
+    }
+  }
+  if (n <= cand.size())
+    return cand;
+  vguard<Kmer> result;
+  while (result.size() < n) {
+    vguard<size_t> idx (cand.size());
+    iota (idx.begin(), idx.end(), 0);
+    sort (idx.begin(),
+	  idx.end(),
+	  [&](const size_t a, const size_t b) -> bool
+	  {
+	    return dist[a] == dist[b]
+	      ? (steps[a] < steps[b])
+	      : (dist[a] > dist[b]);
+	  });
+    const Kmer best = cand[idx[0]];
+    result.push_back (best);
+    for (size_t k = 0; k < cand.size(); ++k)
+      dist[k] = min (dist[k], kmerHammingDistance (cand[k], best, len));
+  }
+  return result;
+}

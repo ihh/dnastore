@@ -110,6 +110,14 @@ inline double kmerEntropy (Kmer kmer, Pos len) {
   return S / log(2);
 }
 
+inline size_t kmerHammingDistance (Kmer a, Kmer b, Pos len) {
+  size_t d = 0;
+  for (Pos pos = 1; pos <= len; ++pos)
+    if (getBase(a,pos) != getBase(b,pos))
+      ++d;
+  return d;
+}
+
 inline Kmer kmerMask (Pos len) {
   // 4^len - 1 = 2^(2*len) - 1 = (1 << (2*len)) - 1 = (1 << (len << 1)) - 1
   return (((Kmer) 1) << (len << 1)) - 1;
