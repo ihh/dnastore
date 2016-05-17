@@ -34,13 +34,13 @@ int main (int argc, char** argv) {
     po::options_description desc("Allowed options");
     desc.add_options()
       ("help,h", "display this help message")
-      ("kmerlen,k", po::value<int>()->default_value(10), "length of k-mers in de Bruijn graph")
+      ("kmerlen,k", po::value<int>()->default_value(12), "length of k-mers in de Bruijn graph")
       ("tandem,t", po::value<int>(), "reject local tandem duplications & inverted repeats up to this length")
       ("invrep,i", po::value<int>()->default_value(4), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,s", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
       ("degen,d", "keep degenerate transitions")
-      ("control,c", po::value<int>()->default_value(2), "number of control words")
+      ("control,c", po::value<int>()->default_value(4), "number of control words")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -75,17 +75,15 @@ int main (int argc, char** argv) {
     builder.nControlWords = vm.at("control").as<int>();
     
     // build transducer
-    builder.findCandidates();
-    builder.pruneDeadEnds();
-    builder.pruneUnreachable();
-    builder.getControlWords();
-    builder.buildEdges();
-    builder.indexStates();
-
     const Machine machine = builder.makeMachine();
     
     // Output the transducer
     machine.write (cout);
+
+    // Output statistics
+    const double basesPerBit = machine.expectedBasesPerBit();
+    LogThisAt(1,"Expected bases/bit: " << basesPerBit << endl);
+    LogThisAt(1,"Expected bases/control: " << builder.expectedBasesPerControlChar() << endl);
 
 #ifndef DEBUG
   } catch (const std::exception& e) {

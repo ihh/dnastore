@@ -28,6 +28,10 @@ struct MachineState {
   MachineState();
   MachineState (Kmer);
   string typeString() const;
+  const MachineTransition* transFor (char in) const;
+  bool isInput() const;
+  bool isDeterministic() const;
+  const MachineTransition& next() const;
 };
 
 struct Machine {
@@ -44,6 +48,8 @@ struct Machine {
 
   size_t stateNameWidth() const;
   size_t typeStringWidth() const;
+
+  double expectedBasesPerBit() const;
 };
 
 #endif /* TRANSDUCER_INCLUDED */

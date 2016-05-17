@@ -204,7 +204,18 @@ void TransBuilder::indexStates() {
   }
 }
 
+void TransBuilder::prepare() {
+  findCandidates();
+  pruneDeadEnds();
+  pruneUnreachable();
+  getControlWords();
+  buildEdges();
+  indexStates();
+}
+
 Machine TransBuilder::makeMachine() {
+  prepare();
+
   Machine machine (len);
   machine.state = vguard<MachineState> (nStates);
 
@@ -433,4 +444,8 @@ void TransBuilder::getControlWords() {
     controlWordIntermediates.push_back (intermediates);
     LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
   }
+}
+
+double TransBuilder::expectedBasesPerControlChar() const {
+  return accumulate (controlWordSteps.begin(), controlWordSteps.end(), 0) / (double) controlWord.size();
 }

@@ -51,11 +51,11 @@ inline bool hasExactNonlocalInvertedRepeat (Kmer seq, Pos len, Pos repeatLen, Po
     return false;
   const Kmer rc = kmerRevComp (seq, len);
   for (Pos i = len - repeatLen*2 - minSeparation; i > 0; --i) {
-    const Kmer invRep = kmerSub (rc, len - i + 1, repeatLen);
+    const Kmer invRep = kmerSub (rc, len - i - repeatLen + 2, repeatLen);
     const Pos jMin = i + repeatLen + minSeparation;
     for (Pos j = len - repeatLen + 1; j >= jMin; --j)
       if (invRep == kmerSub (seq, j, repeatLen)) {
-	LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,j,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (exact inverted repeat)" << endl);
+	LogThisAt(4,"Rejecting " << kmerString(seq,len) << "/" << kmerString(rc,len) << " because " << kmerSubAt(seq,j,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << "/" << kmerSubAt(rc,len-i-repeatLen+2,repeatLen,len) << " (exact inverted repeat)" << endl);
 	return true;
       }
   }
