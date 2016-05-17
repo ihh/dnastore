@@ -6,8 +6,11 @@
 #include "util.h"
 #include "kmer.h"
 #include "pattern.h"
+#include "trans.h"
 
 using namespace std;
+
+typedef unsigned char EdgeFlags;
 
 struct TransBuilder {
   static vguard<int> edgeFlagsToCountLookup;
@@ -29,11 +32,13 @@ struct TransBuilder {
   vguard<Kmer> controlWord;
   vguard<Pos> controlWordSteps;
   vguard<map<Kmer,list<Kmer> > > controlWordPath;
-  vguard<set<Kmer> > controlWordIntermediates;
+  vguard<vguard<set<Kmer> > > controlWordIntermediates;
   map<Kmer,EdgeFlags> kmerOutFlags;
   set<pair<Kmer,Kmer> > droppedEdge;
 
-  map<Kmer,State> kmerState;
+  State nStates, nCodingStates;
+  map<Kmer,State> kmerState, kmerStateZero, kmerStateOne;
+  vguard<vguard<map<Kmer,State> > > controlKmerState;
   
   TransBuilder (Pos len);
 
@@ -42,9 +47,9 @@ struct TransBuilder {
   void pruneDeadEnds();
   void buildEdges();
   void indexStates();
-  
-  void output (ostream& out);
 
+  Machine makeMachine();
+  
   void assertKmersCorrect() const;
   
   void doDFS (Kmer kmer, map<Kmer,Pos>& distance) const;
@@ -54,7 +59,10 @@ struct TransBuilder {
   void getControlWords();
   
   map<Kmer,list<Kmer> > pathsTo (Kmer dest, int steps) const;
-
+  MachineTransition controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const;
+  Kmer nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const;
+  char controlChar (size_t nControlWord) const;
+  
   inline void pruneDeadEnds (Kmer kmer) {
     EdgeVector in, out;
     if (kmerValid[kmer] && !endsWithMotif(kmer,len,sourceMotif)) {

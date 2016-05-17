@@ -5,13 +5,19 @@
 #include "kmer.h"
 #include "logger.h"
 
+inline bool endsWithMotif (Kmer seq, Pos len, const KmerLen& kl, const char* desc = NULL) {
+  if (kmerSub(seq,1,kl.len) == kl.kmer) {
+    if (desc)
+      LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because it ends with " << kmerString(kl) << " (" << desc << ")" << endl);
+    return true;
+  }
+  return false;
+}
+
 inline bool endsWithMotif (Kmer seq, Pos len, const set<KmerLen>& motif, const char* desc = NULL) {
   for (const auto& kl: motif)
-    if (kmerSub(seq,1,kl.len) == kl.kmer) {
-      if (desc)
-	LogThisAt(4,"Rejecting " << kmerString(seq,len) << " because it ends with " << kmerString(kl) << " (" << desc << ")" << endl);
+    if (endsWithMotif(seq,len,kl,desc))
       return true;
-    }
   return false;
 }
 

@@ -84,10 +84,8 @@ void TransBuilder::doDFS (Kmer kmer, map<Kmer,Pos>& distance) const {
 
 set<Kmer> TransBuilder::kmersEndingWith (KmerLen motif) const {
   set<Kmer> result;
-  set<KmerLen> motifs;
-  motifs.insert (motif);
   for (auto kmer: kmers)
-    if (endsWithMotif(kmer,len,motifs))
+    if (endsWithMotif(kmer,len,motif))
       result.insert(kmer);
   return result;
 }
@@ -116,12 +114,16 @@ map<Kmer,list<Kmer> > TransBuilder::pathsTo (Kmer dest, int steps) const {
   EdgeVector in;
   for (int step = 0; step < steps; ++step) {
     map<Kmer,list<Kmer> > longerPathFrom;
-    for (auto destPath: pathFrom) {
-      getIncoming (destPath.first, in);
+    for (auto interPath: pathFrom) {
+      const Kmer inter = interPath.first;
+      getIncoming (inter, in);
       for (auto src: in)
 	if (kmerValid[src])
-	  if (!longerPathFrom.count (src))
-	    (longerPathFrom[src] = destPath.second).push_front (destPath.first);
+	  if (!longerPathFrom.count(src)
+	      || (!longerPathFrom.at(src).empty()
+		  && longerPathFrom.at(src).front() == dest
+		  && inter != dest))
+	    (longerPathFrom[src] = interPath.second).push_front (inter);
     }
     pathFrom.swap (longerPathFrom);
   }
@@ -176,16 +178,40 @@ void TransBuilder::buildEdges() {
 }
 
 void TransBuilder::indexStates() {
-  State n = 0;
+  nStates = 0;
   for (auto kmer: kmers)
-    kmerState[kmer] = ++n;
+    kmerState[kmer] = nStates++;
+  for (auto kmer: kmers) {
+    const auto nOut = countOutgoing(kmer);
+    if (nOut > 2)
+      kmerStateZero[kmer] = nStates++;
+    if (nOut > 3)
+      kmerStateOne[kmer] = nStates++;
+  }
+  nCodingStates = nStates;
+  for (size_t c = 0; c < nControlWords; ++c) {
+    vguard<map<Kmer,State> > ckState (controlWordSteps[c]);
+    for (Pos step = 0; step < controlWordSteps[c] - 1; ++step)
+      for (auto kmer: controlWordIntermediates[c][step])
+	ckState[step][kmer] = nStates++;
+    controlKmerState.push_back (ckState);
+  }
 }
 
-void TransBuilder::output (ostream& outs) {
+Machine TransBuilder::makeMachine() {
+  Machine machine (len);
+  machine.state = vguard<MachineState> (nStates);
+
   EdgeVector out;
   vguard<char> outChar;
   vguard<State> outState;
+  
   for (auto kmer: kmers) {
+    const State s = kmerState.at(kmer);
+    MachineState& ms = machine.state[s];
+    ms.context = kmer;
+    ms.type = 0;
+    
     getOutgoing (kmer, out);
     const EdgeFlags outFlags = kmerOutFlags.at(kmer);
     outChar.clear();
@@ -195,31 +221,80 @@ void TransBuilder::output (ostream& outs) {
 	outChar.push_back (baseToChar(n));
 	outState.push_back (kmerState.at(out[n]));
       }
-    outs << "#" << kmerState.at(kmer) << " " << kmerString(kmer,len);
+
     if (outChar.size() == 1)
-      outs << " /" << outChar[0] << "->#" << outState[0];
-    else if (outChar.size() == 2)
-      outs << " 0/" << outChar[0] << "->#" << outState[0]
-	   << " 1/" << outChar[1] << "->#" << outState[1];
-    else if (outChar.size() == 3)
-      outs << " 00/" << outChar[0] << "->#" << outState[0]
-	   << " 01/" << outChar[1] << "->#" << outState[1]
-	   << " 1/" << outChar[2] << "->#" << outState[2];
-    else if (outChar.size() == 4)  // kind of silly/obvious, but leave it in for completeness
-      outs << " 00/" << outChar[0] << "->#" << outState[0]
-	   << " 01/" << outChar[1] << "->#" << outState[1]
-	   << " 10/" << outChar[2] << "->#" << outState[2]
-	   << " 11/" << outChar[3] << "->#" << outState[3];
+      ms.trans.push_back (MachineTransition ('\0', outChar[0], outState[0]));
+    else if (outChar.size() == 2) {
+      ms.trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
+      ms.trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+    } else if (outChar.size() == 3) {
+      const State s0 = kmerStateZero.at(kmer);
+      ms.trans.push_back (MachineTransition ('0', '\0', s0));
+      ms.trans.push_back (MachineTransition ('1', outChar[2], outState[2]));
+      machine.state[s0].context = kmer;
+      machine.state[s0].type = 0;
+      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
+      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+    } else if (outChar.size() == 4) {
+      const State s0 = kmerStateZero.at(kmer);
+      const State s1 = kmerStateOne.at(kmer);
+      ms.trans.push_back (MachineTransition ('0', '\0', s0));
+      ms.trans.push_back (MachineTransition ('1', '\0', s1));
+      machine.state[s0].context = kmer;
+      machine.state[s0].type = 0;
+      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
+      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+      machine.state[s1].context = kmer;
+      machine.state[s1].type = 0;
+      machine.state[s1].trans.push_back (MachineTransition ('0', outChar[2], outState[2]));
+      machine.state[s1].trans.push_back (MachineTransition ('1', outChar[3], outState[3]));
+    }
+    
     if (outChar.size() > 1)
-      for (size_t c = 0; c < controlWord.size(); ++c) {
-	const list<Kmer>& p = controlWordPath[c].at (kmer);
-	outs << ' ' << (char) ('A' + c) << "/";
-	for (auto step: p)
-	  outs << baseToChar(getBase(step,1));
-	outs << "->#CONTROL" << (c+1);
-      }
-    outs << endl;
+      for (size_t c = 0; c < controlWord.size(); ++c)
+	ms.trans.push_back (controlTrans (s, controlWordPath[c].at(kmer).front(), c, 0));
   }
+
+  for (size_t c = 0; c < controlWord.size(); ++c) {
+    machine.control[controlChar(c)] = controlWord[c];
+    machine.state[kmerState.at(controlWord[c])].type = controlChar(c);
+    for (size_t step = 0; step < controlWordSteps[c] - 1; ++step) {
+      const auto& ckState = controlKmerState[c][step];
+      for (const auto& ks: ckState) {
+	const Kmer srcKmer = ks.first;
+	const State srcState = ks.second;
+	const Kmer destKmer = nextIntermediateKmer (srcKmer, c, step + 1);
+	machine.state[srcState].context = srcKmer;
+	machine.state[srcState].type = controlChar(c);
+	machine.state[srcState].trans.push_back (controlTrans (srcState, destKmer, c, step + 1));
+      }
+    }
+  }
+
+  return machine;
+}
+
+char TransBuilder::controlChar (size_t nControlWord) const {
+  return 'a' + nControlWord;
+}
+
+MachineTransition TransBuilder::controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const {
+  const State destState =
+    (step == controlWordSteps[nControlWord] - 1 && destKmer == controlWord[nControlWord])
+    ? kmerState.at(destKmer)
+    : controlKmerState[nControlWord][step].at(destKmer);
+  return MachineTransition (step == 0 ? controlChar(nControlWord) : '\0', baseToChar(getBase(destKmer,1)), destState);
+}
+
+Kmer TransBuilder::nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const {
+  EdgeVector out;
+  getOutgoing (srcKmer, out);
+  for (Kmer destKmer: out)
+    if ((step == controlWordSteps[nControlWord] - 1 && destKmer == controlWord[nControlWord])
+	|| (step < controlWordSteps[nControlWord] - 1 && controlWordIntermediates[nControlWord][step].count(destKmer)))
+      return destKmer;
+  Abort("Can't find intermediate kmer following %s at step %d to control word #%d (%s)", kmerString(srcKmer,len).c_str(), step, nControlWord, kmerString(controlWord[nControlWord],len).c_str());
+  return 0;
 }
 
 void TransBuilder::getControlWords() {
@@ -243,30 +318,30 @@ void TransBuilder::getControlWords() {
     }
   }
   LogThisAt(4,"Found " << cand.size() << " potential control words" << endl);
-  if (nControlWords*2 < cand.size())
-    while (controlWord.size() < nControlWords) {
-      size_t bestIdx = 0;
-      for (size_t idx = 1; idx < cand.size(); ++idx)
-	if (dist[idx] > dist[bestIdx]
-	    || (dist[idx] == dist[bestIdx] && steps[idx] < steps[bestIdx]))
-	  bestIdx = idx;
-      const Kmer best = cand[bestIdx];
-      const Kmer bestRevComp = kmerRevComp (best, len);
-      LogThisAt(3,"Selected control word " << kmerString(best,len)
-		<< " which is reachable from any other words in " << steps[bestIdx] << " steps"
-		<< (controlWord.empty()
-		    ? string()
+  Require (nControlWords*2 < cand.size(), "Not enough control words");
+  while (controlWord.size() < nControlWords) {
+    size_t bestIdx = 0;
+    for (size_t idx = 1; idx < cand.size(); ++idx)
+      if (dist[idx] > dist[bestIdx]
+	  || (dist[idx] == dist[bestIdx] && steps[idx] < steps[bestIdx]))
+	bestIdx = idx;
+    const Kmer best = cand[bestIdx];
+    const Kmer bestRevComp = kmerRevComp (best, len);
+    LogThisAt(3,"Selected control word " << kmerString(best,len)
+	      << " which is reachable from any other words in " << steps[bestIdx] << " steps"
+	      << (controlWord.empty()
+		  ? string()
 		    : (string(" and has at least ")
 		       + to_string(dist[bestIdx])
 		       + " bases different from all other control words"))
-		<< endl);
-      controlWord.push_back (best);
-      controlWordSteps.push_back (steps[bestIdx]);
-      controlWordPath.push_back (pathsTo (best, steps[bestIdx]));
-      for (size_t k = 0; k < cand.size(); ++k)
-	dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
-				     kmerHammingDistance (cand[k], bestRevComp, len)));
-    }
+	      << endl);
+    controlWord.push_back (best);
+    controlWordSteps.push_back (steps[bestIdx]);
+    controlWordPath.push_back (pathsTo (best, steps[bestIdx]));
+    for (size_t k = 0; k < cand.size(); ++k)
+      dist[k] = min (dist[k], min (kmerHammingDistance (cand[k], best, len),
+				   kmerHammingDistance (cand[k], bestRevComp, len)));
+  }
 
   for (auto cw: controlWord) {
     sourceMotif.insert (KmerLen (cw, len));
@@ -280,12 +355,19 @@ void TransBuilder::getControlWords() {
   
   for (size_t c = 0; c < controlWord.size(); ++c) {
     const Kmer controlKmer = controlWord[c];
-    set<Kmer> intermediates;
-    for (auto kmer: kmers)
-      for (auto inter: controlWordPath[c].at(kmer))
-	if (inter != controlKmer)
-	  intermediates.insert (inter);
+    vguard<set<Kmer> > intermediates (controlWordSteps[c]);
+    for (auto kmer: kmers) {
+      Pos step = 0;
+      for (auto inter: controlWordPath[c].at(kmer)) {
+	LogThisAt(9,"Adding " << kmerString(inter,len) << " at step " << step << " from " << kmerString(kmer,len) << " to control word #" << c << " (" << kmerString(controlWord[c],len) << ")" << endl);
+	intermediates[step++].insert (inter);
+      }
+    }
+    intermediates.pop_back();
+    size_t nInter = 0;
+    for (const auto& ks: intermediates)
+      nInter += ks.size();
     controlWordIntermediates.push_back (intermediates);
-    LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << intermediates.size() << " intermediate states" << endl);
+    LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
   }
 }

@@ -9,11 +9,8 @@
 using namespace std;
 
 typedef unsigned long long Kmer;
-typedef unsigned char Base;
+typedef unsigned short Base;
 typedef int Pos;
-
-typedef unsigned char EdgeFlags;
-typedef unsigned long long State;
 
 struct KmerLen {
   Kmer kmer;

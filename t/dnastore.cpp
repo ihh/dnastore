@@ -82,8 +82,10 @@ int main (int argc, char** argv) {
     builder.buildEdges();
     builder.indexStates();
 
+    const Machine machine = builder.makeMachine();
+    
     // Output the transducer
-    builder.output (cout);
+    machine.write (cout);
 
 #ifndef DEBUG
   } catch (const std::exception& e) {
