@@ -6,14 +6,17 @@
 struct Encoder {
   const Machine& machine;
   State current;
+  bool bigEndian, msb0;
   Encoder (const Machine&)
     : machine(machine),
-      current(0)
+      current(0),
+      bigEndian(false),
+      msb0(false)
   { }
 
   template<class Writer>
-  void write (bool bit, Writer& outs) {
-    const MachineTransition* t = machine.state[current].transFor (bit ? '1' : '0');
+  void encodeSymbol (char sym, Writer& outs) {
+    const MachineTransition* t = machine.state[current].transFor (sym);
     Assert (t != NULL, "Couldn't encode bit");
     while (true) {
       if (t->out)
@@ -24,6 +27,36 @@ struct Encoder {
 	break;
       t = &ms.next();
     }
+  }
+
+  template<class Writer>
+  void encodeBit (bool bit, Writer& outs) {
+    encodeSymbol (bit ? '1' : '0', outs);
+  }
+
+  template<class Writer>
+  void encodeMeta (ControlIndex control, Writer& outs) {
+    encodeSymbol (Machine::controlChar (control), outs);
+  }
+
+  template<class Writer, CharType>
+  void encodeByte (CharType byte, Writer& outs) {
+    if (msb0)
+      for (int n = 7; n >= 0; --n)
+	encodeBit (byte & (1 << n), outs);
+    else
+      for (int n = 0; n <= 7; ++n)
+	encodeBit (byte & (1 << n), outs);
+  }
+
+  template<class Writer, WordType>
+  void encodeWord (WordType word, Writer& outs) {
+    if (bigEndian)
+      for (int n = 24; n >= 0; n -= 8)
+	encode ((word >> n) & 0xff, outs);
+    else
+      for (int n = 0; n <= 24; n += 8)
+	encode ((word >> n) & 0xff, outs);
   }
 };
 
