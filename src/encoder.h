@@ -26,18 +26,18 @@ struct Encoder {
     while (!machine.state[current].isInput()) {
       const MachineTransition& tn = machine.state[current].next();
       write (tn.out);
-      LogThisAt(9,"Transition " << machine.stateName(current)
-		<< " -> " << machine.stateName(tn.dest)
+      LogThisAt(9,"Transition " << machine.state[current].name
+		<< " -> " << machine.state[tn.dest].name
 		<< ": output " << tn.out
 		<< endl);
       current = tn.dest;
     }
     const MachineTransition* t = machine.state[current].transFor (sym);
-    Assert (t != NULL, "Couldn't encode symbol %c in state %s", sym, machine.stateName(current).c_str());
+    Assert (t != NULL, "Couldn't encode symbol %c in state %s", sym, machine.state[current].name.c_str());
     while (true) {
       write (t->out);
-      LogThisAt(9,"Transition " << machine.stateName(current)
-		<< " -> " << machine.stateName(t->dest) << ": "
+      LogThisAt(9,"Transition " << machine.state[current].name
+		<< " -> " << machine.state[t->dest].name << ": "
 		<< (t->in ? (string("input ") + t->in + ", ") : string())
 		<< "output " << t->out
 		<< endl);

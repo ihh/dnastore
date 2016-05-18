@@ -194,7 +194,6 @@ void TransBuilder::indexStates() {
     if (nOut > 3)
       kmerStateOne[kmer] = nStates++;
   }
-  nCodingStates = nStates;
   for (size_t c = 0; c < nControlWords; ++c) {
     vguard<map<Kmer,State> > ckState (controlWordSteps[c]);
     for (Pos step = 0; step < controlWordSteps[c] - 1; ++step)
@@ -202,6 +201,7 @@ void TransBuilder::indexStates() {
 	ckState[step][kmer] = nStates++;
     controlKmerState.push_back (ckState);
   }
+  endState = nStates++;
 }
 
 void TransBuilder::prepare() {
@@ -216,7 +216,7 @@ void TransBuilder::prepare() {
 Machine TransBuilder::makeMachine() {
   prepare();
 
-  Machine machine (len);
+  Machine machine;
   machine.state = vguard<MachineState> (nStates);
 
   EdgeVector out;
@@ -226,7 +226,7 @@ Machine TransBuilder::makeMachine() {
   for (auto kmer: kmers) {
     const State s = kmerState.at(kmer);
     MachineState& ms = machine.state[s];
-    ms.context = kmer;
+    ms.leftContext = kmerString(kmer,len);
     
     getOutgoing (kmer, out);
     const EdgeFlags outFlags = kmerOutFlags.at(kmer);
@@ -238,15 +238,14 @@ Machine TransBuilder::makeMachine() {
 	outState.push_back (kmerState.at(out[n]));
       }
 
-    ms.type = CodeState;
+    ms.name = "Code";
     if (endsWithMotif(kmer,len,sourceMotif)) {
-      ms.type = SourceState;
+      ms.name = "Source";
       for (size_t c = 0; c < controlWord.size(); ++c)
-	if (kmer == controlWord[c]) {
-	  ms.type = ControlState;
-	  ms.control = c;
-	}
+	if (kmer == controlWord[c])
+	  ms.name = string("Control(") + Machine::controlChar(c) + ")";
     }
+    ms.name += "." + to_string(s+1);
 
     if (outChar.size() == 1)
       ms.trans.push_back (MachineTransition ('\0', outChar[0], outState[0]));
@@ -257,8 +256,8 @@ Machine TransBuilder::makeMachine() {
       const State s0 = kmerStateZero.at(kmer);
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
       ms.trans.push_back (MachineTransition ('1', outChar[2], outState[2]));
-      machine.state[s0].context = kmer;
-      machine.state[s0].type = SplitState;
+      machine.state[s0].leftContext = kmerString(kmer,len);
+      machine.state[s0].name = string("Split.") + to_string(s0+1);
       machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
       machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
     } else if (outChar.size() == 4) {
@@ -266,19 +265,21 @@ Machine TransBuilder::makeMachine() {
       const State s1 = kmerStateOne.at(kmer);
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
       ms.trans.push_back (MachineTransition ('1', '\0', s1));
-      machine.state[s0].context = kmer;
-      machine.state[s0].type = SplitState;
+      machine.state[s0].leftContext = kmerString(kmer,len);
+      machine.state[s0].name = string("Split.") + to_string(s0+1);
       machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
       machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
-      machine.state[s1].context = kmer;
-      machine.state[s1].type = SplitState;
+      machine.state[s1].leftContext = kmerString(kmer,len);
+      machine.state[s1].name = string("Split.") + to_string(s1+1);
       machine.state[s1].trans.push_back (MachineTransition ('0', outChar[2], outState[2]));
       machine.state[s1].trans.push_back (MachineTransition ('1', outChar[3], outState[3]));
     }
     
-    if (outChar.size() > 1)
+    if (outChar.size() > 1) {
       for (size_t c = 0; c < controlWord.size(); ++c)
 	ms.trans.push_back (controlTrans (s, controlWordPath[c].at(kmer).front(), c, 0));
+      ms.trans.push_back (MachineTransition (0, 0, endState));
+    }
   }
 
   for (size_t c = 0; c < controlWord.size(); ++c)
@@ -288,12 +289,13 @@ Machine TransBuilder::makeMachine() {
 	const Kmer srcKmer = ks.first;
 	const State srcState = ks.second;
 	const Kmer destKmer = nextIntermediateKmer (srcKmer, c, step + 1);
-	machine.state[srcState].context = srcKmer;
-	machine.state[srcState].type = PadState;
-	machine.state[srcState].control = c;
+	machine.state[srcState].leftContext = kmerString(srcKmer,len);
+	machine.state[srcState].name = string("Pad(") + Machine::controlChar(c) + ")." + to_string(srcState+1);
 	machine.state[srcState].trans.push_back (controlTrans (srcState, destKmer, c, step + 1));
       }
     }
+
+  machine.state[endState].name = "End." + to_string(endState+1);
 
   return machine;
 }

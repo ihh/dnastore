@@ -9,26 +9,7 @@ MachineTransition::MachineTransition (char in, char out, State dest)
 { }
 
 MachineState::MachineState()
-  : type (UndefinedState)
 { }
-
-string MachineState::typeString() const {
-  switch (type) {
-  case SourceState:
-    return string("Source");
-  case ControlState:
-    return string("Meta(") + Machine::controlChar(control) + ")";
-  case CodeState:
-    return string("Code");
-  case SplitState:
-    return string("Split");
-  case PadState:
-    return string("Pad(") + Machine::controlChar(control) + ")";
-  default:
-    break;
-  }
-  return string("Undefined");
-}
 
 const MachineTransition* MachineState::transFor (char in) const {
   for (const auto& t: trans)
@@ -37,8 +18,8 @@ const MachineTransition* MachineState::transFor (char in) const {
   return NULL;
 }
 
-bool MachineState::isPrimary() const {
-  return type == ControlState || type == CodeState;
+bool MachineState::isEnd() const {
+  return trans.empty();
 }
 
 bool MachineState::isInput() const {
@@ -63,29 +44,32 @@ State Machine::startState() const {
   return 0;
 }
 
-Machine::Machine (Pos len)
-  : len(len)
+Machine::Machine()
 { }
 
 void Machine::write (ostream& out) const {
-  const size_t tw = typeStringWidth();
-  const size_t sw = stateNameWidth();
+  const size_t iw = stateIndexWidth();
+  const size_t nw = stateNameWidth();
+  const size_t lw = leftContextWidth();
+  const size_t rw = rightContextWidth();
   for (State s = 0; s < nStates(); ++s) {
-    out << setw(sw+1) << left << stateName(s)
-	<< setw(tw+1) << left << state[s].typeString()
-	<< kmerString(state[s].context,len);
-    for (const auto& t: state[s].trans) {
+    const MachineState& ms = state[s];
+    out << setw(iw+1) << left << stateIndex(s)
+	<< setw(nw+1) << left << ms.name
+	<< setw(lw) << right << ms.leftContext
+	<< setw(rw+1) << left << ms.rightContext;
+    for (const auto& t: ms.trans) {
       out << " ";
       if (t.in) out << t.in;
       out << "/";
       if (t.out) out << t.out;
-      out << "->" << stateName(t.dest);
+      out << "->" << stateIndex(t.dest);
     }
     out << endl;
   }
 }
 
-string Machine::stateName (State s) {
+string Machine::stateIndex (State s) {
   return string("#") + to_string(s+1);
 }
 
@@ -101,38 +85,44 @@ ControlIndex Machine::controlIndex (char c) {
   return s == NULL ? -1 : s - cc;
 }
 
-size_t Machine::stateNameWidth() const {
+size_t Machine::leftContextWidth() const {
   size_t w = 0;
-  for (State s = 0; s < nStates(); ++s)
-    w = max (w, stateName(s).size());
+  for (const auto& ms: state)
+    w = max (w, ms.leftContext.size());
   return w;
 }
 
-size_t Machine::typeStringWidth() const {
+size_t Machine::rightContextWidth() const {
   size_t w = 0;
   for (const auto& ms: state)
-    w = max (w, ms.typeString().size());
+    w = max (w, ms.rightContext.size());
+  return w;
+}
+
+size_t Machine::stateNameWidth() const {
+  size_t w = 0;
+  for (const auto& ms: state)
+    w = max (w, ms.name.size());
+  return w;
+}
+
+size_t Machine::stateIndexWidth() const {
+  size_t w = 0;
+  for (State s = 0; s < nStates(); ++s)
+    w = max (w, stateIndex(s).size());
   return w;
 }
 
 double Machine::expectedBasesPerBit() const {
+  const size_t len = leftContextWidth() + rightContextWidth();
   const size_t burnInSteps = len*4, simSteps = len*4;
   map<State,double> current;
   size_t nSources = 0;
   for (State s = 0; s < nStates(); ++s)
-    if (state[s].type == SourceState || state[s].type == ControlState) {
-      State sIn = s;
-      while (!state[sIn].isInput())
-	sIn = state[sIn].next().dest;
-      current[sIn] = 1;
+    if (state[s].isInput()) {
+      current[s] = 1;
       ++nSources;
     }
-  if (nSources == 0)
-    for (State s = 0; s < nStates(); ++s)
-      if (state[s].isInput()) {
-	current[s] = 1;
-	++nSources;
-      }
   Assert (nSources > 0, "Couldn't find any input states");
   for (auto& ps: current)
     ps.second /= (double) nSources;
@@ -184,7 +174,7 @@ double Machine::expectedBasesPerBit() const {
   }
   double pTot = 0;
   for (auto& ps: current) {
-    LogThisAt(3,"P(" << kmerString(state[ps.first].context,len) << ") = " << ps.second << endl);
+    LogThisAt(3,"P(" << state[ps.first].name << ") = " << ps.second << endl);
     pTot += ps.second;
   }
   LogThisAt(4,"Total probability is " << pTot << endl);

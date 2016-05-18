@@ -37,7 +37,7 @@ struct TransBuilder {
   map<Kmer,EdgeFlags> kmerOutFlags;
   set<pair<Kmer,Kmer> > droppedEdge;
 
-  State nStates, nCodingStates;
+  State nStates, endState;
   map<Kmer,State> kmerState, kmerStateZero, kmerStateOne;
   vguard<vguard<map<Kmer,State> > > controlKmerState;
   
