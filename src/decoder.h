@@ -3,33 +3,44 @@
 
 #include "trans.h"
 
+template<class Writer>
 struct Decoder {
+  typedef map<State,string> StateString;
+  typedef typename StateString::iterator StateStringIter;
+  
   const Machine& machine;
-  map<State,string> current;
+  Writer& outs;
+  StateString current;
 
-  Decoder (const Machine& machine)
-    : machine(machine)
+  Decoder (const Machine& machine, Writer& outs)
+    : machine(machine),
+      outs(outs)
   {
     current[machine.startState()] = string();
     expand();
   }
 
   ~Decoder() {
-    bool unresolved = false;
-    for (const auto& ss: current)
-      if (!ss.second.empty()) {
-	unresolved = true;
-	break;
-      }
-    if (unresolved) {
-      Warn ("Decoder unresolved: %d state(s) remaining with symbols on input queue", current.size());
-      for (const auto& ss: current)
-	Warn ("State %s: input queue %s", machine.stateName(ss.first).c_str(), ss.second.c_str());
+    close();
+  }
+
+  void close() {
+    vguard<StateStringIter> ssIter;
+    for (StateStringIter ss = current.begin(); ss != current.end(); ++ss)
+      if (machine.state[ss->first].isPrimary())
+	ssIter.push_back (ss);
+    if (ssIter.size() == 1)
+      flush (ssIter.front());
+    else if (ssIter.size() > 1) {
+      Warn ("Decoder unresolved: %u possible primary state(s)", ssIter.size());
+      for (auto ss: ssIter)
+	Warn ("State %s: input queue %s", machine.stateName(ss->first).c_str(), ss->second.c_str());
     }
+    current.clear();
   }
   
   void expand() {
-    map<State,string> next;
+    StateString next;
     bool foundNew;
     do {
       foundNew = false;
@@ -51,11 +62,22 @@ struct Decoder {
     } while (foundNew);
   }
 
-  template<class Writer>
-  void decodeBase (char base, Writer& outs) {
+  void flush (StateStringIter ss) {
+    string& str = ss->second;
+    if (str.size()) {
+      LogThisAt(9,"Flushing input queue: " << str << endl);
+      char* buf = (char*) malloc (sizeof(char) * (str.size() + 1));
+      strcpy (buf, str.c_str());
+      (void) outs.write (buf, str.size());
+      free (buf);
+      str.clear();
+    }
+  }
+  
+  void decodeBase (char base) {
     base = toupper(base);
     LogThisAt(8,"Decoding " << base << endl);
-    map<State,string> next;
+    StateString next;
     for (const auto& ss: current) {
       const State state = ss.first;
       const string& str = ss.second;
@@ -78,25 +100,14 @@ struct Decoder {
     expand();
     if (current.size() == 1) {
       auto iter = current.begin();
-      const StateType type = machine.state[iter->first].type;
-      if (type == ControlState || type == CodeState) {
-	string& str = iter->second;
-	if (str.size()) {
-	  LogThisAt(9,"Flushing input queue: " << str << endl);
-	  char* buf = (char*) malloc (sizeof(char) * (str.size() + 1));
-	  strcpy (buf, str.c_str());
-	  (void) outs.write (buf, str.size());
-	  free (buf);
-	  str.clear();
-	}
-      }
+      if (machine.state[iter->first].isPrimary())
+	flush (iter);
     }
   }
 
-  template<class Writer>
-  void decodeString (const string& seq, Writer& outs) {
+  void decodeString (const string& seq) {
     for (char c: seq)
-      decodeBase (c, outs);
+      decodeBase (c);
   }
 };
 
@@ -111,8 +122,11 @@ struct BinaryWriter {
   { }
 
   ~BinaryWriter() {
-    if (!outbuf.empty())
-      Warn ("%d bits (%s) remain on output", outbuf.size(), to_string_join(outbuf,"").c_str());
+    if (!outbuf.empty()) {
+      if (!msb0)
+	reverse (outbuf.begin(), outbuf.end());
+      Warn ("%u bits (%s) remain on output", outbuf.size(), to_string_join(outbuf,"").c_str());
+    }
   }
 
   void flush() {

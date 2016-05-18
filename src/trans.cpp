@@ -37,6 +37,10 @@ const MachineTransition* MachineState::transFor (char in) const {
   return NULL;
 }
 
+bool MachineState::isPrimary() const {
+  return type == ControlState || type == CodeState;
+}
+
 bool MachineState::isInput() const {
   return transFor('0') != NULL && transFor('1') != NULL;
 }
@@ -85,7 +89,7 @@ string Machine::stateName (State s) {
   return string("#") + to_string(s+1);
 }
 
-string controlChars ("XYZWVPQRSDEFIJKLM23456789<>[]!?abcdefghijklmnopqrstuvwxyz");
+string controlChars ("23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 char Machine::controlChar (ControlIndex c) {
   Assert (c < controlChars.size(), "Ran out of control chars");
   return controlChars[c];

@@ -42,17 +42,18 @@ int main (int argc, char** argv) {
       ("tandem,t", po::value<int>(), "reject local tandem duplications & inverted repeats up to this length")
       ("invrep,i", po::value<int>()->default_value(4), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
-      ("source,s", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
-      ("keepdeg,k", "keep degenerate transitions")
-      ("control,c", po::value<int>()->default_value(4), "number of control words")
+      ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
+      ("keep-degen,k", "keep degenerate transitions")
+      ("controls,c", po::value<int>()->default_value(4), "number of control symbols")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
       ("decode-file,d", po::value<string>(), "decode FASTA file to binary on stdout")
       ("encode-string,E", po::value<string>(), "encode ASCII string to FASTA on stdout")
       ("decode-string,D", po::value<string>(), "decode DNA sequence to binary on stdout")
-      ("encode-bits,b", po::value<string>(), "encode bit-string to FASTA on stdout")
-      ("decode-bits,B", po::value<string>(), "decode DNA sequence to bit-string on stdout")
-      ("no-eof,n", po::value<bool>(), "when encoding, do not add a control word to demarcate EOF")
-      ("eof,f", po::value<int>()->default_value(0), "which control word to use for EOF")
+      ("start,s", po::value<char>(), "control symbol to encode at start of file")
+      ("eof,f", po::value<char>(), "control symbol to encode at end of file")
+      ("encode-bits,b", po::value<string>(), "encode string of bits and control symbols to FASTA on stdout")
+      ("decode-bits,B", po::value<string>(), "decode DNA sequence to string of bits and control symbols on stdout")
+      ("raw,r", "strip headers from FASTA output; just print raw sequence")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -82,53 +83,59 @@ int main (int argc, char** argv) {
     getMotifs (vm, "exclude", builder.excludedMotif, builder.excludedMotifRevComp);
     getMotifs (vm, "source", builder.sourceMotif, builder.excludedMotifRevComp);
 
-    if (vm.count("keepdeg"))
+    if (vm.count("keep-degen"))
       builder.keepDegenerates = true;
-    builder.nControlWords = vm.at("control").as<int>();
+    builder.nControlWords = vm.at("controls").as<int>();
+
+    const bool raw = vm.count("raw");
     
     // build transducer
     const Machine machine = builder.makeMachine();
     
     // encoding or decoding?
     if (vm.count("encode-file")) {
-      ifstream infile (vm.at("encode-file").as<string>(), std::ios::binary);
+      const string filename = vm.at("encode-file").as<string>();
+      ifstream infile (filename, std::ios::binary);
       if (!infile)
 	throw runtime_error ("Binary file not found");
-      Encoder encoder (machine);
-      FastaWriter writer (cout);
-      encoder.encodeStream (infile, writer);
-      if (!(vm.count("no-eof") || builder.nControlWords == 0))
-	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
+      FastaWriter writer (cout, raw ? NULL : filename.c_str());
+      Encoder<FastaWriter> encoder (machine, writer);
+      if (vm.count("start"))
+	encoder.encodeSymbol (vm.at("start").as<char>());
+      encoder.encodeStream (infile);
+      if (vm.count("eof"))
+	encoder.encodeSymbol (vm.at("eof").as<char>());
 	
     } else if (vm.count("decode-file")) {
       const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
-      Decoder decoder (machine);
       BinaryWriter writer (cout);
+      Decoder<BinaryWriter> decoder (machine, writer);
       for (auto& fs: fastSeqs)
-	decoder.decodeString (fs.seq, writer);
+	decoder.decodeString (fs.seq);
 
     } else if (vm.count("encode-string")) {
-      Encoder encoder (machine);
-      FastaWriter writer (cout);
-      encoder.encodeString (vm.at("encode-string").as<string>(), writer);
-      if (!(vm.count("no-eof") || builder.nControlWords == 0))
-	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
+      FastaWriter writer (cout, raw ? NULL : "ASCII_string");
+      Encoder<FastaWriter> encoder (machine, writer);
+      if (vm.count("start"))
+	encoder.encodeSymbol (vm.at("start").as<char>());
+      encoder.encodeString (vm.at("encode-string").as<string>());
+      if (vm.count("eof"))
+	encoder.encodeSymbol (vm.at("eof").as<char>());
       
     } else if (vm.count("decode-string")) {
-      Decoder decoder (machine);
       BinaryWriter writer (cout);
-      decoder.decodeString (vm.at("decode-string").as<string>(), writer);
+      Decoder<BinaryWriter> decoder (machine, writer);
+      decoder.decodeString (vm.at("decode-string").as<string>());
 
     } else if (vm.count("encode-bits")) {
-      Encoder encoder (machine);
-      FastaWriter writer (cout);
-      encoder.encodeSymbolString (vm.at("encode-bits").as<string>(), writer);
-      if (!(vm.count("no-eof") || builder.nControlWords == 0))
-	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
+      FastaWriter writer (cout, raw ? NULL : "bit_string");
+      Encoder<FastaWriter> encoder (machine, writer);
+      encoder.encodeSymbolString (vm.at("encode-bits").as<string>());
       
     } else if (vm.count("decode-bits")) {
-      Decoder decoder (machine);
-      decoder.decodeString (vm.at("decode-bits").as<string>(), cout);
+      Decoder<ostream> decoder (machine, cout);
+      decoder.decodeString (vm.at("decode-bits").as<string>());
+      decoder.close();
       cout << endl;
 
     } else {
