@@ -1,8 +1,13 @@
 #include <iomanip>
+#include <fstream>
 #include "trans.h"
 #include "logger.h"
+#include "jsonutil.h"
 
 char Machine::eofChar = '\4';
+
+MachineTransition::MachineTransition()
+{ }
 
 MachineTransition::MachineTransition (char in, char out, State dest)
   : in (in),
@@ -94,7 +99,7 @@ void Machine::write (ostream& out) const {
 }
 
 string Machine::stateIndex (State s) {
-  return string("#") + to_string(s+1);
+  return string("#") + to_string(s);
 }
 
 string controlChars ("23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
@@ -111,6 +116,13 @@ ControlIndex Machine::controlIndex (char c) {
 
 string Machine::charToString (char c) {
   return c == 0 ? string("NULL") : (c == eofChar ? string("EOF") : string(1,c));
+}
+
+char Machine::stringToChar (const string& in) {
+  if (in == "NULL") return 0;
+  if (in == "EOF") return eofChar;
+  Assert (in.size() == 1, "Unknown input symbol descriptor: %s", in.c_str());
+  return in[0];
 }
 
 size_t Machine::leftContextWidth() const {
@@ -236,4 +248,78 @@ map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
   for (char c: alph)
     bps[c] = accumulate (eb[c].begin(), eb[c].end(), 0.) / (double) eb[c].size();
   return bps;
+}
+
+void Machine::writeJSON (ostream& out) const {
+  out << "{\"state\": [" << endl;
+  for (State s = 0; s < nStates(); ++s) {
+    const MachineState& ms = state[s];
+    out << " {";
+    if (ms.name.size())
+	out << "\"id\":\"" << ms.name << "\",";
+    if (ms.leftContext.size())
+      out << "\"l\":\"" << ms.leftContext << "\",";
+    if (ms.rightContext.size())
+      out << "\"r\":\"" << ms.rightContext << "\",";
+    out << "\"trans\":[";
+    for (size_t nt = 0; nt < ms.trans.size(); ++nt) {
+      const MachineTransition& t = ms.trans[nt];
+      if (nt > 0) out << ",";
+      out << "{";
+      if (t.in) out << "\"in\":\"" << charToString(t.in) << "\",";
+      if (t.out) out << "\"out\":\"" << t.out << "\",";
+      out << "\"to\":" << t.dest
+	  << "}";
+    }
+    out << "]}";
+    if (s < nStates() - 1)
+      out << ",";
+    out << endl;
+  }
+  out << "]}" << endl;
+}
+
+void Machine::readJSON (istream& in) {
+  state.clear();
+  ParsedJson pj (in);
+  JsonValue jstate = pj.getType ("state", JSON_ARRAY);
+  for (JsonIterator iter = begin(jstate); iter != end(jstate); ++iter) {
+    const JsonMap jsmap (iter->value);
+    MachineState ms;
+    if (jsmap.contains("id"))
+      ms.name = jsmap.getString("id");
+    if (jsmap.contains("l"))
+      ms.leftContext = jsmap.getString("l");
+    if (jsmap.contains("r"))
+      ms.rightContext = jsmap.getString("r");
+    JsonValue jtrans = jsmap.getType ("trans", JSON_ARRAY);
+    for (JsonIterator transIter = begin(jtrans); transIter != end(jtrans); ++transIter) {
+      const JsonMap jtmap (transIter->value);
+      MachineTransition t;
+      t.in = t.out = 0;
+      t.dest = (State) jtmap.getNumber("to");
+      if (jtmap.contains("in"))
+	t.in = stringToChar (jtmap.getString("in"));
+      if (jtmap.contains("out")) {
+	const string& tout = jtmap.getString("out");
+	Assert (tout.size() == 1, "Invalid output character: %s", tout.c_str());
+	t.out = tout[0];
+      }
+      ms.trans.push_back (t);
+    }
+    state.push_back (ms);
+  }
+}
+
+Machine Machine::fromJSON (istream& in) {
+  Machine machine;
+  machine.readJSON (in);
+  return machine;
+}
+
+Machine Machine::fromFile (const char* filename) {
+  ifstream infile (filename);
+  if (!infile)
+    Fail ("File not found: %s", filename);
+  return fromJSON (infile);
 }

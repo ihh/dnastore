@@ -14,6 +14,7 @@ typedef int ControlIndex;
 struct MachineTransition {
   char in, out;
   State dest;
+  MachineTransition();
   MachineTransition (char, char, State);
   bool isInput() const;
   bool isOutput() const;
@@ -42,12 +43,19 @@ struct Machine {
   
   void write (ostream& out) const;
 
+  void writeJSON (ostream& out) const;
+  void readJSON (istream& in);
+
+  static Machine fromJSON (istream& in);
+  static Machine fromFile (const char* filename);
+  
   static char controlChar (ControlIndex c);
   static ControlIndex controlIndex (char c);
   static string stateIndex (State s);
 
   static char eofChar;
-  static string charToString (char c);
+  static string charToString (char in);
+  static char stringToChar (const string& in);
   
   size_t leftContextWidth() const;
   size_t rightContextWidth() const;

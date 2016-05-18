@@ -231,7 +231,7 @@ Machine TransBuilder::makeMachine() {
     for (State s = 0; s < len; ++s) {
       MachineState& ms = machine.state[s];
       ms.leftContext = string(len-s,'*') + kmerSubstring(startControlWord(),len-s+1,s);
-      ms.name = (s == 0 ? "Start#" : "Pad(Start)#") + to_string(s+1);
+      ms.name = (s == 0 ? "Start#" : "Pad(Start)#") + to_string(s);
       ms.trans.push_back (MachineTransition ('\0', baseToChar(getBase(startControlWord(),len-s)), s+1));
     }
   else {
@@ -274,7 +274,7 @@ Machine TransBuilder::makeMachine() {
 	    ms.name = string("Control(") + controlChar(c) + ")";
 	}
     }
-    ms.name += "#" + to_string(s+1);
+    ms.name += "#" + to_string(s);
 
     if (outChar.size() == 1)
       ms.trans.push_back (MachineTransition ('\0', outChar[0], outState[0]));
@@ -290,7 +290,7 @@ Machine TransBuilder::makeMachine() {
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
       ms.trans.push_back (MachineTransition ('1', outChar[k], outState[k]));
       machine.state[s0].leftContext = kmerString(kmer,len);
-      machine.state[s0].name = string("Split#") + to_string(s0+1);
+      machine.state[s0].name = string("Split#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
       machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
     } else if (outChar.size() == 4) {
@@ -301,11 +301,11 @@ Machine TransBuilder::makeMachine() {
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
       ms.trans.push_back (MachineTransition ('1', '\0', s1));
       machine.state[s0].leftContext = kmerString(kmer,len);
-      machine.state[s0].name = string("Split#") + to_string(s0+1);
+      machine.state[s0].name = string("Split#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
       machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
       machine.state[s1].leftContext = kmerString(kmer,len);
-      machine.state[s1].name = string("Split#") + to_string(s1+1);
+      machine.state[s1].name = string("Split#") + to_string(s1);
       machine.state[s1].trans.push_back (MachineTransition ('0', outChar[k], outState[k]));
       machine.state[s1].trans.push_back (MachineTransition ('1', outChar[l], outState[l]));
     }
@@ -331,12 +331,12 @@ Machine TransBuilder::makeMachine() {
 	const State srcState = ks.second;
 	const Kmer destKmer = nextIntermediateKmer (srcKmer, c, step + 1);
 	machine.state[srcState].leftContext = kmerString(srcKmer,len);
-	machine.state[srcState].name = (isEndControlIndex(c) ? string("Pad(End)") : (string("Pad(") + controlChar(c) + ")")) + "#" + to_string(srcState+1);
+	machine.state[srcState].name = (isEndControlIndex(c) ? string("Pad(End)") : (string("Pad(") + controlChar(c) + ")")) + "#" + to_string(srcState);
 	machine.state[srcState].trans.push_back (controlTrans (srcState, destKmer, c, step + 1));
       }
     }
 
-  machine.state[endState].name = "End#" + to_string(endState+1);
+  machine.state[endState].name = "End#" + to_string(endState);
   machine.state[endState].leftContext = controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*');
   
   return machine;

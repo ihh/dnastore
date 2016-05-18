@@ -45,12 +45,14 @@ int main (int argc, char** argv) {
       ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
       ("keep-degen,k", "keep degenerate transitions")
       ("controls,c", po::value<int>()->default_value(4), "number of control words")
+      ("no-start,s", "do not use a control word at start of encoded sequence")
+      ("no-eof,f", "do not use a control word at end of encoded sequence")
+      ("load-machine,L", po::value<string>(), "load machine from JSON file")
+      ("save-machine,S", po::value<string>(), "save machine to JSON file")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
       ("decode-file,d", po::value<string>(), "decode FASTA file to binary on stdout")
       ("encode-string,E", po::value<string>(), "encode ASCII string to FASTA on stdout")
       ("decode-string,D", po::value<string>(), "decode DNA sequence to binary on stdout")
-      ("no-start,s", "do not use a control word at start of file")
-      ("no-eof,f", "do not use a control word at end of file")
       ("encode-bits,b", po::value<string>(), "encode string of bits and control symbols to FASTA on stdout")
       ("decode-bits,B", po::value<string>(), "decode DNA sequence to string of bits and control symbols on stdout")
       ("raw,r", "strip headers from FASTA output; just print raw sequence")
@@ -92,8 +94,16 @@ int main (int argc, char** argv) {
     
     const bool raw = vm.count("raw");
     
-    // build transducer
-    const Machine machine = builder.makeMachine();
+    // build, or load, transducer
+    const Machine machine = vm.count("load-machine")
+      ? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
+      : builder.makeMachine();
+    
+    // save transducer
+    if (vm.count("save-machine")) {
+      ofstream out (vm.at("save-machine").as<string>());
+      machine.writeJSON (out);
+    }
     
     // encoding or decoding?
     if (vm.count("encode-file")) {
