@@ -169,8 +169,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol() const {
 	if (t)
 	  transFor[c] = t;
       }
-
-      const double nt = transFor.count('0') + transFor.count('1');
+      const double nt = transFor.size();
 
       for (const auto& ct: transFor) {
 	const char c = ct.first;
@@ -187,8 +186,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol() const {
 	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs");
 	  t = &state[s].next();
 	}
-	if (c == '0' || c == '1')
-	  next[s] += p / nt;
+	next[s] += p / nt;
       }
     }
     for (const auto& cb: bases)
