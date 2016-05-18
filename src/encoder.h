@@ -22,8 +22,13 @@ struct Encoder {
   }
 
   void close() {
-    if (!machine.state[current].isEnd())
+    if (!machine.state[current].isEnd()) {
+      while (machine.state[current].transFor(Machine::eofChar) == NULL) {
+	Warn ("Encoding extra zero bit at end of message");
+	encodeSymbol ('0');
+      }
       encodeSymbol (Machine::eofChar);
+    }
   }
   
   void write (char outc) {
@@ -45,7 +50,7 @@ struct Encoder {
       current = tn.dest;
     }
     const MachineTransition* t = machine.state[current].transFor (sym);
-    Assert (t != NULL, "Couldn't encode symbol %c in state %s", sym, machine.state[current].name.c_str());
+    Assert (t != NULL, "Couldn't encode symbol %s in state %s", Machine::charToString(sym).c_str(), machine.state[current].name.c_str());
     while (true) {
       write (t->out);
       LogThisAt(9,"Transition " << machine.state[current].name

@@ -131,6 +131,7 @@ int main (int argc, char** argv) {
       Decoder<ostream> decoder (machine, cout);
       decoder.decodeString (vm.at("decode-bits").as<string>());
       decoder.close();
+
       cout << endl;
 
     } else {
