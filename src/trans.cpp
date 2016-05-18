@@ -309,6 +309,7 @@ void Machine::readJSON (istream& in) {
     }
     state.push_back (ms);
   }
+  verifyContexts();
 }
 
 Machine Machine::fromJSON (istream& in) {
@@ -322,4 +323,18 @@ Machine Machine::fromFile (const char* filename) {
   if (!infile)
     Fail ("File not found: %s", filename);
   return fromJSON (infile);
+}
+
+void Machine::verifyContexts() const {
+  for (const auto& ms: state) {
+    for (const auto& t: ms.trans) {
+      const auto& md = state[t.dest];
+      if (t.out) {
+	if (ms.rightContext.size())
+	  Assert (t.out == ms.rightContext[0], "In transition from %s to %s: emitted character (%c) does not match source's right context (%s)", ms.name.c_str(), md.name.c_str(), t.out, ms.rightContext.c_str());
+	if (md.leftContext.size())
+	  Assert (t.out == md.leftContext.back(), "In transition from %s to %s: emitted character (%c) does not match destination's left context (%s)", ms.name.c_str(), md.name.c_str(), t.out, md.leftContext.c_str());
+      }
+    }
+  }
 }

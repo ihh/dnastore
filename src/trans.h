@@ -38,14 +38,13 @@ struct Machine {
   
   Machine();
   State nStates() const;
-
   State startState() const;
   
-  void write (ostream& out) const;
+  void verifyContexts() const;
 
+  void write (ostream& out) const;
   void writeJSON (ostream& out) const;
   void readJSON (istream& in);
-
   static Machine fromJSON (istream& in);
   static Machine fromFile (const char* filename);
   
