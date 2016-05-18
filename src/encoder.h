@@ -24,6 +24,8 @@ struct Encoder {
   void encodeSymbol (char sym) {
     LogThisAt(8,"Encoding " << sym << endl);
     while (!machine.state[current].hasInput()) {
+      Assert (machine.state[current].isDeterministic(),
+	      "Reached non-deterministic output state during encoding");
       const MachineTransition& tn = machine.state[current].next();
       write (tn.out);
       LogThisAt(9,"Transition " << machine.state[current].name
@@ -44,6 +46,8 @@ struct Encoder {
       current = t->dest;
       if (machine.state[current].hasInput())
 	break;
+      Assert (machine.state[current].isDeterministic(),
+	      "Reached non-deterministic output state during encoding");
       t = &machine.state[current].next();
     }
   }

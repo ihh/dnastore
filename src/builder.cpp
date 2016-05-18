@@ -447,7 +447,3 @@ void TransBuilder::getControlWords() {
     LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
   }
 }
-
-double TransBuilder::expectedBasesPerControlChar() const {
-  return accumulate (controlWordSteps.begin(), controlWordSteps.end(), 0) / (double) controlWord.size();
-}

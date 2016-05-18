@@ -2,6 +2,7 @@
 #define TRANSDUCER_INCLUDED
 
 #include <string>
+#include <map>
 #include "vguard.h"
 
 using namespace std;
@@ -48,7 +49,10 @@ struct Machine {
   size_t stateNameWidth() const;
   size_t stateIndexWidth() const;
 
-  double expectedBasesPerBit() const;
+  string inputAlphabet() const;
+  string outputAlphabet() const;
+  
+  map<char,double> expectedBasesPerInputSymbol() const;
 };
 
 #endif /* TRANSDUCER_INCLUDED */

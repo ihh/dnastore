@@ -62,8 +62,6 @@ struct TransBuilder {
   void getControlWords();
   bool getNextControlWord();
 
-  double expectedBasesPerControlChar() const;
-  
   map<Kmer,list<Kmer> > pathsTo (Kmer dest, int steps) const;
   MachineTransition controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const;
   Kmer nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const;

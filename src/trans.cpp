@@ -123,7 +123,25 @@ size_t Machine::stateIndexWidth() const {
   return w;
 }
 
-double Machine::expectedBasesPerBit() const {
+string Machine::inputAlphabet() const {
+  set<char> alph;
+  for (const auto& ms: state)
+    for (const auto& t: ms.trans)
+      if (t.in)
+	alph.insert (t.in);
+  return string (alph.begin(), alph.end());
+}
+
+string Machine::outputAlphabet() const {
+  set<char> alph;
+  for (const auto& ms: state)
+    for (const auto& t: ms.trans)
+      if (t.out)
+	alph.insert (t.out);
+  return string (alph.begin(), alph.end());
+}
+
+map<char,double> Machine::expectedBasesPerInputSymbol() const {
   const size_t len = leftContextWidth() + rightContextWidth();
   const size_t burnInSteps = len*4, simSteps = len*4;
   map<State,double> current;
@@ -136,42 +154,45 @@ double Machine::expectedBasesPerBit() const {
   Assert (nSources > 0, "Couldn't find any input states");
   for (auto& ps: current)
     ps.second /= (double) nSources;
-  vguard<double> bpb;
+  const string alph = inputAlphabet();
+  map<char,vguard<double> > eb;
   auto evolve = [&]() -> void {
     map<State,double> next;
-    double basesPerBit = 0;
+    map<char,double> bases;
     for (const auto& ps: current) {
       const MachineState& ms = state[ps.first];
       const double p = ps.second;
 
-      auto t0 = ms.transFor('0');
-      auto t1 = ms.transFor('1');
-      const double nt = t0 ? (t1 ? 2 : 1) : (t1 ? 1 : 0);
-      
-      State s0;
-      while (true) {
-	if (t0->out)
-	  basesPerBit += p / nt;
-	s0 = t0->dest;
-	if (state[s0].hasInput())
-	  break;
-	t0 = &state[s0].next();
+      map<char,const MachineTransition*> transFor;
+      for (char c: alph) {
+	auto t = ms.transFor(c);
+	if (t)
+	  transFor[c] = t;
       }
-      next[s0] += p / nt;
 
-      State s1;
-      while (true) {
-	if (t1->out)
-	  basesPerBit += p / nt;
-	s1 = t1->dest;
-	if (state[s1].hasInput())
-	  break;
-	t1 = &state[s1].next();
+      const double nt = transFor.count('0') + transFor.count('1');
+
+      for (const auto& ct: transFor) {
+	const char c = ct.first;
+	auto t = ct.second;
+	if (t->out)
+	  bases[c] += p;
+	State s;
+	while (true) {
+	  if (t->out)
+	    bases[c] += p;
+	  s = t->dest;
+	  if (state[s].hasInput())
+	    break;
+	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs");
+	  t = &state[s].next();
+	}
+	if (c == '0' || c == '1')
+	  next[s] += p / nt;
       }
-      next[s1] += p / nt;
-
     }
-    bpb.push_back (basesPerBit);
+    for (const auto& cb: bases)
+      eb[cb.first].push_back (cb.second);
     current.swap (next);
   };
   ProgressLog (plogSim, 1);
@@ -180,7 +201,7 @@ double Machine::expectedBasesPerBit() const {
     plogSim.logProgress (step / (double) (burnInSteps + simSteps), "burn-in step %u/%u", step, simSteps + burnInSteps);
     evolve();
   }
-  bpb.clear();
+  eb.clear();
   for (size_t step = 0; step < simSteps; ++step) {
     plogSim.logProgress ((step + burnInSteps) / (double) (burnInSteps + simSteps), "step %u/%u", step + burnInSteps, simSteps + burnInSteps);
     evolve();
@@ -191,5 +212,8 @@ double Machine::expectedBasesPerBit() const {
     pTot += ps.second;
   }
   LogThisAt(4,"Total probability is " << pTot << endl);
-  return accumulate (bpb.begin(), bpb.end(), 0.) / (double) bpb.size();
+  map<char,double> bps;
+  for (const auto& cb: eb)
+    bps[cb.first] = accumulate (cb.second.begin(), cb.second.end(), 0.) / (double) cb.second.size();
+  return bps;
 }

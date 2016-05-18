@@ -143,10 +143,11 @@ int main (int argc, char** argv) {
       machine.write (cout);
 
       // Output statistics
-      const double basesPerBit = machine.expectedBasesPerBit();
-      LogThisAt(1,"Expected bases/bit: " << basesPerBit << endl);
-      if (builder.nControlWords)
-	LogThisAt(1,"Expected bases/control: " << builder.expectedBasesPerControlChar() << endl);
+      const auto charBases = machine.expectedBasesPerInputSymbol();
+      vguard<string> cbstr;
+      for (const auto& cb: charBases)
+	cbstr.push_back (string(1,cb.first) + ": " + to_string(cb.second));
+      LogThisAt(1,"Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl);
     }
 
 #ifndef DEBUG
