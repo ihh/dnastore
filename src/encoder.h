@@ -9,6 +9,7 @@ struct Encoder {
   Writer& outs;
   State current;
   bool msb0;  // set this to encode MSB first, instead of LSB first
+
   Encoder (const Machine& machine, Writer& outs)
     : machine(machine),
       outs(outs),
@@ -16,14 +17,23 @@ struct Encoder {
       msb0(false)
   { }
 
+  ~Encoder() {
+    close();
+  }
+
+  void close() {
+    if (!machine.state[current].isEnd())
+      encodeSymbol (Machine::eofChar);
+  }
+  
   void write (char outc) {
     if (outc)
       (void) outs.write (&outc, 1);
   }
   
   void encodeSymbol (char sym) {
-    LogThisAt(8,"Encoding " << sym << endl);
-    while (!machine.state[current].hasInput()) {
+    LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
+    while (!machine.state[current].acceptsInputOrEof()) {
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");
       const MachineTransition& tn = machine.state[current].next();
@@ -44,7 +54,7 @@ struct Encoder {
 		<< "output " << t->out
 		<< endl);
       current = t->dest;
-      if (machine.state[current].hasInput())
+      if (machine.state[current].acceptsInputOrEof() || machine.state[current].isEnd())
 	break;
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");

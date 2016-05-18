@@ -25,6 +25,7 @@ struct TransBuilder {
   set<KmerLen> sourceMotif;
   bool keepDegenerates;
   size_t nControlWords;
+  bool controlWordAtStart, controlWordAtEnd, startAndEndUseSameControlWord;
   
   // work variables
   vguard<bool> kmerValid;
@@ -37,7 +38,7 @@ struct TransBuilder {
   map<Kmer,EdgeFlags> kmerOutFlags;
   set<pair<Kmer,Kmer> > droppedEdge;
 
-  State nStates, endState;
+  State nStates, firstNonControlState, endState;
   map<Kmer,State> kmerState, kmerStateZero, kmerStateOne;
   vguard<vguard<map<Kmer,State> > > controlKmerState;
   
@@ -61,7 +62,12 @@ struct TransBuilder {
 
   void getControlWords();
   bool getNextControlWord();
-
+  bool isSourceControlIndex (size_t c) const;
+  bool isStartControlIndex (size_t c) const;
+  bool isEndControlIndex (size_t c) const;
+  Kmer startControlWord() const;
+  Kmer endControlWord() const;
+  
   map<Kmer,list<Kmer> > pathsTo (Kmer dest, int steps) const;
   MachineTransition controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const;
   Kmer nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const;

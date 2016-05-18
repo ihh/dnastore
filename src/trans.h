@@ -15,6 +15,9 @@ struct MachineTransition {
   char in, out;
   State dest;
   MachineTransition (char, char, State);
+  bool isInput() const;
+  bool isOutput() const;
+  bool isEof() const;
 };
 
 struct MachineState {
@@ -23,8 +26,8 @@ struct MachineState {
   MachineState();
   const MachineTransition* transFor (char in) const;
   bool isEnd() const;  // true if this has no outgoing transitions
-  bool hasInput() const;
-  bool hasOutput() const;
+  bool acceptsInputOrEof() const;
+  bool emitsOutput() const;
   bool isDeterministic() const;  // true if this has only one non-absorbing transition
   const MachineTransition& next() const;
 };
@@ -41,9 +44,11 @@ struct Machine {
 
   static char controlChar (ControlIndex c);
   static ControlIndex controlIndex (char c);
-
   static string stateIndex (State s);
 
+  static char eofChar;
+  static string charToString (char c);
+  
   size_t leftContextWidth() const;
   size_t rightContextWidth() const;
   size_t stateNameWidth() const;
@@ -51,8 +56,8 @@ struct Machine {
 
   string inputAlphabet() const;
   string outputAlphabet() const;
-  
-  map<char,double> expectedBasesPerInputSymbol() const;
+
+  map<char,double> expectedBasesPerInputSymbol (bool includeEof = false) const;
 };
 
 #endif /* TRANSDUCER_INCLUDED */

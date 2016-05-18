@@ -44,13 +44,13 @@ int main (int argc, char** argv) {
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
       ("keep-degen,k", "keep degenerate transitions")
-      ("controls,c", po::value<int>()->default_value(4), "number of control symbols")
+      ("controls,c", po::value<int>()->default_value(4), "number of control words")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
       ("decode-file,d", po::value<string>(), "decode FASTA file to binary on stdout")
       ("encode-string,E", po::value<string>(), "encode ASCII string to FASTA on stdout")
       ("decode-string,D", po::value<string>(), "decode DNA sequence to binary on stdout")
-      ("start,s", po::value<char>(), "control symbol to encode at start of file")
-      ("eof,f", po::value<char>(), "control symbol to encode at end of file")
+      ("no-start,s", "do not use a control word at start of file")
+      ("no-eof,f", "do not use a control word at end of file")
       ("encode-bits,b", po::value<string>(), "encode string of bits and control symbols to FASTA on stdout")
       ("decode-bits,B", po::value<string>(), "decode DNA sequence to string of bits and control symbols on stdout")
       ("raw,r", "strip headers from FASTA output; just print raw sequence")
@@ -85,8 +85,11 @@ int main (int argc, char** argv) {
 
     if (vm.count("keep-degen"))
       builder.keepDegenerates = true;
-    builder.nControlWords = vm.at("controls").as<int>();
 
+    builder.nControlWords = vm.at("controls").as<int>();
+    builder.controlWordAtStart = !vm.count("no-start");
+    builder.controlWordAtEnd = !vm.count("no-eof");
+    
     const bool raw = vm.count("raw");
     
     // build transducer
@@ -100,11 +103,7 @@ int main (int argc, char** argv) {
 	throw runtime_error ("Binary file not found");
       FastaWriter writer (cout, raw ? NULL : filename.c_str());
       Encoder<FastaWriter> encoder (machine, writer);
-      if (vm.count("start"))
-	encoder.encodeSymbol (vm.at("start").as<char>());
       encoder.encodeStream (infile);
-      if (vm.count("eof"))
-	encoder.encodeSymbol (vm.at("eof").as<char>());
 	
     } else if (vm.count("decode-file")) {
       const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
@@ -116,11 +115,7 @@ int main (int argc, char** argv) {
     } else if (vm.count("encode-string")) {
       FastaWriter writer (cout, raw ? NULL : "ASCII_string");
       Encoder<FastaWriter> encoder (machine, writer);
-      if (vm.count("start"))
-	encoder.encodeSymbol (vm.at("start").as<char>());
       encoder.encodeString (vm.at("encode-string").as<string>());
-      if (vm.count("eof"))
-	encoder.encodeSymbol (vm.at("eof").as<char>());
       
     } else if (vm.count("decode-string")) {
       BinaryWriter writer (cout);
@@ -143,10 +138,10 @@ int main (int argc, char** argv) {
       machine.write (cout);
 
       // Output statistics
-      const auto charBases = machine.expectedBasesPerInputSymbol();
+      const auto charBases = machine.expectedBasesPerInputSymbol (true);
       vguard<string> cbstr;
       for (const auto& cb: charBases)
-	cbstr.push_back (string(1,cb.first) + ": " + to_string(cb.second));
+	cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));
       LogThisAt(1,"Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl);
     }
 

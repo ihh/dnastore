@@ -17,34 +17,36 @@ struct Decoder {
       outs(outs)
   {
     current[machine.startState()] = string();
-    expand (false);
+    expand();
   }
 
   ~Decoder() {
-    expand (true);
     close();
   }
 
   void close() {
-    vguard<StateStringIter> ssIter;
-    for (StateStringIter ss = current.begin(); ss != current.end(); ++ss)
-      if (machine.state[ss->first].isEnd())
-	ssIter.push_back (ss);
-    if (ssIter.size() == 1)
-      flush (ssIter.front());
-    else if (ssIter.size() > 1) {
-      Warn ("Decoder unresolved: %u possible end state(s)", ssIter.size());
-      for (auto ss: ssIter)
-	Warn ("State %s: input queue %s", machine.state[ss->first].name.c_str(), ss->second.c_str());
-    } else if (current.size() > 1) {
-      Warn ("Decoder unresolved: %u possible state(s)", ssIter.size());
-      for (const auto& ss: current)
-	Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), ss.second.c_str());
+    if (current.size()) {
+      expand();
+      vguard<StateStringIter> ssIter;
+      for (StateStringIter ss = current.begin(); ss != current.end(); ++ss)
+	if (machine.state[ss->first].isEnd())
+	  ssIter.push_back (ss);
+      if (ssIter.size() == 1)
+	flush (ssIter.front());
+      else if (ssIter.size() > 1) {
+	Warn ("Decoder unresolved: %u possible end state(s)", ssIter.size());
+	for (auto ss: ssIter)
+	  Warn ("State %s: input queue %s", machine.state[ss->first].name.c_str(), ss->second.c_str());
+      } else if (current.size() > 1) {
+	Warn ("Decoder unresolved: %u possible state(s)", ssIter.size());
+	for (const auto& ss: current)
+	  Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), ss.second.c_str());
+      }
+      current.clear();
     }
-    current.clear();
   }
   
-  void expand (bool finish) {
+  void expand() {
     StateString next;
     bool foundNew;
     do {
@@ -53,23 +55,22 @@ struct Decoder {
 	const State state = ss.first;
 	const string& str = ss.second;
 	const MachineState& ms = machine.state[state];
-	if (finish ? ms.isEnd() : ms.hasOutput())
+	if (ms.isEnd() || ms.emitsOutput())
 	  next[state] = str;
 	for (const auto& t: ms.trans)
-	  if (!t.out)
-	    if (machine.state[t.dest].isEnd() ? finish : !finish) {
-	      const string nextStr = t.in ? (str + t.in) : str;
-	      if (next.count (t.dest))
-		Assert (next.at(t.dest) == nextStr, "Decoder error");
-	      else {
-		next[t.dest] = nextStr;
-		LogThisAt(9,"Transition " << ms.name
-			  << " -> " << machine.state[t.dest].name
-			  << (nextStr.empty() ? string() : (string(": input queue ") + nextStr + ", "))
-			  << endl);
-		foundNew = true;
-	      }
+	  if (!t.out) {
+	    const string nextStr = t.isInput() ? (str + t.in) : str;
+	    if (next.count (t.dest))
+	      Assert (next.at(t.dest) == nextStr, "Decoder error");
+	    else {
+	      next[t.dest] = nextStr;
+	      LogThisAt(9,"Transition " << ms.name
+			<< " -> " << machine.state[t.dest].name
+			<< (nextStr.empty() ? string() : (string(": input queue ") + nextStr))
+			<< endl);
+	      foundNew = true;
 	    }
+	  }
       }
       current.swap (next);
       next.clear();
@@ -98,7 +99,7 @@ struct Decoder {
       for (const auto& t: machine.state[state].trans)
 	if (t.out == base) {
 	  const State nextState = t.dest;
-	  const string nextStr = t.in ? (str + t.in) : str;
+	  const string nextStr = t.isInput() ? (str + t.in) : str;
 	  Assert (!next.count(nextState) || next.at(nextState) == nextStr,
 		  "Multiple outputs decode to single state");
 	  next[nextState] = nextStr;
@@ -112,11 +113,11 @@ struct Decoder {
     }
     Assert (!next.empty(), "No inputs consistent with given output sequence");
     current.swap (next);
-    expand (false);
+    expand();
     if (current.size() == 1) {
       auto iter = current.begin();
       const MachineState& ms = machine.state[iter->first];
-      if (ms.isEnd() || ms.hasInput())
+      if (ms.acceptsInputOrEof())
 	flush (iter);
     }
   }

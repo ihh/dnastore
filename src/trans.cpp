@@ -2,11 +2,25 @@
 #include "trans.h"
 #include "logger.h"
 
+char Machine::eofChar = '\4';
+
 MachineTransition::MachineTransition (char in, char out, State dest)
   : in (in),
     out (out),
     dest (dest)
 { }
+
+bool MachineTransition::isInput() const {
+  return in != 0 && in != Machine::eofChar;
+}
+
+bool MachineTransition::isOutput() const {
+  return out != 0;
+}
+
+bool MachineTransition::isEof() const {
+  return in == Machine::eofChar;
+}
 
 MachineState::MachineState()
 { }
@@ -22,14 +36,14 @@ bool MachineState::isEnd() const {
   return trans.empty();
 }
 
-bool MachineState::hasInput() const {
+bool MachineState::acceptsInputOrEof() const {
   for (const auto& t: trans)
     if (t.in)
       return true;
   return false;
 }
 
-bool MachineState::hasOutput() const {
+bool MachineState::emitsOutput() const {
   for (const auto& t: trans)
     if (t.out)
       return true;
@@ -70,9 +84,9 @@ void Machine::write (ostream& out) const {
 	<< setw(rw+1) << left << ms.rightContext;
     for (const auto& t: ms.trans) {
       out << " ";
-      if (t.in) out << t.in;
+      if (t.in) out << charToString (t.in);
       out << "/";
-      if (t.out) out << t.out;
+      if (t.isOutput()) out << t.out;
       out << "->" << stateIndex(t.dest);
     }
     out << endl;
@@ -93,6 +107,10 @@ ControlIndex Machine::controlIndex (char c) {
   const char* cc = controlChars.c_str();
   const char* s = strchr (cc, c);
   return s == NULL ? -1 : s - cc;
+}
+
+string Machine::charToString (char c) {
+  return c == 0 ? string("NULL") : (c == eofChar ? string("EOF") : string(1,c));
 }
 
 size_t Machine::leftContextWidth() const {
@@ -127,7 +145,7 @@ string Machine::inputAlphabet() const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.in)
+      if (t.isInput())
 	alph.insert (t.in);
   return string (alph.begin(), alph.end());
 }
@@ -136,25 +154,27 @@ string Machine::outputAlphabet() const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.out)
+      if (t.isOutput())
 	alph.insert (t.out);
   return string (alph.begin(), alph.end());
 }
 
-map<char,double> Machine::expectedBasesPerInputSymbol() const {
+map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
   const size_t len = leftContextWidth() + rightContextWidth();
   const size_t burnInSteps = len*4, simSteps = len*4;
   map<State,double> current;
   size_t nSources = 0;
   for (State s = 0; s < nStates(); ++s)
-    if (state[s].hasInput()) {
+    if (state[s].acceptsInputOrEof()) {
       current[s] = 1;
       ++nSources;
     }
   Assert (nSources > 0, "Couldn't find any input states");
   for (auto& ps: current)
     ps.second /= (double) nSources;
-  const string alph = inputAlphabet();
+  string alph = inputAlphabet();
+  if (includeEof)
+    alph += eofChar;
   map<char,vguard<double> > eb;
   auto evolve = [&]() -> void {
     map<State,double> next;
@@ -164,33 +184,35 @@ map<char,double> Machine::expectedBasesPerInputSymbol() const {
       const double p = ps.second;
 
       map<char,const MachineTransition*> transFor;
+      double nt = 0;
       for (char c: alph) {
 	auto t = ms.transFor(c);
-	if (t)
+	if (t) {
 	  transFor[c] = t;
+	  if (c != eofChar)
+	    ++nt;
+	}
       }
-      const double nt = transFor.size();
 
       for (const auto& ct: transFor) {
 	const char c = ct.first;
 	auto t = ct.second;
-	if (t->out)
-	  bases[c] += p;
 	State s;
 	while (true) {
 	  if (t->out)
 	    bases[c] += p;
 	  s = t->dest;
-	  if (state[s].hasInput())
+	  if (state[s].acceptsInputOrEof() || state[s].isEnd())
 	    break;
-	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs");
+	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs: %s", state[s].name.c_str());
 	  t = &state[s].next();
 	}
-	next[s] += p / nt;
+	if (c != eofChar)
+	  next[s] += p / nt;
       }
     }
-    for (const auto& cb: bases)
-      eb[cb.first].push_back (cb.second);
+    for (char c: alph)
+      eb[c].push_back (bases[c]);
     current.swap (next);
   };
   ProgressLog (plogSim, 1);
@@ -211,7 +233,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol() const {
   }
   LogThisAt(4,"Total probability is " << pTot << endl);
   map<char,double> bps;
-  for (const auto& cb: eb)
-    bps[cb.first] = accumulate (cb.second.begin(), cb.second.end(), 0.) / (double) cb.second.size();
+  for (char c: alph)
+    bps[c] = accumulate (eb[c].begin(), eb[c].end(), 0.) / (double) eb[c].size();
   return bps;
 }

@@ -10,6 +10,9 @@ TransBuilder::TransBuilder (Pos len)
     invertedRepeatLen (0),
     keepDegenerates (false),
     nControlWords (0),
+    controlWordAtStart (false),
+    controlWordAtEnd (false),
+    startAndEndUseSameControlWord (false),
     kmerValid (maxKmer + 1)
 { }
 
@@ -179,11 +182,16 @@ void TransBuilder::buildEdges() {
 void TransBuilder::indexStates() {
   assertKmersCorrect();
   nStates = 0;
+  if (controlWordAtStart)
+    nStates += len;
+  else
+    nStates++;
   for (auto kmer: controlWord)
     kmerState[kmer] = nStates++;
   for (auto kmer: kmers)
     if (!kmerState.count(kmer) && endsWithMotif(kmer,len,sourceMotif))
       kmerState[kmer] = nStates++;
+  firstNonControlState = nStates;
   for (auto kmer: kmers)
     if (!kmerState.count(kmer))
       kmerState[kmer] = nStates++;
@@ -219,10 +227,25 @@ Machine TransBuilder::makeMachine() {
   Machine machine;
   machine.state = vguard<MachineState> (nStates);
 
+  if (controlWordAtStart)
+    for (State s = 0; s < len; ++s) {
+      MachineState& ms = machine.state[s];
+      ms.leftContext = string(len-s,'*') + kmerSubstring(startControlWord(),len-s+1,s);
+      ms.name = (s == 0 ? "Start#" : "Pad(Start)#") + to_string(s+1);
+      ms.trans.push_back (MachineTransition ('\0', baseToChar(getBase(startControlWord(),len-s)), s+1));
+    }
+  else {
+    MachineState& ms = machine.state.front();
+    ms.leftContext = string(len,'*');
+    ms.name = "Start#1";
+    ms.trans.push_back (MachineTransition ('\0', '\0', firstNonControlState));
+  }
+  
   EdgeVector out;
   vguard<char> outChar;
   vguard<State> outState;
-  
+
+  int nOut2 = 0, nOut3 = 0, nOut4 = 0;
   for (auto kmer: kmers) {
     const State s = kmerState.at(kmer);
     MachineState& ms = machine.state[s];
@@ -242,66 +265,108 @@ Machine TransBuilder::makeMachine() {
     if (endsWithMotif(kmer,len,sourceMotif)) {
       ms.name = "Source";
       for (size_t c = 0; c < controlWord.size(); ++c)
-	if (kmer == controlWord[c])
-	  ms.name = string("Control(") + Machine::controlChar(c) + ")";
+	if (kmer == controlWord[c]) {
+	  if (isStartControlIndex(c))
+	    ms.name = isEndControlIndex(c) ? string("Control(Start/End)") : string("Control(Start)");
+	  else if (isEndControlIndex(c))
+	    ms.name = string("Control(End)");
+	  else
+	    ms.name = string("Control(") + controlChar(c) + ")";
+	}
     }
     ms.name += "#" + to_string(s+1);
 
     if (outChar.size() == 1)
       ms.trans.push_back (MachineTransition ('\0', outChar[0], outState[0]));
     else if (outChar.size() == 2) {
-      ms.trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
-      ms.trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+      const int rotate = (++nOut2 % 2);
+      const size_t i = rotate, j = (rotate + 1) % 2;
+      ms.trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
+      ms.trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
     } else if (outChar.size() == 3) {
+      const int rotate = (++nOut3 % 3);
+      const size_t i = rotate, j = (rotate + 1) % 3, k = (rotate + 2) % 3;
       const State s0 = kmerStateZero.at(kmer);
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
-      ms.trans.push_back (MachineTransition ('1', outChar[2], outState[2]));
+      ms.trans.push_back (MachineTransition ('1', outChar[k], outState[k]));
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0+1);
-      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
-      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
+      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
     } else if (outChar.size() == 4) {
+      const int rotate = (++nOut4 % 4);
+      const size_t i = rotate, j = (rotate + 1) % 4, k = (rotate + 2) % 4, l = (rotate + 3) % 4;
       const State s0 = kmerStateZero.at(kmer);
       const State s1 = kmerStateOne.at(kmer);
       ms.trans.push_back (MachineTransition ('0', '\0', s0));
       ms.trans.push_back (MachineTransition ('1', '\0', s1));
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0+1);
-      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[0], outState[0]));
-      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[1], outState[1]));
+      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
+      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
       machine.state[s1].leftContext = kmerString(kmer,len);
       machine.state[s1].name = string("Split#") + to_string(s1+1);
-      machine.state[s1].trans.push_back (MachineTransition ('0', outChar[2], outState[2]));
-      machine.state[s1].trans.push_back (MachineTransition ('1', outChar[3], outState[3]));
+      machine.state[s1].trans.push_back (MachineTransition ('0', outChar[k], outState[k]));
+      machine.state[s1].trans.push_back (MachineTransition ('1', outChar[l], outState[l]));
     }
     
     if (outChar.size() > 1) {
-      for (size_t c = 0; c < controlWord.size(); ++c)
+      for (size_t c = 0; c < controlWord.size(); ++c) {
+	if (isSourceControlIndex(c))
+	  continue;
 	ms.trans.push_back (controlTrans (s, controlWordPath[c].at(kmer).front(), c, 0));
-      ms.trans.push_back (MachineTransition (0, 0, endState));
+      }
+      if (!controlWordAtEnd)
+	ms.trans.push_back (MachineTransition (Machine::eofChar, 0, endState));
     }
+    if (controlWordAtEnd && kmer == endControlWord())
+      ms.trans.push_back (MachineTransition (0, 0, endState));
   }
 
   for (size_t c = 0; c < controlWord.size(); ++c)
-    for (size_t step = 0; step < controlWordSteps[c] - 1; ++step) {
+    for (int step = 0; step < controlWordSteps[c] - 1; ++step) {
       const auto& ckState = controlKmerState[c][step];
       for (const auto& ks: ckState) {
 	const Kmer srcKmer = ks.first;
 	const State srcState = ks.second;
 	const Kmer destKmer = nextIntermediateKmer (srcKmer, c, step + 1);
 	machine.state[srcState].leftContext = kmerString(srcKmer,len);
-	machine.state[srcState].name = string("Pad(") + Machine::controlChar(c) + ")#" + to_string(srcState+1);
+	machine.state[srcState].name = (isEndControlIndex(c) ? string("Pad(End)") : (string("Pad(") + controlChar(c) + ")")) + "#" + to_string(srcState+1);
 	machine.state[srcState].trans.push_back (controlTrans (srcState, destKmer, c, step + 1));
       }
     }
 
   machine.state[endState].name = "End#" + to_string(endState+1);
-
+  machine.state[endState].leftContext = controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*');
+  
   return machine;
 }
 
+bool TransBuilder::isSourceControlIndex (size_t c) const {
+  return isStartControlIndex(c) && !isEndControlIndex(c);
+}
+
+bool TransBuilder::isStartControlIndex (size_t c) const {
+  return controlWordAtStart && c == 0;
+}
+
+bool TransBuilder::isEndControlIndex (size_t c) const {
+  return controlWordAtEnd && c == (controlWordAtStart && !startAndEndUseSameControlWord ? 1 : 0);
+}
+
+Kmer TransBuilder::startControlWord() const {
+  Assert (controlWordAtStart, "There is no start control word");
+  return controlWord.front();
+}
+
+Kmer TransBuilder::endControlWord() const {
+  Assert (controlWordAtEnd, "There is no end control word");
+  return controlWord[controlWordAtStart && !startAndEndUseSameControlWord ? 1 : 0];
+}
+
 char TransBuilder::controlChar (size_t nControlWord) const {
-  return Machine::controlChar (nControlWord);
+  const size_t nReserved = (controlWordAtStart ? 1 : 0) + (controlWordAtEnd ? 1 : 0);
+  return Machine::controlChar (nControlWord - nReserved);
 }
 
 MachineTransition TransBuilder::controlTrans (State srcState, Kmer destKmer, size_t nControlWord, size_t step) const {
@@ -309,7 +374,9 @@ MachineTransition TransBuilder::controlTrans (State srcState, Kmer destKmer, siz
     (step == controlWordSteps[nControlWord] - 1 && destKmer == controlWord[nControlWord])
     ? kmerState.at(destKmer)
     : controlKmerState[nControlWord][step].at(destKmer);
-  return MachineTransition (step == 0 ? controlChar(nControlWord) : '\0', baseToChar(getBase(destKmer,1)), destState);
+  return MachineTransition (step == 0
+			    ? (isEndControlIndex(nControlWord) ? Machine::eofChar : controlChar(nControlWord))
+			    : '\0', baseToChar(getBase(destKmer,1)), destState);
 }
 
 Kmer TransBuilder::nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const {
@@ -326,7 +393,9 @@ Kmer TransBuilder::nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size
 bool TransBuilder::getNextControlWord() {
   if (controlWord.size() == nControlWords)
     return true;
-  LogThisAt(3,"Looking for control word #" << (controlWord.size() + 1)
+  const size_t cCurrent = controlWord.size();
+  const bool currentIsSource = isSourceControlIndex(cCurrent);
+  LogThisAt(3,"Looking for control word #" << (cCurrent + 1)
 	    << (controlWord.empty() ? string() : (string(" (previous: ") + to_string_join(controlWordString) + ")"))
 	    << endl);
   vguard<Kmer> cand (kmers.begin(), kmers.end());
@@ -345,9 +414,9 @@ bool TransBuilder::getNextControlWord() {
     const Kmer best = cand[bestIdx];
     const KmerLen bestMotif (best, len);
     const Pos steps = stepsToReach (bestMotif);
-    if (steps < 0) {
+    if (!currentIsSource && steps < 0) {
       LogThisAt(5,"Rejecting " << kmerString(bestMotif)
-		<< " for control word #" << (controlWord.size() + 1)
+		<< " for control word #" << (cCurrent + 1)
 		<< " as it is not reachable" << endl);
       continue;
     }
@@ -355,20 +424,19 @@ bool TransBuilder::getNextControlWord() {
     const Kmer bestRevComp = kmerRevComp (best, len);
     if (bestRevComp == best) {
       LogThisAt(5,"Rejecting " << kmerString(bestMotif)
-		<< " for control word #" << (controlWord.size() + 1)
+		<< " for control word #" << (cCurrent + 1)
 		<< " as it is palindromic" << endl);
       continue;
     }
 
     LogThisAt(3,"Trying control word " << kmerString(bestMotif)
-	      << " which is reachable in " << steps << " steps"
+	      << (currentIsSource ? string() : (string(" which is reachable in ") + to_string(steps) + " steps"))
 	      << (controlWord.empty()
 		  ? string()
 		    : (string(" and has ")
 		       + to_string(dist[bestIdx])
 		       + "+ differences from (" + to_string_join(controlWordString) + ")"))
 	      << endl);
-
 
     list<Kmer> savedKmers;
     for (auto kmer: kmers)
@@ -382,20 +450,21 @@ bool TransBuilder::getNextControlWord() {
     pruneUnreachable();
 
     bool broken = false;
-    if (stepsToReach (bestMotif) < 0) {
+    if (!currentIsSource && stepsToReach (bestMotif) < 0) {
       LogThisAt(4,"Oops - " << kmerString(bestMotif) << " is unreachable when reverse-complement " << kmerString(bestRevComp,len) << " is excluded" << endl);
       broken = true;
     }
     
-    for (size_t c = 0; !broken && c < controlWord.size(); ++c) {
-      const Kmer prevControl = controlWord[c];
-      const KmerLen prevMotif (prevControl, len);
-      const Pos prevSteps = stepsToReach (prevMotif);
-      if (prevSteps < 0) {
-	LogThisAt(4,"Oops - setting " << kmerString(bestMotif) << " as a control word breaks paths to previous control word " << kmerString(prevMotif) << endl);
-	broken = true;
+    for (size_t c = 0; !broken && c < cCurrent; ++c)
+      if (!isSourceControlIndex(c)) {
+	const Kmer prevControl = controlWord[c];
+	const KmerLen prevMotif (prevControl, len);
+	const Pos prevSteps = stepsToReach (prevMotif);
+	if (prevSteps < 0) {
+	  LogThisAt(4,"Oops - setting " << kmerString(bestMotif) << " as a control word breaks paths to previous control word " << kmerString(prevMotif) << endl);
+	  broken = true;
+	}
       }
-    }
 
     if (!broken) {
       controlWord.push_back (best);
@@ -414,36 +483,67 @@ bool TransBuilder::getNextControlWord() {
     for (auto kmer: savedKmers)
       kmerValid[kmer] = true;
 
-    LogThisAt(3,"Trying next option for control word #" << (controlWord.size() + 1) << endl);
+    LogThisAt(3,"Trying next option for control word #" << (cCurrent + 1) << endl);
   }
   return false;
 }
 
 void TransBuilder::getControlWords() {
+  if (nControlWords == 0 && controlWordAtStart) {
+    Warn ("No control words allocated, disabling control word at start");
+    controlWordAtStart = false;
+  }
+
+  if (nControlWords == 0 && controlWordAtEnd) {
+    Warn ("No control words allocated, disabling control word at end");
+    controlWordAtEnd = false;
+  }
+
+  if (nControlWords == 1 && controlWordAtStart && controlWordAtEnd && !startAndEndUseSameControlWord) {
+    Warn ("Only 1 control word allocated, so start and end will use same control word");
+    startAndEndUseSameControlWord = true;
+  }
+  
   Require (getNextControlWord(), "Ran out of control words");
 
+  if (controlWordAtEnd && (!startAndEndUseSameControlWord || !controlWordAtStart)) {
+    const Kmer e = endControlWord();
+    EdgeVector out;
+    getOutgoing (e, out);
+    for (auto n: out)
+      if (kmerValid[n])
+	droppedEdge.insert (pair<Kmer,Kmer> (e, n));
+  }
+  
   pruneDeadEnds();
   pruneUnreachable();
   
   for (size_t c = 0; c < controlWord.size(); ++c) {
     const Kmer controlKmer = controlWord[c];
-    const Pos controlSteps = stepsToReach (KmerLen (controlWord[c], len));
-    Assert (controlSteps >= 0, "Control word #%d unreachable", c+1);
-    controlWordSteps.push_back (controlSteps);
-    controlWordPath.push_back (pathsTo (controlKmer, controlSteps));
-    vguard<set<Kmer> > intermediates (controlWordSteps[c]);
-    for (auto kmer: kmers) {
-      Pos step = 0;
-      for (auto inter: controlWordPath[c].at(kmer)) {
-	LogThisAt(9,"Adding " << kmerString(inter,len) << " at step " << step << " from " << kmerString(kmer,len) << " to control word #" << c << " (" << kmerString(controlWord[c],len) << ")" << endl);
-	intermediates[step++].insert (inter);
-      }
+    if (isSourceControlIndex(c)) {
+      controlWordSteps.push_back (0);
+      controlWordPath.push_back (map<Kmer,list<Kmer> >());
+      controlWordIntermediates.push_back (vguard<set<Kmer> >());
+    } else {
+      const Pos controlSteps = stepsToReach (KmerLen (controlWord[c], len));
+      Assert (controlSteps >= 0, "Control word #%d unreachable", c+1);
+      controlWordSteps.push_back (controlSteps);
+      controlWordPath.push_back (pathsTo (controlKmer, controlSteps));
+      vguard<set<Kmer> > intermediates (controlSteps);
+      for (auto kmer: kmers)
+	if (!controlWordAtEnd || kmer != endControlWord() || (startAndEndUseSameControlWord && controlWordAtStart)) {
+	  Pos step = 0;
+	  for (auto inter: controlWordPath[c].at(kmer)) {
+	    LogThisAt(9,"Adding " << kmerString(inter,len) << " at step " << step << " from " << kmerString(kmer,len) << " to control word #" << c << " (" << kmerString(controlWord[c],len) << ")" << endl);
+	    intermediates[step++].insert (inter);
+	  }
+	}
+      intermediates.pop_back();
+      size_t nInter = 0;
+      for (const auto& ks: intermediates)
+	nInter += ks.size();
+      controlWordIntermediates.push_back (intermediates);
+      LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
     }
-    intermediates.pop_back();
-    size_t nInter = 0;
-    for (const auto& ks: intermediates)
-      nInter += ks.size();
-    controlWordIntermediates.push_back (intermediates);
-    LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
   }
 }
