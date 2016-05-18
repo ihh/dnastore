@@ -20,10 +20,10 @@ struct Encoder {
     if (outc)
       (void) outs.write (&outc, 1);
   }
-
+  
   void encodeSymbol (char sym) {
     LogThisAt(8,"Encoding " << sym << endl);
-    while (!machine.state[current].isInput()) {
+    while (!machine.state[current].hasInput()) {
       const MachineTransition& tn = machine.state[current].next();
       write (tn.out);
       LogThisAt(9,"Transition " << machine.state[current].name
@@ -42,10 +42,9 @@ struct Encoder {
 		<< "output " << t->out
 		<< endl);
       current = t->dest;
-      const MachineState& ms = machine.state[current];
-      if (ms.isInput())
+      if (machine.state[current].hasInput())
 	break;
-      t = &ms.next();
+      t = &machine.state[current].next();
     }
   }
 

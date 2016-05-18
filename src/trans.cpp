@@ -22,8 +22,18 @@ bool MachineState::isEnd() const {
   return trans.empty();
 }
 
-bool MachineState::isInput() const {
-  return transFor('0') != NULL && transFor('1') != NULL;
+bool MachineState::hasInput() const {
+  for (const auto& t: trans)
+    if (t.in)
+      return true;
+  return false;
+}
+
+bool MachineState::hasOutput() const {
+  for (const auto& t: trans)
+    if (t.out)
+      return true;
+  return false;
 }
 
 bool MachineState::isDeterministic() const {
@@ -119,7 +129,7 @@ double Machine::expectedBasesPerBit() const {
   map<State,double> current;
   size_t nSources = 0;
   for (State s = 0; s < nStates(); ++s)
-    if (state[s].isInput()) {
+    if (state[s].hasInput()) {
       current[s] = 1;
       ++nSources;
     }
@@ -135,28 +145,31 @@ double Machine::expectedBasesPerBit() const {
       const double p = ps.second;
 
       auto t0 = ms.transFor('0');
+      auto t1 = ms.transFor('1');
+      const double nt = t0 ? (t1 ? 2 : 1) : (t1 ? 1 : 0);
+      
       State s0;
       while (true) {
 	if (t0->out)
-	  basesPerBit += p / 2;
+	  basesPerBit += p / nt;
 	s0 = t0->dest;
-	if (state[s0].isInput())
+	if (state[s0].hasInput())
 	  break;
 	t0 = &state[s0].next();
       }
-      next[s0] += p / 2;
+      next[s0] += p / nt;
 
-      auto t1 = ms.transFor('1');
       State s1;
       while (true) {
 	if (t1->out)
-	  basesPerBit += p / 2;
+	  basesPerBit += p / nt;
 	s1 = t1->dest;
-	if (state[s1].isInput())
+	if (state[s1].hasInput())
 	  break;
 	t1 = &state[s1].next();
       }
-      next[s1] += p / 2;
+      next[s1] += p / nt;
+
     }
     bpb.push_back (basesPerBit);
     current.swap (next);

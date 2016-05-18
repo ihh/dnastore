@@ -44,7 +44,7 @@ struct Decoder {
     current.clear();
   }
   
-  void expand (bool includeEndStates) {
+  void expand (bool finish) {
     StateString next;
     bool foundNew;
     do {
@@ -52,27 +52,27 @@ struct Decoder {
       for (const auto& ss: current) {
 	const State state = ss.first;
 	const string& str = ss.second;
-	bool hasOutput = false;
-	for (const auto& t: machine.state[state].trans)
-	  if (t.out)
-	    hasOutput = true;
-	  else if (includeEndStates || !machine.state[t.dest].isEnd()) {
-	    const string tStr = t.in ? (str + t.in) : str;
-	    if (next.count (t.dest))
-	      Assert (next.at(t.dest) == tStr, "Decoder error");
-	    else {
-	      LogThisAt(9,"Transition " << machine.state[state].name
-			<< " -> " << machine.state[t.dest].name
-			<< (tStr.empty() ? string() : (string(": input queue ") + tStr + ", "))
-			<< endl);
-	      next[t.dest] = tStr;
-	      foundNew = true;
-	    }
-	  }
-	if (hasOutput)
+	const MachineState& ms = machine.state[state];
+	if (finish ? ms.isEnd() : ms.hasOutput())
 	  next[state] = str;
+	for (const auto& t: ms.trans)
+	  if (!t.out)
+	    if (machine.state[t.dest].isEnd() ? finish : !finish) {
+	      const string nextStr = t.in ? (str + t.in) : str;
+	      if (next.count (t.dest))
+		Assert (next.at(t.dest) == nextStr, "Decoder error");
+	      else {
+		next[t.dest] = nextStr;
+		LogThisAt(9,"Transition " << ms.name
+			  << " -> " << machine.state[t.dest].name
+			  << (nextStr.empty() ? string() : (string(": input queue ") + nextStr + ", "))
+			  << endl);
+		foundNew = true;
+	      }
+	    }
       }
       current.swap (next);
+      next.clear();
     } while (foundNew);
   }
 
@@ -116,7 +116,7 @@ struct Decoder {
     if (current.size() == 1) {
       auto iter = current.begin();
       const MachineState& ms = machine.state[iter->first];
-      if (ms.isEnd() || ms.isInput())
+      if (ms.isEnd() || ms.hasInput())
 	flush (iter);
     }
   }

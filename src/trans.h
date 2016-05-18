@@ -22,7 +22,8 @@ struct MachineState {
   MachineState();
   const MachineTransition* transFor (char in) const;
   bool isEnd() const;  // true if this has no outgoing transitions
-  bool isInput() const;  // true if this has '0' and '1' inputs
+  bool hasInput() const;
+  bool hasOutput() const;
   bool isDeterministic() const;  // true if this has only one non-absorbing transition
   const MachineTransition& next() const;
 };
