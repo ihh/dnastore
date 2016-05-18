@@ -47,6 +47,7 @@ int main (int argc, char** argv) {
       ("controls,c", po::value<int>()->default_value(4), "number of control words")
       ("no-start,s", "do not use a control word at start of encoded sequence")
       ("no-eof,f", "do not use a control word at end of encoded sequence")
+      ("delay,y", "build delayed machine")
       ("load-machine,L", po::value<string>(), "load machine from JSON file")
       ("save-machine,S", po::value<string>(), "save machine to JSON file")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
@@ -91,9 +92,8 @@ int main (int argc, char** argv) {
     builder.nControlWords = vm.at("controls").as<int>();
     builder.controlWordAtStart = !vm.count("no-start");
     builder.controlWordAtEnd = !vm.count("no-eof");
-    
-    const bool raw = vm.count("raw");
-    
+    builder.buildDelayedMachine = vm.count("delay");
+
     // build, or load, transducer
     const Machine machine = vm.count("load-machine")
       ? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
@@ -111,7 +111,7 @@ int main (int argc, char** argv) {
       ifstream infile (filename, std::ios::binary);
       if (!infile)
 	throw runtime_error ("Binary file not found");
-      FastaWriter writer (cout, raw ? NULL : filename.c_str());
+      FastaWriter writer (cout, vm.count("raw") ? NULL : filename.c_str());
       Encoder<FastaWriter> encoder (machine, writer);
       encoder.encodeStream (infile);
 	
@@ -123,7 +123,7 @@ int main (int argc, char** argv) {
 	decoder.decodeString (fs.seq);
 
     } else if (vm.count("encode-string")) {
-      FastaWriter writer (cout, raw ? NULL : "ASCII_string");
+      FastaWriter writer (cout, vm.count("raw") ? NULL : "ASCII_string");
       Encoder<FastaWriter> encoder (machine, writer);
       encoder.encodeString (vm.at("encode-string").as<string>());
       
@@ -133,7 +133,7 @@ int main (int argc, char** argv) {
       decoder.decodeString (vm.at("decode-string").as<string>());
 
     } else if (vm.count("encode-bits")) {
-      FastaWriter writer (cout, raw ? NULL : "bit_string");
+      FastaWriter writer (cout, vm.count("raw") ? NULL : "bit_string");
       Encoder<FastaWriter> encoder (machine, writer);
       encoder.encodeSymbolString (vm.at("encode-bits").as<string>());
       

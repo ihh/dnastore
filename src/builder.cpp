@@ -13,6 +13,7 @@ TransBuilder::TransBuilder (Pos len)
     controlWordAtStart (false),
     controlWordAtEnd (false),
     startAndEndUseSameControlWord (false),
+    buildDelayedMachine (false),
     kmerValid (maxKmer + 1)
 { }
 
@@ -181,9 +182,10 @@ void TransBuilder::buildEdges() {
 
 void TransBuilder::indexStates() {
   assertKmersCorrect();
+  
   nStates = 0;
   if (controlWordAtStart)
-    nStates += len;
+    nStates += buildDelayedMachine ? (len/2) : len;
   else
     nStates++;
   for (auto kmer: controlWord)
@@ -209,6 +211,10 @@ void TransBuilder::indexStates() {
 	ckState[step][kmer] = nStates++;
     controlKmerState.push_back (ckState);
   }
+
+  if (buildDelayedMachine)
+    nStates += len / 2;
+
   endState = nStates++;
 }
 
@@ -222,19 +228,26 @@ void TransBuilder::prepare() {
 }
 
 Machine TransBuilder::makeMachine() {
+  if (buildDelayedMachine) {
+    Require (len % 2 == 0, "Delayed machine must have even number of bases per word");
+    Require (controlWordAtStart && controlWordAtEnd && nControlWords > 0, "Delayed machine must generate control words at start & end of encoded sequence");
+  }
+
   prepare();
 
   Machine machine;
   machine.state = vguard<MachineState> (nStates);
 
-  if (controlWordAtStart)
-    for (State s = 0; s < len; ++s) {
+  if (controlWordAtStart) {
+    const Pos p0 = buildDelayedMachine ? len/2 : 0;
+    for (Pos p = p0; p < len; ++p) {
+      const State s = p - p0;
       MachineState& ms = machine.state[s];
-      ms.leftContext = string(len-s,'*') + kmerSubstring(startControlWord(),len-s+1,s);
-      ms.name = (s == 0 ? "Start#" : "Pad(Start)#") + to_string(s);
-      ms.trans.push_back (MachineTransition ('\0', baseToChar(getBase(startControlWord(),len-s)), s+1));
+      ms.leftContext = string(len-p,'*') + kmerSubstring(startControlWord(),len-p+1,p);
+      ms.name = (s == 0 ? "Start#" : "Load(Start)#") + to_string(s);
+      ms.trans.push_back (MachineTransition ('\0', baseToChar(getBase(startControlWord(),len-p)), s+1));
     }
-  else {
+  } else {
     MachineState& ms = machine.state.front();
     ms.leftContext = string(len,'*');
     ms.name = "Start#1";
@@ -319,8 +332,12 @@ Machine TransBuilder::makeMachine() {
       if (!controlWordAtEnd)
 	ms.trans.push_back (MachineTransition (Machine::eofChar, 0, endState));
     }
-    if (controlWordAtEnd && kmer == endControlWord())
-      ms.trans.push_back (MachineTransition (0, 0, endState));
+    if (controlWordAtEnd && kmer == endControlWord()) {
+      if (buildDelayedMachine)
+	ms.trans.push_back (MachineTransition (0, '*', endState - len/2));
+      else
+	ms.trans.push_back (MachineTransition (0, 0, endState));
+    }
   }
 
   for (size_t c = 0; c < controlWord.size(); ++c)
@@ -337,7 +354,32 @@ Machine TransBuilder::makeMachine() {
     }
 
   machine.state[endState].name = "End#" + to_string(endState);
-  machine.state[endState].leftContext = controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*');
+  machine.state[endState].leftContext = buildDelayedMachine
+    ? (kmerSubstring(endControlWord(),1,len/2) + string(len/2,'*'))
+    : (controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*'));
+
+  if (buildDelayedMachine) {
+    for (Pos pos = 1; pos <= len/2; ++pos) {
+      const State s = endState - 1 - len/2 + pos;
+      MachineState& ms = machine.state[s];
+      ms.name = string("Unload(End)#") + to_string(s);
+      ms.leftContext = kmerSubstring(endControlWord(),1,len-pos) + string(pos,'*');
+      if (pos < len/2)
+	ms.trans.push_back (MachineTransition (0, '*', s + 1));
+      else
+	ms.trans.push_back (MachineTransition (0, 0, endState));
+    }
+
+    for (auto& ms: machine.state) {
+      ms.rightContext = string (ms.leftContext.begin() + len/2, ms.leftContext.end());
+      ms.leftContext.erase (ms.leftContext.begin() + len/2, ms.leftContext.end());
+    }
+
+    for (auto& ms: machine.state)
+      for (auto& t: ms.trans)
+	if (t.out)
+	  t.out = machine.state[t.dest].leftContext.back();
+  }
   
   return machine;
 }

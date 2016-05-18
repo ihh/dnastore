@@ -26,6 +26,7 @@ struct TransBuilder {
   bool keepDegenerates;
   size_t nControlWords;
   bool controlWordAtStart, controlWordAtEnd, startAndEndUseSameControlWord;
+  bool buildDelayedMachine;
   
   // work variables
   vguard<bool> kmerValid;

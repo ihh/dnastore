@@ -23,6 +23,7 @@ struct Encoder {
 
   void close() {
     if (!machine.state[current].isEnd()) {
+      advance();
       while (machine.state[current].transFor(Machine::eofChar) == NULL) {
 	Warn ("Encoding extra zero bit at end of message");
 	encodeSymbol ('0');
@@ -35,9 +36,8 @@ struct Encoder {
     if (outc)
       (void) outs.write (&outc, 1);
   }
-  
-  void encodeSymbol (char sym) {
-    LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
+
+  void advance() {
     while (!machine.state[current].acceptsInputOrEof()) {
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");
@@ -49,13 +49,18 @@ struct Encoder {
 		<< endl);
       current = tn.dest;
     }
+  }
+  
+  void encodeSymbol (char sym) {
+    LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
+    advance();
     const MachineTransition* t = machine.state[current].transFor (sym);
     Assert (t != NULL, "Couldn't encode symbol %s in state %s", Machine::charToString(sym).c_str(), machine.state[current].name.c_str());
     while (true) {
       write (t->out);
       LogThisAt(9,"Transition " << machine.state[current].name
 		<< " -> " << machine.state[t->dest].name << ": "
-		<< (t->in ? (string("input ") + t->in + ", ") : string())
+		<< (t->in ? (string("input ") + Machine::charToString(t->in) + ", ") : string())
 		<< "output " << t->out
 		<< endl);
       current = t->dest;

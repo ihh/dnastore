@@ -86,7 +86,8 @@ void Machine::write (ostream& out) const {
     out << setw(iw+1) << left << stateIndex(s)
 	<< setw(nw+1) << left << ms.name
 	<< setw(lw) << right << ms.leftContext
-	<< setw(rw+1) << left << ms.rightContext;
+	<< "."
+	<< setw(rw) << left << ms.rightContext;
     for (const auto& t: ms.trans) {
       out << " ";
       if (t.in) out << charToString (t.in);
@@ -209,11 +210,15 @@ map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
       for (const auto& ct: transFor) {
 	const char c = ct.first;
 	auto t = ct.second;
+	set<State> seen;
 	State s;
 	while (true) {
 	  if (t->out)
 	    bases[c] += p;
 	  s = t->dest;
+	  if (seen.count(s))  // guard against infinite loops
+	    break;
+	  seen.insert(s);
 	  if (state[s].acceptsInputOrEof() || state[s].isEnd())
 	    break;
 	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs: %s", state[s].name.c_str());
