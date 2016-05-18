@@ -63,14 +63,17 @@ struct Decoder {
     expand();
     if (current.size() == 1) {
       auto iter = current.begin();
-      string& str = iter->second;
-      if (str.size()) {
-	LogThisAt(9,"Flushing input queue: " << str << endl);
-	char* buf = (char*) malloc (sizeof(char) * (str.size() + 1));
-	strcpy (buf, str.c_str());
-	(void) outs.write (buf, str.size());
+      const StateType type = machine.state[iter->first].type;
+      if (type == ControlState || type == CodeState) {
+	string& str = iter->second;
+	if (str.size()) {
+	  LogThisAt(9,"Flushing input queue: " << str << endl);
+	  char* buf = (char*) malloc (sizeof(char) * (str.size() + 1));
+	  strcpy (buf, str.c_str());
+	  (void) outs.write (buf, str.size());
 	free (buf);
 	str.clear();
+	}
       }
     }
   }
@@ -108,12 +111,13 @@ struct BinaryWriter {
   
   void write (char* buf, size_t n) {
     for (size_t i = 0; i < n; ++i) {
-      const char c = buf[n];
+      const char c = buf[i];
       if (c == '0' || c == '1') {
 	outbuf.push_back (c == '1');
 	if (outbuf.size() == 8)
 	  flush();
-      }
+      } else
+	Warn("Ignoring control character '%c' (\\x%.2x)",c,c);
     }
   }
 };

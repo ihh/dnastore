@@ -97,7 +97,7 @@ int main (int argc, char** argv) {
       encoder.encodeStream (infile, writer);
       
     } else if (vm.count("decode-file")) {
-      const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode").as<string>().c_str());
+      const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
       Decoder decoder (machine);
       BinaryWriter writer (cout);
       for (auto& fs: fastSeqs)
