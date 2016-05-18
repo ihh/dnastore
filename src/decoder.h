@@ -6,6 +6,7 @@
 struct Decoder {
   const Machine& machine;
   map<State,string> current;
+
   Decoder (const Machine& machine)
     : machine(machine)
   {
@@ -13,6 +14,20 @@ struct Decoder {
     expand();
   }
 
+  ~Decoder() {
+    bool unresolved = false;
+    for (const auto& ss: current)
+      if (!ss.second.empty()) {
+	unresolved = true;
+	break;
+      }
+    if (unresolved) {
+      Warn ("Decoder unresolved: %d state(s) remaining with symbols on input queue", current.size());
+      for (const auto& ss: current)
+	Warn ("State %s: input queue %s", machine.stateName(ss.first).c_str(), ss.second.c_str());
+    }
+  }
+  
   void expand() {
     map<State,string> next;
     bool foundNew;
@@ -71,8 +86,8 @@ struct Decoder {
 	  char* buf = (char*) malloc (sizeof(char) * (str.size() + 1));
 	  strcpy (buf, str.c_str());
 	  (void) outs.write (buf, str.size());
-	free (buf);
-	str.clear();
+	  free (buf);
+	  str.clear();
 	}
       }
     }
@@ -97,7 +112,7 @@ struct BinaryWriter {
 
   ~BinaryWriter() {
     if (!outbuf.empty())
-      flush();
+      Warn ("%d bits (%s) remain on output", outbuf.size(), to_string_join(outbuf,"").c_str());
   }
 
   void flush() {
@@ -105,6 +120,7 @@ struct BinaryWriter {
     for (size_t n = 0; n < outbuf.size(); ++n)
       if (outbuf[n])
 	c = c | (1 << (msb0 ? (7-n) : n));
+    LogThisAt(7,"Decoding '" << (char)c << "' (\\x" << hex << (int)c << ")" << endl);
     outs << c;
     outbuf.clear();
   }
@@ -116,8 +132,13 @@ struct BinaryWriter {
 	outbuf.push_back (c == '1');
 	if (outbuf.size() == 8)
 	  flush();
-      } else
-	Warn("Ignoring control character '%c' (\\x%.2x)",c,c);
+      } else {
+	const ControlIndex idx = Machine::controlIndex(c);
+	if (idx >= 0)
+	  Warn("Ignoring control character #%d (%c)",idx,c);
+	else
+	  Warn("Ignoring unknown character '%c' (\\x%.2x)",c,c);
+      }
     }
   }
 };

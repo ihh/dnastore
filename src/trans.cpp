@@ -87,8 +87,14 @@ string Machine::stateName (State s) {
 
 string controlChars ("XYZWVPQRSDEFIJKLM23456789<>[]!?abcdefghijklmnopqrstuvwxyz");
 char Machine::controlChar (ControlIndex c) {
-  Assert (c < controlChars.size(), "Ran out of control cahrs");
+  Assert (c < controlChars.size(), "Ran out of control chars");
   return controlChars[c];
+}
+
+ControlIndex Machine::controlIndex (char c) {
+  const char* cc = controlChars.c_str();
+  const char* s = strchr (cc, c);
+  return s == NULL ? -1 : s - cc;
 }
 
 size_t Machine::stateNameWidth() const {

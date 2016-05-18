@@ -60,6 +60,7 @@ struct Encoder {
 
   template<class Writer, typename CharType>
   void encodeByte (CharType byte, Writer& outs) {
+    LogThisAt(7,"Encoding '" << (char)byte << "' (\\x" << hex << (int)byte << ")" << endl);
     if (msb0)
       for (int n = 7; n >= 0; --n)
 	encodeBit (byte & (1 << n), outs);

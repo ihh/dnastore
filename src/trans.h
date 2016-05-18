@@ -12,7 +12,7 @@ enum StateType { SourceState,
 		 PadState,
 		 UndefinedState };
 
-typedef size_t ControlIndex;
+typedef int ControlIndex;
 
 struct MachineTransition {
   char in, out;
@@ -46,6 +46,7 @@ struct Machine {
 
   static string stateName (State s);
   static char controlChar (ControlIndex c);
+  static ControlIndex controlIndex (char c);
 
   size_t stateNameWidth() const;
   size_t typeStringWidth() const;

@@ -51,6 +51,8 @@ int main (int argc, char** argv) {
       ("decode-string,D", po::value<string>(), "decode DNA sequence to binary on stdout")
       ("encode-bits,b", po::value<string>(), "encode bit-string to FASTA on stdout")
       ("decode-bits,B", po::value<string>(), "decode DNA sequence to bit-string on stdout")
+      ("no-eof,n", po::value<bool>(), "when encoding, do not add a control word to demarcate EOF")
+      ("eof,f", po::value<int>()->default_value(0), "which control word to use for EOF")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -95,7 +97,9 @@ int main (int argc, char** argv) {
       Encoder encoder (machine);
       FastaWriter writer (cout);
       encoder.encodeStream (infile, writer);
-      
+      if (!(vm.count("no-eof") || builder.nControlWords == 0))
+	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
+	
     } else if (vm.count("decode-file")) {
       const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
       Decoder decoder (machine);
@@ -107,6 +111,8 @@ int main (int argc, char** argv) {
       Encoder encoder (machine);
       FastaWriter writer (cout);
       encoder.encodeString (vm.at("encode-string").as<string>(), writer);
+      if (!(vm.count("no-eof") || builder.nControlWords == 0))
+	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
       
     } else if (vm.count("decode-string")) {
       Decoder decoder (machine);
@@ -117,6 +123,8 @@ int main (int argc, char** argv) {
       Encoder encoder (machine);
       FastaWriter writer (cout);
       encoder.encodeSymbolString (vm.at("encode-bits").as<string>(), writer);
+      if (!(vm.count("no-eof") || builder.nControlWords == 0))
+	encoder.encodeSymbol (machine.controlChar(vm.at("eof").as<int>()), writer);
       
     } else if (vm.count("decode-bits")) {
       Decoder decoder (machine);
