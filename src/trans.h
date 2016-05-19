@@ -11,13 +11,48 @@ typedef unsigned long long State;
 
 typedef int ControlIndex;
 
+#define MachineNull         '\0'
+
+#define MachineBit0         '0'
+#define MachineBit1         '1'
+
+#define MachineFlushedBit0  '8'
+#define MachineFlushedBit1  '9'
+
+#define MachineEscapedA     'a'
+#define MachineEscapedC     'c'
+#define MachineEscapedG     'g'
+#define MachineEscapedT     't'
+
+#define MachineStrictBit0   'i'
+#define MachineStrictBit1   'j'
+
+#define MachineStrictTrit0  'x'
+#define MachineStrictTrit1  'y'
+#define MachineStrictTrit2  'z'
+
+#define MachineStrictQuat0  'p'
+#define MachineStrictQuat1  'q'
+#define MachineStrictQuat2  'r'
+#define MachineStrictQuat3  's'
+
+#define MachineEOF          '!'
+
+#define MachineControlFirst 'A'
+#define MachineControlLast  'Z'
+
+typedef char OutputSymbol;
+typedef char InputSymbol;
+typedef string InputToken;
+
 struct MachineTransition {
-  char in, out;
+  InputSymbol in;
+  OutputSymbol out;
   State dest;
   MachineTransition();
-  MachineTransition (char, char, State);
-  bool isInput() const;
-  bool isOutput() const;
+  MachineTransition (InputSymbol, OutputSymbol, State);
+  bool inputPrintable() const;
+  bool outputNonempty() const;
   bool isEof() const;
 };
 
@@ -25,7 +60,7 @@ struct MachineState {
   string name, leftContext, rightContext;
   vguard<MachineTransition> trans;
   MachineState();
-  const MachineTransition* transFor (char in) const;
+  const MachineTransition* transFor (InputSymbol in) const;
   bool isEnd() const;  // true if this has no outgoing transitions
   bool acceptsInputOrEof() const;
   bool emitsOutput() const;
@@ -48,14 +83,14 @@ struct Machine {
   static Machine fromJSON (istream& in);
   static Machine fromFile (const char* filename);
   
-  static char controlChar (ControlIndex c);
-  static ControlIndex controlIndex (char c);
+  static InputSymbol controlChar (ControlIndex c);
+  static ControlIndex controlIndex (InputSymbol c);
+
+  static InputToken charToString (InputSymbol in);
+  static InputSymbol stringToChar (const InputToken& in);
+  
   static string stateIndex (State s);
 
-  static char eofChar;
-  static string charToString (char in);
-  static char stringToChar (const string& in);
-  
   size_t leftContextWidth() const;
   size_t rightContextWidth() const;
   size_t stateNameWidth() const;
@@ -64,7 +99,7 @@ struct Machine {
   string inputAlphabet() const;
   string outputAlphabet() const;
 
-  map<char,double> expectedBasesPerInputSymbol (bool includeEof = false) const;
+  map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;
 };
 
 #endif /* TRANSDUCER_INCLUDED */

@@ -63,9 +63,9 @@ struct Decoder {
 	const auto& str = ss.second;
 	const MachineState& ms = machine.state[state];
 	for (const auto& t: ms.trans)
-	  if (!t.out) {
+	  if (isUsable(t) && !t.out) {
 	    auto nextStr = str;
-	    if (t.isInput()) nextStr.push_back (t.in);
+	    if (t.inputPrintable()) nextStr.push_back (t.in);
 	    if (next.count (t.dest))
 	      Assert (next.at(t.dest) == nextStr, "Decoder error");
 	    else {
@@ -100,6 +100,10 @@ struct Decoder {
       ss->second.clear();
     }
   }
+
+  static bool isUsable (const MachineTransition& t) {
+    return t.in == MachineNull || t.in == MachineBit0 || t.in == MachineBit1 || t.in == MachineEOF;
+  }
   
   void decodeBase (char base) {
     base = toupper(base);
@@ -109,10 +113,10 @@ struct Decoder {
       const State state = ss.first;
       const auto& str = ss.second;
       for (const auto& t: machine.state[state].trans)
-	if (t.out == base) {
+	if (isUsable(t) && t.out == base) {
 	  const State nextState = t.dest;
 	  auto nextStr = str;
-	  if (t.isInput()) nextStr.push_back (t.in);
+	  if (t.inputPrintable()) nextStr.push_back (t.in);
 	  Assert (!next.count(nextState) || next.at(nextState) == nextStr,
 		  "Multiple outputs decode to single state");
 	  next[nextState] = nextStr;
@@ -199,8 +203,8 @@ struct BinaryWriter {
   void write (char* buf, size_t n) {
     for (size_t i = 0; i < n; ++i) {
       const char c = buf[i];
-      if (c == '0' || c == '1') {
-	outbuf.push_back (c == '1');
+      if (c == MachineBit0 || c == MachineBit1) {
+	outbuf.push_back (c == MachineBit1);
 	if (outbuf.size() == 8)
 	  flush();
       } else {

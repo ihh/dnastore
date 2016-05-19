@@ -246,13 +246,13 @@ Machine TransBuilder::makeMachine() {
       MachineState& ms = machine.state[s];
       ms.leftContext = string(len-p,'*') + kmerSubstring(startControlWord(),len-p+1,p);
       ms.name = (s == 0 ? "Start#" : "Load(Start)#") + to_string(s);
-      ms.trans.push_back (MachineTransition ('\0', baseToChar(getBase(startControlWord(),len-p)), s+1));
+      ms.trans.push_back (MachineTransition (MachineNull, baseToChar(getBase(startControlWord(),len-p)), s+1));
     }
   } else {
     MachineState& ms = machine.state.front();
     ms.leftContext = string(len,'*');
     ms.name = "Start#1";
-    ms.trans.push_back (MachineTransition ('\0', '\0', firstNonControlState));
+    ms.trans.push_back (MachineTransition (MachineNull, MachineNull, firstNonControlState));
   }
   
   EdgeVector out;
@@ -290,38 +290,72 @@ Machine TransBuilder::makeMachine() {
     }
     ms.name += "#" + to_string(s);
 
+    if (outChar.size() >= 3 && (outFlags & 3) == 3) {  // A,G
+      // ensure that first two edges are not transition degenerates
+      swap (outChar[1], outChar[2]);
+      swap (outState[1], outState[2]);
+    }
+
     if (outChar.size() == 1)
-      ms.trans.push_back (MachineTransition ('\0', outChar[0], outState[0]));
+      ms.trans.push_back (MachineTransition (MachineNull, outChar[0], outState[0]));
+
     else if (outChar.size() == 2) {
-      const int rotate = (++nOut2 % 2);
-      const size_t i = rotate, j = (rotate + 1) % 2;
-      ms.trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
-      ms.trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
+      const int rotate2 = (++nOut2 % 2);
+      const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
+      ms.trans.push_back (MachineTransition (MachineBit0, outChar[i2], outState[i2]));
+      ms.trans.push_back (MachineTransition (MachineBit1, outChar[j2], outState[j2]));
+
+      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
+      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+
+      ms.trans.push_back (MachineTransition (MachineStrictBit0, outChar[i2], outState[i2]));
+      ms.trans.push_back (MachineTransition (MachineStrictBit1, outChar[j2], outState[j2]));
+
     } else if (outChar.size() == 3) {
-      const int rotate = (++nOut3 % 3);
-      const size_t i = rotate, j = (rotate + 1) % 3, k = (rotate + 2) % 3;
+      const int rotate3 = (++nOut3 % 3);
+      const size_t i3 = rotate3, j3 = (rotate3 + 1) % 3, k3 = (rotate3 + 2) % 3;
       const State s0 = kmerStateZero.at(kmer);
-      ms.trans.push_back (MachineTransition ('0', '\0', s0));
-      ms.trans.push_back (MachineTransition ('1', outChar[k], outState[k]));
+      ms.trans.push_back (MachineTransition (MachineBit0, MachineNull, s0));
+      ms.trans.push_back (MachineTransition (MachineBit1, outChar[k3], outState[k3]));
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0);
-      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
-      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i3], outState[i3]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j3], outState[j3]));
+
+      const int rotate2 = (++nOut2 % 2);
+      const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
+      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
+      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+
+      ms.trans.push_back (MachineTransition (MachineStrictTrit0, outChar[i3], outState[i3]));
+      ms.trans.push_back (MachineTransition (MachineStrictTrit1, outChar[j3], outState[j3]));
+      ms.trans.push_back (MachineTransition (MachineStrictTrit2, outChar[k3], outState[k3]));
+
     } else if (outChar.size() == 4) {
-      const int rotate = (++nOut4 % 4);
-      const size_t i = rotate, j = (rotate + 1) % 4, k = (rotate + 2) % 4, l = (rotate + 3) % 4;
+      const int rotate4 = (++nOut4 % 4);
+      const size_t i4 = rotate4, j4 = (rotate4 + 1) % 4, k4 = (rotate4 + 2) % 4, l4 = (rotate4 + 3) % 4;
       const State s0 = kmerStateZero.at(kmer);
       const State s1 = kmerStateOne.at(kmer);
-      ms.trans.push_back (MachineTransition ('0', '\0', s0));
-      ms.trans.push_back (MachineTransition ('1', '\0', s1));
+      ms.trans.push_back (MachineTransition (MachineBit0, MachineNull, s0));
+      ms.trans.push_back (MachineTransition (MachineBit1, MachineNull, s1));
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0);
-      machine.state[s0].trans.push_back (MachineTransition ('0', outChar[i], outState[i]));
-      machine.state[s0].trans.push_back (MachineTransition ('1', outChar[j], outState[j]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i4], outState[i4]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j4], outState[j4]));
       machine.state[s1].leftContext = kmerString(kmer,len);
       machine.state[s1].name = string("Split#") + to_string(s1);
-      machine.state[s1].trans.push_back (MachineTransition ('0', outChar[k], outState[k]));
-      machine.state[s1].trans.push_back (MachineTransition ('1', outChar[l], outState[l]));
+      machine.state[s1].trans.push_back (MachineTransition (MachineBit0, outChar[k4], outState[k4]));
+      machine.state[s1].trans.push_back (MachineTransition (MachineBit1, outChar[l4], outState[l4]));
+
+      const int rotate2 = (++nOut2 % 2);
+      const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
+      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
+      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+
+      ms.trans.push_back (MachineTransition (MachineStrictQuat0, outChar[i4], outState[i4]));
+      ms.trans.push_back (MachineTransition (MachineStrictQuat1, outChar[j4], outState[j4]));
+      ms.trans.push_back (MachineTransition (MachineStrictQuat2, outChar[k4], outState[k4]));
+      ms.trans.push_back (MachineTransition (MachineStrictQuat3, outChar[l4], outState[l4]));
     }
     
     if (outChar.size() > 1) {
@@ -331,7 +365,7 @@ Machine TransBuilder::makeMachine() {
 	ms.trans.push_back (controlTrans (s, controlWordPath[c].at(kmer).front(), c, 0));
       }
       if (!controlWordAtEnd)
-	ms.trans.push_back (MachineTransition (Machine::eofChar, 0, endState));
+	ms.trans.push_back (MachineTransition (MachineEOF, 0, endState));
     }
     if (controlWordAtEnd && kmer == endControlWord()) {
       if (buildDelayedMachine)
@@ -418,8 +452,8 @@ MachineTransition TransBuilder::controlTrans (State srcState, Kmer destKmer, siz
     ? kmerState.at(destKmer)
     : controlKmerState[nControlWord][step].at(destKmer);
   return MachineTransition (step == 0
-			    ? (isEndControlIndex(nControlWord) ? Machine::eofChar : controlChar(nControlWord))
-			    : '\0', baseToChar(getBase(destKmer,1)), destState);
+			    ? (isEndControlIndex(nControlWord) ? MachineEOF : controlChar(nControlWord))
+			    : MachineNull, baseToChar(getBase(destKmer,1)), destState);
 }
 
 Kmer TransBuilder::nextIntermediateKmer (Kmer srcKmer, size_t nControlWord, size_t step) const {

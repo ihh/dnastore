@@ -147,7 +147,7 @@ int main (int argc, char** argv) {
 
     } else if (vm.count("rate")) {
       // Output statistics
-      const auto charBases = machine.expectedBasesPerInputSymbol (true);
+      const auto charBases = machine.expectedBasesPerInputSymbol("01!");
       vguard<string> cbstr;
       for (const auto& cb: charBases)
 	cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));

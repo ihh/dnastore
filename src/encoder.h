@@ -24,11 +24,11 @@ struct Encoder {
   void close() {
     if (!machine.state[current].isEnd()) {
       advance();
-      while (!canEncode(Machine::eofChar)) {
+      while (!canEncodeSymbol (MachineEOF)) {
 	Warn ("Adding zero padding bit at end of message");
-	encodeSymbol ('0');
+	encodeSymbol (MachineBit0);
       }
-      encodeSymbol (Machine::eofChar);
+      encodeSymbol (MachineEOF);
     }
   }
   
@@ -76,8 +76,10 @@ struct Encoder {
     }
   }
 
-  void encodeBit (bool bit) {
-    encodeSymbol (bit ? '1' : '0');
+  void encodeBit (bool bit, bool flush = false) {
+    encodeSymbol (flush
+		  ? (bit ? MachineFlushedBit1 : MachineFlushedBit0)
+		  : (bit ? MachineBit1 : MachineBit0));
   }
 
   void encodeMeta (ControlIndex control) {
@@ -89,10 +91,10 @@ struct Encoder {
     LogThisAt(7,"Encoding '" << (char)byte << "' (\\x" << hex << (int)byte << ")" << endl);
     if (msb0)
       for (int n = 7; n >= 0; --n)
-	encodeBit (byte & (1 << n));
+	encodeBit (byte & (1 << n), n == 0);
     else
       for (int n = 0; n <= 7; ++n)
-	encodeBit (byte & (1 << n));
+	encodeBit (byte & (1 << n), n == 7);
   }
 
   void encodeStream (istream& in) {

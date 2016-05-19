@@ -4,33 +4,78 @@
 #include "logger.h"
 #include "jsonutil.h"
 
-char Machine::eofChar = '\4';
+struct MachineTokenLookup {
+  map<InputSymbol,InputToken> sym2tok;
+  map<InputToken,InputSymbol> tok2sym;
+  void add (InputSymbol c, const char* s);
+  MachineTokenLookup();
+};
+MachineTokenLookup machineTokenLookup;
+
+void MachineTokenLookup::add (InputSymbol c, const char* s) {
+  const string str (s);
+  tok2sym[str] = c;
+  sym2tok[c] = str;
+}
+
+MachineTokenLookup::MachineTokenLookup() {
+  add (MachineNull, "NULL");
+  tok2sym[string()] = MachineNull;
+
+  add (MachineBit0, "0");
+  add (MachineBit1, "1");
+
+  add (MachineFlushedBit0, "0.");
+  add (MachineFlushedBit1, "1.");
+
+  add (MachineEscapedA, "A");
+  add (MachineEscapedC, "C");
+  add (MachineEscapedG, "G");
+  add (MachineEscapedT, "T");
+
+  add (MachineStrictBit0, "0%2");
+  add (MachineStrictBit1, "1%2");
+
+  add (MachineStrictTrit0, "0%3");
+  add (MachineStrictTrit1, "1%3");
+  add (MachineStrictTrit2, "2%3");
+
+  add (MachineStrictQuat0, "0%4");
+  add (MachineStrictQuat1, "1%4");
+  add (MachineStrictQuat2, "2%4");
+  add (MachineStrictQuat3, "3%4");
+
+  add (MachineEOF, "EOF");
+
+  for (InputSymbol c = MachineControlFirst; c <= MachineControlLast; ++c)
+    add (c, (string("^") + (char) (c + 'a' - MachineControlFirst)).c_str());
+}
 
 MachineTransition::MachineTransition()
 { }
 
-MachineTransition::MachineTransition (char in, char out, State dest)
+MachineTransition::MachineTransition (InputSymbol in, char out, State dest)
   : in (in),
     out (out),
     dest (dest)
 { }
 
-bool MachineTransition::isInput() const {
-  return in != 0 && in != Machine::eofChar;
+bool MachineTransition::inputPrintable() const {
+  return in != MachineNull && in != MachineEOF;
 }
 
-bool MachineTransition::isOutput() const {
-  return out != 0;
+bool MachineTransition::outputNonempty() const {
+  return out != MachineNull;
 }
 
 bool MachineTransition::isEof() const {
-  return in == Machine::eofChar;
+  return in == MachineEOF;
 }
 
 MachineState::MachineState()
 { }
 
-const MachineTransition* MachineState::transFor (char in) const {
+const MachineTransition* MachineState::transFor (InputSymbol in) const {
   for (const auto& t: trans)
     if (t.in == in)
       return &t;
@@ -92,7 +137,7 @@ void Machine::write (ostream& out) const {
       out << " ";
       if (t.in) out << charToString (t.in);
       out << "/";
-      if (t.isOutput()) out << t.out;
+      if (t.outputNonempty()) out << t.out;
       out << "->" << stateIndex(t.dest);
     }
     out << endl;
@@ -103,27 +148,26 @@ string Machine::stateIndex (State s) {
   return string("#") + to_string(s);
 }
 
-string controlChars ("23456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-char Machine::controlChar (ControlIndex c) {
-  Assert (c < controlChars.size(), "Ran out of control chars");
-  return controlChars[c];
+InputSymbol Machine::controlChar (ControlIndex c) {
+  InputSymbol ci = c + MachineControlFirst;
+  Assert (ci <= MachineControlLast, "Ran out of control chars");
+  return ci;
 }
 
-ControlIndex Machine::controlIndex (char c) {
-  const char* cc = controlChars.c_str();
-  const char* s = strchr (cc, c);
-  return s == NULL ? -1 : s - cc;
+ControlIndex Machine::controlIndex (InputSymbol c) {
+  return (c >= MachineControlFirst && c <= MachineControlLast) ? (c - MachineControlFirst) : -1;
 }
 
-string Machine::charToString (char c) {
-  return c == 0 ? string("NULL") : (c == eofChar ? string("EOF") : string(1,c));
+InputToken Machine::charToString (InputSymbol c) {
+  if (machineTokenLookup.sym2tok.count(c))
+    return InputToken (machineTokenLookup.sym2tok.at(c));
+  return InputToken("???");
 }
 
-char Machine::stringToChar (const string& in) {
-  if (in == "NULL") return 0;
-  if (in == "EOF") return eofChar;
-  Assert (in.size() == 1, "Unknown input symbol descriptor: %s", in.c_str());
-  return in[0];
+InputSymbol Machine::stringToChar (const InputToken& in) {
+  if (machineTokenLookup.tok2sym.count(in))
+    return machineTokenLookup.tok2sym.at(in);
+  return -1;
 }
 
 size_t Machine::leftContextWidth() const {
@@ -158,7 +202,7 @@ string Machine::inputAlphabet() const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.isInput())
+      if (t.inputPrintable())
 	alph.insert (t.in);
   return string (alph.begin(), alph.end());
 }
@@ -167,12 +211,12 @@ string Machine::outputAlphabet() const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.isOutput())
+      if (t.outputNonempty())
 	alph.insert (t.out);
   return string (alph.begin(), alph.end());
 }
 
-map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
+map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbols) const {
   const size_t len = leftContextWidth() + rightContextWidth();
   const size_t burnInSteps = len*4, simSteps = len*4;
   map<State,double> current;
@@ -185,9 +229,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
   Assert (nSources > 0, "Couldn't find any input states");
   for (auto& ps: current)
     ps.second /= (double) nSources;
-  string alph = inputAlphabet();
-  if (includeEof)
-    alph += eofChar;
+  const string alph (symbols);
   map<char,vguard<double> > eb;
   auto evolve = [&]() -> void {
     map<State,double> next;
@@ -202,7 +244,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
 	auto t = ms.transFor(c);
 	if (t) {
 	  transFor[c] = t;
-	  if (c != eofChar)
+	  if (c != MachineEOF)
 	    ++nt;
 	}
       }
@@ -224,7 +266,7 @@ map<char,double> Machine::expectedBasesPerInputSymbol (bool includeEof) const {
 	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs: %s", state[s].name.c_str());
 	  t = &state[s].next();
 	}
-	if (c != eofChar)
+	if (c != MachineEOF)
 	  next[s] += p / nt;
       }
     }
@@ -259,7 +301,7 @@ void Machine::writeJSON (ostream& out) const {
   out << "{\"state\": [" << endl;
   for (State s = 0; s < nStates(); ++s) {
     const MachineState& ms = state[s];
-    out << " {";
+    out << " {\"n\":" << s << ",";
     if (ms.name.size())
 	out << "\"id\":\"" << ms.name << "\",";
     if (ms.leftContext.size())
@@ -291,6 +333,10 @@ void Machine::readJSON (istream& in) {
   for (JsonIterator iter = begin(jstate); iter != end(jstate); ++iter) {
     const JsonMap jsmap (iter->value);
     MachineState ms;
+    if (jsmap.contains("n")) {
+      const size_t n = jsmap.getNumber("n");
+      Require (state.size() == n, "State n=%u out of sequence", n);
+    }
     if (jsmap.contains("id"))
       ms.name = jsmap.getString("id");
     if (jsmap.contains("l"))
