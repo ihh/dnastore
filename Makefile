@@ -64,3 +64,10 @@ $(MAIN): bin/$(MAIN)
 
 clean:
 	rm -rf bin/* obj/*
+
+# Tests
+
+test: testpattern
+
+testpattern: bin/testpattern
+	bin/testpattern

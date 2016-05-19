@@ -36,7 +36,8 @@ inline bool hasExactLocalInvertedRepeat (Kmer seq, Pos len, Pos minRepeatLen, Po
   const Kmer rc = kmerRevComp (seq, len);
   for (Pos repeatLen = minRepeatLen; repeatLen <= maxRepeatLen; ++repeatLen)
     for (Pos i = len - 2*repeatLen + 1; i >= 1; --i) {
-      const Kmer invRep = kmerSub (rc, len - i + 1, repeatLen);
+      const Pos iRev = len - i - repeatLen + 2;
+      const Kmer invRep = kmerSub (rc, iRev, repeatLen);
       if (invRep == kmerSub (seq, i + repeatLen, repeatLen)) {
 	const int logLevel = max(5,8-repeatLen);
 	LogThisAt(logLevel,"Rejecting " << kmerString(seq,len) << " because " << kmerSubAt(seq,i+repeatLen,repeatLen,len) << " matches " << kmerSubAt(seq,i,repeatLen,len) << " (palindrome)" << endl);
@@ -50,8 +51,9 @@ inline bool hasExactNonlocalInvertedRepeat (Kmer seq, Pos len, Pos repeatLen, Po
   if (repeatLen <= 0)
     return false;
   const Kmer rc = kmerRevComp (seq, len);
-  for (Pos i = len - repeatLen*2 - minSeparation; i > 0; --i) {
-    const Kmer invRep = kmerSub (rc, len - i - repeatLen + 2, repeatLen);
+  for (Pos i = len - 2*repeatLen - minSeparation + 1; i >= 1; --i) {
+    const Pos iRev = len - i - repeatLen + 2;
+    const Kmer invRep = kmerSub (rc, iRev, repeatLen);
     const Pos jMin = i + repeatLen + minSeparation;
     for (Pos j = len - repeatLen + 1; j >= jMin; --j)
       if (invRep == kmerSub (seq, j, repeatLen)) {

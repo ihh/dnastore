@@ -67,6 +67,10 @@ inline Kmer stringToKmer (const string& s) {
   return kmer;
 }
 
+inline Kmer stringToKmer (const char* s) {
+  return stringToKmer (string (s));
+}
+
 inline bool isTransition (Base x, Base y) {
   return x != y && (x & 2) == (y & 2);
 }

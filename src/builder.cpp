@@ -27,7 +27,7 @@ void TransBuilder::findCandidates() {
     if (!endsWithMotif(kmer,len,excludedMotif,"excluded motif")
 	&& !endsWithMotif(kmer,len,excludedMotifRevComp,"revcomp of excluded motif")
 	&& !hasExactTandemRepeat(kmer,len,maxTandemRepeatLen)
-	&& !hasExactLocalInvertedRepeat(kmer,len,3,maxTandemRepeatLen)
+	&& !hasExactLocalInvertedRepeat(kmer,len,2,maxTandemRepeatLen)
 	&& !hasExactNonlocalInvertedRepeat(kmer,len,invertedRepeatLen,2)) {
       LogThisAt(9,"Accepting " << kmerString(kmer,len) << endl);
       kmerValid[kmer] = true;
