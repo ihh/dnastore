@@ -76,10 +76,8 @@ struct Encoder {
     }
   }
 
-  void encodeBit (bool bit, bool flush = false) {
-    encodeSymbol (flush
-		  ? (bit ? MachineFlushedBit1 : MachineFlushedBit0)
-		  : (bit ? MachineBit1 : MachineBit0));
+  void encodeBit (bool bit) {
+    encodeSymbol (bit ? MachineBit1 : MachineBit0);
   }
 
   void encodeMeta (ControlIndex control) {
@@ -91,10 +89,10 @@ struct Encoder {
     LogThisAt(7,"Encoding '" << (char)byte << "' (\\x" << hex << (int)byte << ")" << endl);
     if (msb0)
       for (int n = 7; n >= 0; --n)
-	encodeBit (byte & (1 << n), n == 0);
+	encodeBit (byte & (1 << n));
     else
       for (int n = 0; n <= 7; ++n)
-	encodeBit (byte & (1 << n), n == 7);
+	encodeBit (byte & (1 << n));
   }
 
   void encodeStream (istream& in) {

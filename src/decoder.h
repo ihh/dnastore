@@ -186,7 +186,7 @@ struct BinaryWriter {
     if (!outbuf.empty()) {
       if (!msb0)
 	reverse (outbuf.begin(), outbuf.end());
-      Warn ("%u bits (%s) remain on output", outbuf.size(), to_string_join(outbuf,"").c_str());
+      Warn ("%s (%s) remaining on output", plural(outbuf.size(),"bit").c_str(), to_string_join(outbuf,"").c_str());
     }
   }
 

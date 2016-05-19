@@ -317,10 +317,14 @@ Machine TransBuilder::makeMachine() {
       const State s0 = kmerStateZero.at(kmer);
       ms.trans.push_back (MachineTransition (MachineBit0, MachineNull, s0));
       ms.trans.push_back (MachineTransition (MachineBit1, outChar[k3], outState[k3]));
+
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i3], outState[i3]));
       machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j3], outState[j3]));
+
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i3], outState[i3]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j3], outState[j3]));
 
       const int rotate2 = (++nOut2 % 2);
       const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
@@ -338,14 +342,22 @@ Machine TransBuilder::makeMachine() {
       const State s1 = kmerStateOne.at(kmer);
       ms.trans.push_back (MachineTransition (MachineBit0, MachineNull, s0));
       ms.trans.push_back (MachineTransition (MachineBit1, MachineNull, s1));
+
       machine.state[s0].leftContext = kmerString(kmer,len);
       machine.state[s0].name = string("Split#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i4], outState[i4]));
       machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j4], outState[j4]));
+
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i4], outState[i4]));
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j4], outState[j4]));
+
       machine.state[s1].leftContext = kmerString(kmer,len);
       machine.state[s1].name = string("Split#") + to_string(s1);
       machine.state[s1].trans.push_back (MachineTransition (MachineBit0, outChar[k4], outState[k4]));
       machine.state[s1].trans.push_back (MachineTransition (MachineBit1, outChar[l4], outState[l4]));
+
+      machine.state[s1].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[k4], outState[k4]));
+      machine.state[s1].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[l4], outState[l4]));
 
       const int rotate2 = (++nOut2 % 2);
       const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
