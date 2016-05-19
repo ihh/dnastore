@@ -65,6 +65,8 @@ $(MAIN): bin/$(MAIN)
 clean:
 	rm -rf bin/* obj/*
 
+debug: all
+
 # Tests
 
 test: testpattern

@@ -48,6 +48,7 @@ int main (int argc, char** argv) {
       ("no-start,s", "do not use a control word at start of encoded sequence")
       ("no-eof,f", "do not use a control word at end of encoded sequence")
       ("delay,y", "build delayed machine")
+      ("rate,R", "calculate compression rate")
       ("load-machine,L", po::value<string>(), "load machine from JSON file")
       ("save-machine,S", po::value<string>(), "save machine to JSON file")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
@@ -144,16 +145,17 @@ int main (int argc, char** argv) {
 
       cout << endl;
 
-    } else {
-      // Output the transducer
-      machine.write (cout);
-
+    } else if (vm.count("rate")) {
       // Output statistics
       const auto charBases = machine.expectedBasesPerInputSymbol (true);
       vguard<string> cbstr;
       for (const auto& cb: charBases)
 	cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));
-      LogThisAt(1,"Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl);
+      cout << "Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl;
+
+    } else {
+      // Output the transducer
+      machine.write (cout);
     }
 
 #ifndef DEBUG

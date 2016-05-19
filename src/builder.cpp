@@ -53,13 +53,13 @@ void TransBuilder::pruneUnreachable() {
       ++nDropped;
     }
   if (nDropped) {
-    LogThisAt(2,"Dropped " << nDropped << " " << len << "-mers that were unreachable in depth-first search" << endl);
+    LogThisAt(4,"Dropped " << nDropped << " " << len << "-mers that were unreachable in depth-first search" << endl);
     kmers.clear();
     for (const auto& kd: dist)
       kmers.push_back (kd.first);
     pruneDeadEnds();
   } else
-    LogThisAt(2,"All " << kmers.size() << " " << len << "-mers were reached in depth-first search" << endl);
+    LogThisAt(5,"All " << kmers.size() << " " << len << "-mers were reached in depth-first search" << endl);
 }
 
 void TransBuilder::doDFS (Kmer kmer, map<Kmer,Pos>& distance) const {
@@ -135,7 +135,7 @@ map<Kmer,list<Kmer> > TransBuilder::pathsTo (Kmer dest, int steps) const {
 }
 
 void TransBuilder::pruneDeadEnds() {
-  ProgressLog (plogPrune, 1);
+  ProgressLog (plogPrune, 3);
   plogPrune.initProgress ("Pruning dead ends");
   for (auto kmer: kmers)
     pruneDeadEnds (kmer);
@@ -150,7 +150,7 @@ void TransBuilder::pruneDeadEnds() {
       ++nUnpruned;
     }
   }
-  LogThisAt(2,"Dead-end pruning removed " << (nPruned - nUnpruned) << " " << len << "-mers, leaving " << nUnpruned << endl);
+  LogThisAt(4,"Dead-end pruning removed " << (nPruned - nUnpruned) << " " << len << "-mers, leaving " << nUnpruned << endl);
   kmers.swap (unprunedKmers);
 }
 
@@ -164,6 +164,7 @@ void TransBuilder::assertKmersCorrect() const {
 }
 
 void TransBuilder::buildEdges() {
+  LogThisAt(1,"Building edge graph for " << kmers.size() << " " << len << "-mers" << endl);
   EdgeVector out;
   for (auto kmer: kmers) {
     EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
@@ -176,7 +177,7 @@ void TransBuilder::buildEdges() {
     kmerOutFlags[kmer] = outFlags;
   }
   if (!keepDegenerates)
-    LogThisAt(2,"Dropped " << droppedEdge.size() << " degenerate edges" << endl);
+    LogThisAt(2,"Dropped " << droppedEdge.size() << " degenerate transitions" << endl);
   pruneDeadEnds();
 }
 
@@ -280,7 +281,7 @@ Machine TransBuilder::makeMachine() {
       for (size_t c = 0; c < controlWord.size(); ++c)
 	if (kmer == controlWord[c]) {
 	  if (isStartControlIndex(c))
-	    ms.name = isEndControlIndex(c) ? string("Control(Start/End)") : string("Control(Start)");
+	    ms.name = isEndControlIndex(c) ? string("Control(Start+End)") : string("Control(Start)");
 	  else if (isEndControlIndex(c))
 	    ms.name = string("Control(End)");
 	  else
@@ -348,7 +349,7 @@ Machine TransBuilder::makeMachine() {
 	const State srcState = ks.second;
 	const Kmer destKmer = nextIntermediateKmer (srcKmer, c, step + 1);
 	machine.state[srcState].leftContext = kmerString(srcKmer,len);
-	machine.state[srcState].name = (isEndControlIndex(c) ? string("Pad(End)") : (string("Pad(") + controlChar(c) + ")")) + "#" + to_string(srcState);
+	machine.state[srcState].name = (isEndControlIndex(c) ? string("Bridge(End)") : (string("Bridge(") + controlChar(c) + ")")) + "#" + to_string(srcState);
 	machine.state[srcState].trans.push_back (controlTrans (srcState, destKmer, c, step + 1));
       }
     }
@@ -531,6 +532,9 @@ bool TransBuilder::getNextControlWord() {
 }
 
 void TransBuilder::getControlWords() {
+  if (nControlWords > 0)
+    LogThisAt(1,"Attempting to allocate " << plural(nControlWords,"control word") << endl);
+  
   if (nControlWords == 0 && controlWordAtStart) {
     Warn ("No control words allocated, disabling control word at start");
     controlWordAtStart = false;
@@ -559,7 +563,8 @@ void TransBuilder::getControlWords() {
   
   pruneDeadEnds();
   pruneUnreachable();
-  
+
+  size_t totalInter = 0;
   for (size_t c = 0; c < controlWord.size(); ++c) {
     const Kmer controlKmer = controlWord[c];
     if (isSourceControlIndex(c)) {
@@ -586,6 +591,8 @@ void TransBuilder::getControlWords() {
 	nInter += ks.size();
       controlWordIntermediates.push_back (intermediates);
       LogThisAt(3,"Control word " << kmerString(controlKmer,len) << " needs " << nInter << " intermediate states" << endl);
+      totalInter += nInter;
     }
   }
+  LogThisAt(2,"Control words (" << join(controlWordString) << ") require " << totalInter << " bridge states" << endl);
 }

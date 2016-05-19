@@ -24,8 +24,8 @@ struct Encoder {
   void close() {
     if (!machine.state[current].isEnd()) {
       advance();
-      while (machine.state[current].transFor(Machine::eofChar) == NULL) {
-	Warn ("Encoding extra zero bit at end of message");
+      while (!canEncode(Machine::eofChar)) {
+	Warn ("Adding zero padding bit at end of message");
 	encodeSymbol ('0');
       }
       encodeSymbol (Machine::eofChar);
@@ -49,6 +49,10 @@ struct Encoder {
 		<< endl);
       current = tn.dest;
     }
+  }
+
+  bool canEncodeSymbol (char sym) const {
+    return machine.state[current].transFor(sym) != NULL;
   }
   
   void encodeSymbol (char sym) {
