@@ -174,7 +174,7 @@ Let $A \subset \norepvertices$ be a set of vertices to avoid,
 $D \in A$ be a target vertex,
 and denote by ${\cal S}(A,D,N) \subset \norepvertices$
 the set of vertices in $\norepgraph$
-from which there are $N$-step paths to $D$
+from which there are paths to $D$ of exactly $N$ edges
 that do not pass through any of the vertices in $A$
 (although they may start from one of those vertices).
 Define $\constlen{A}$ to be the smallest value of $N$ for which ${\cal S}(A,D,N) = \norepvertices$,
@@ -183,7 +183,8 @@ We can find ${\cal S}(A,D,N)$ from ${\cal S}(A,D,N-1)$ by recursive backtracking
 and so determine in $M$ steps whether $\constlen{A} \leq M$.
 
 % Use {\cal S} to create intermediate steps to control words
-
+% Denote one control word as the start word, and another (possibly the same) as the end word
+% Add start & end states
 
 \subsection*{A transducer that periodically flushes its output}
 
