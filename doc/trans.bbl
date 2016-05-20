@@ -1,0 +1,73 @@
+\begin{thebibliography}{10}
+
+\bibitem{MohriPereiraRiley2000}
+M.~Mohri, F.~Pereira, and M.~Riley.
+\newblock Weighted finite-state transducers in speech recognition.
+\newblock {\em Computer Speech and Language}, 16(1):69--88, 2002.
+
+\bibitem{WikipediaTransducers}
+{\em Finite-state transducer}, 2016 (accessed May 19, 2016).
+\newblock
+  \url{https://en.wikipedia.org/w/index.php?title=Finite_state_transducer&oldid=718569101}.
+
+\bibitem{EskinEtAl2000}
+E.~Eskin, W.~N. Grundy, and Y.~Singer.
+\newblock Protein family classification using sparse {M}arkov transducers.
+\newblock In P.~Bourne, M.~Gribskov, R.~Altman, N.~Jensen, D.~Hope,
+  T.~Lengauer, J.~Mitchell, E.~Scheeff, C.~Smith, S.~Strande, and H.~Weissig,
+  editors, {\em Proceedings of the Eighth International Conference on
+  Intelligent Systems for Molecular Biology}, pages 134--135, Menlo Park, CA,
+  2000. AAAI Press.
+
+\bibitem{PatenEtAl2008}
+B.~Paten, J.~Herrero, S.~Fitzgerald, K.~Beal, P.~Flicek, I.~Holmes, and
+  E.~Birney.
+\newblock {{G}enome-wide nucleotide-level mammalian ancestor reconstruction}.
+\newblock {\em Genome Research}, 18:1829--1843, Nov 2008.
+
+\bibitem{WestessonEtAlArxiv2012}
+Oscar Westesson, Gerton Lunter, Benedict Paten, and Ian Holmes.
+\newblock Accurate reconstruction of insertion-deletion histories by
+  statistical phylogenetics, 2012.
+
+\bibitem{WestessonEtAl2012}
+O.~Westesson, G.~Lunter, B.~Paten, and I.~Holmes.
+\newblock {{A}ccurate reconstruction of insertion-deletion histories by
+  statistical phylogenetics}.
+\newblock {\em PLoS ONE}, 7(4):e34572, 2012.
+
+\bibitem{SchwarzEtAl2014}
+R.~F. Schwarz, A.~Trinh, B.~Sipos, J.~D. Brenton, N.~Goldman, and F.~Markowetz.
+\newblock {{P}hylogenetic quantification of intra-tumour heterogeneity}.
+\newblock {\em PLoS Comput. Biol.}, 10(4):e1003535, Apr 2014.
+
+\bibitem{Mackay2003}
+D.~J.~C. Mackay.
+\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
+\newblock Cambridge University Press, 1st edition, 2003.
+
+\bibitem{ChurchEtAl2012}
+G.~M. Church, Y.~Gao, and S.~Kosuri.
+\newblock {{N}ext-generation digital information storage in {D}{N}{A}}.
+\newblock {\em Science}, 337(6102):1628, Sep 2012.
+
+\bibitem{GoldmanEtAl2013}
+N.~Goldman, P.~Bertone, S.~Chen, C.~Dessimoz, E.~M. LeProust, B.~Sipos, and
+  E.~Birney.
+\newblock {{T}owards practical, high-capacity, low-maintenance information
+  storage in synthesized {D}{N}{A}}.
+\newblock {\em Nature}, 494(7435):77--80, Feb 2013.
+
+\bibitem{YazdiEtAl2015}
+S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
+\newblock {{A} {R}ewritable, {R}andom-{A}ccess {D}{N}{A}-{B}ased {S}torage
+  {S}ystem}.
+\newblock {\em Sci Rep}, 5:14138, 2015.
+
+\bibitem{Durbin98}
+R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
+\newblock {\em Biological Sequence Analysis: Probabilistic Models of Proteins
+  and Nucleic Acids}.
+\newblock Cambridge University Press, Cambridge, UK, 1998.
+
+\end{thebibliography}
