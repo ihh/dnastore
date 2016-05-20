@@ -143,18 +143,47 @@ Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cit
 
 \subsection*{De Bruijn graphs}
 
-The $N$-dimension De Bruijn graph over an alphabet $\inalph$ of cardinality $M$
-is a directed graph with $M^N$ vertices,
-corresponding to all possible $N$-symbol strings
-$x_1 x_2 \ldots x_N \in \inalph^N$.
+The $\kmerlen$-dimensional De Bruijn graph over an alphabet $\somealph$ of cardinality $M$
+is a directed graph with $M^\kmerlen$ vertices,
+corresponding to all possible $\kmerlen$-symbol strings
+$\sym_1 \sym_2 \ldots \sym_\kmerlen \in \somealph^\kmerlen$.
 There is an edge $u \to v$ between any two vertices
-$u=x_1 x_2 \ldots x_N$ and $v=x_2 x_3 \ldots x_{N+1}$
-that overlap by $N-1$ symbols.
+$u=\sym_1 \sym_2 \ldots \sym_\kmerlen$ and $v=\sym_2 \ldots \sym_\kmerlen \sym_{\kmerlen+1}$
+that overlap by $\kmerlen-1$ symbols.
 Thus, each vertex has $M$ incoming and $M$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
 
-\subsection*{A transducer for encoding signals in locally non-repetitive DNA}
+\subsection*{A transducer for encoding signals as DNA without short repeats or reserved words}
 
-\subsection*{Allowing for reserved control words}
+Let $\nucalph = \{ \mbox{A}, \mbox{C}, \mbox{G}, \mbox{T} \} $ be the nucleotide alphabet and define the complement $\comp{x}$ of a nucleotide symbol $x$,
+and the reverse complement $\revcomp{\someseq}$ of a nucleotide sequence $\someseq$, in the usual way.
+
+A direct tandem repeat of length $k$ is a nucleotide sequence followed by an exact copy of itself, $\someseq \someseq$, where the length of each copy is $\seqlen{\someseq}=k$
+(note this includes repeated single nucleotides when $k=1$).
+Similarly, a direct inverted repeat of length $k$ is a $k$-nucleotide sequence followed by its reverse complement, $\someseq \revcomp{\someseq}$.
+A local inverted repeat of length $k$ and separation $l$ is a $k$-nucleotide sequence, followed an $l$-nucleotide sequence, followed by the reverse complement
+of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $\seqlen{\someseq}=k$ and $\seqlen{\otherseq}=l$.
+
+Start with the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
+Delete all nodes corresponding to sequences that contain substrings which are
+direct tandem repeats of any length,
+direct inverted repeats of length $\geq 2$,
+or local inverted repeats of length $\geq \invreplen$ and separation $\geq 2$.
+Denote this graph by $\norepgraph = (\norepvertices,\norepedges)$.
+
+Let $A \subset \norepvertices$ be a set of vertices to avoid,
+$D \in A$ be a target vertex,
+and denote by ${\cal S}(A,D,N) \subset \norepvertices$
+the set of vertices in $\norepgraph$
+from which there are $N$-step paths to $D$
+that do not pass through any of the vertices in $A$
+(although they may start from one of those vertices).
+Define $\constlen{A}$ to be the smallest value of $N$ for which ${\cal S}(A,D,N) = \norepvertices$,
+if such a value of $N$ exists; otherwise, let $\constlen{A,M}$ be $\infty$.
+We can find ${\cal S}(A,D,N)$ from ${\cal S}(A,D,N-1)$ by recursive backtracking,
+and so determine in $M$ steps whether $\constlen{A} \leq M$.
+
+% Use {\cal S} to create intermediate steps to control words
+
 
 \subsection*{A transducer that periodically flushes its output}
 
