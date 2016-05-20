@@ -149,8 +149,9 @@ corresponding to all possible $\kmerlen$-symbol strings
 $\sym_1 \sym_2 \ldots \sym_\kmerlen \in \somealph^\kmerlen$.
 There is an edge $u \to v$ between any two vertices
 $u=\sym_1 \sym_2 \ldots \sym_\kmerlen$ and $v=\sym_2 \ldots \sym_\kmerlen \sym_{\kmerlen+1}$
-that overlap by $\kmerlen-1$ symbols.
+that overlap by $\kmerlen-1$ symbols; this edge is labeled with symbol $\sym_{\kmerlen+1}$ (the last symbol of $v$).
 Thus, each vertex has $M$ incoming and $M$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
+Denote this graph by $\debruijngraph = (\debruijnvertices,\debruijnedges)$.
 
 \subsection*{A transducer for encoding signals as DNA without short repeats or reserved words}
 
@@ -163,28 +164,100 @@ Similarly, a direct inverted repeat of length $k$ is a $k$-nucleotide sequence f
 A local inverted repeat of length $k$ and separation $l$ is a $k$-nucleotide sequence, followed an $l$-nucleotide sequence, followed by the reverse complement
 of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $\seqlen{\someseq}=k$ and $\seqlen{\otherseq}=l$.
 
-Start with the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
+Start with $\debruijngraph$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
 Delete all nodes corresponding to sequences that contain substrings which are
 direct tandem repeats of any length,
 direct inverted repeats of length $\geq 2$,
 or local inverted repeats of length $\geq \invreplen$ and separation $\geq 2$.
-Denote this graph by $\norepgraph = (\norepvertices,\norepedges)$.
+Denote the resulting graph by $\norepgraph = (\norepvertices,\norepedges)$.
 
 Let $A \subset \norepvertices$ be a set of vertices to avoid,
-$D \in A$ be a target vertex,
-and denote by ${\cal S}(A,D,N) \subset \norepvertices$
-the set of vertices in $\norepgraph$
-from which there are paths to $D$ of exactly $N$ edges
-that do not pass through any of the vertices in $A$
-(although they may start from one of those vertices).
-Define $\constlen{A}$ to be the smallest value of $N$ for which ${\cal S}(A,D,N) = \norepvertices$,
-if such a value of $N$ exists; otherwise, let $\constlen{A,M}$ be $\infty$.
-We can find ${\cal S}(A,D,N)$ from ${\cal S}(A,D,N-1)$ by recursive backtracking,
-and so determine in $M$ steps whether $\constlen{A} \leq M$.
+let $D \in A$ be a target vertex,
+and denote by $\prequels(D,A,N) \subset \norepvertices$
+the set of all vertices
+from which there exists a length-$N$ path to $D$
+that does not pass through any of the vertices in $A$
+(although the path is allowed to originate from one of those vertices).
+Define $\stepsto(D,A)$ to be the smallest value of $N$ for which $\prequels(D,A,N) = \norepvertices$,
+if such a value of $N$ exists; otherwise, let $\stepsto(D,A)$ be $\infty$.
+We can find $\prequels(D,A,N)$ from $\prequels(D,A,N-1)$ by recursive backtracking,
+and so determine in $M$ steps whether $\stepsto(D,A) \leq M$.
 
-% Use {\cal S} to create intermediate steps to control words
-% Denote one control word as the start word, and another (possibly the same) as the end word
-% Add start & end states
+We now allocate $\ncontrols$ ``control words'': $\kmerlen$-mers that in our transducer
+will be unreachable except by specially constructed paths of uniform length.
+Specifically, we seek an indexed set of vertices
+$\controlset = \{ \controlword_1, \controlword_2 \ldots \controlword_{\ncontrols} \}$
+such that $\stepsto(\controlword_n,\controlset) \leq M$ for all $n$
+and some value of $M$ (e.g. $M = 2\kmerlen$).
+Our implementation finds this list $\controlset$ by brute-force recursive search
+and further attempts to maximize the shortest Hamming distance between any two control words in $\controlset$.
+Note that there is a ceiling to the number of control words that may be found
+for any given value of $\kmerlen$ (and $\invreplen$),
+though this ceiling grows rather rapidly with $\kmerlen$.
+In practice we only need a few control words for most purposes.
+
+Having designated some $\kmerlen$-mers as control words via analysis of $\norepgraph$,
+we now construct a new graph $\controlgraph$
+in which the control words are unreachable from the other words
+except by paths that we construct.
+Starting with graph $\norepgraph$, delete all incoming transitions to control words $\controlword_n \in \controlset$,
+rendering them unreachable,
+and prune the graph of any other nodes that become unreachable as a result.
+Next, for every control word $\controlword_n \in \controlset$
+and every path length $1 \leq k < \stepsto(\controlword_n,\controlset)$,
+we create a new vertex set $\controlbridges{n,k}$
+with a one-to-one correspondence to $\prequels(\controlword_n,\controlset,k)$.
+We connect the newly-added vertices such that there is an edge from
+$u \in \controlbridges{n,k}$ to $v \in \controlbridges{n,k-1}$
+for every corresponding edge $(u',v') \in \norepedges$ between
+$u' \in \prequels(\controlword_n,\controlset,k)$
+and
+$v' \in \prequels(\controlword_n,\controlset,k-1)$.
+We also add edges from
+$u \in \norepvertices$ to $v \in \controlbridges{n,\stepsto(\controlword_n,\controlset)}$
+for the first steps in the paths to control words,
+as well as edges from
+$u \in \controlbridges{n,1}$ to $\controlword$
+for the final steps.
+In each case the newly-added edge is copied from a corresponding edge in $\norepedges$
+and inherits the same edge label.
+
+It is useful to force the transducer to start with a particular control word $\initword$
+and end with a particular control word $\finalword$.
+To guarantee this we add a chain of initial vertices and edges leading from source vertex to the initial control word,
+$\initvertex{0} \to \initvertex{1} \to \initvertex{2} \to \ldots \to \initvertex{\kmerlen-1} \to \initword$,
+with each transition labeled with consecutive symbols from the initial control word.
+For symmetry and representational convenience, we also add a chain of final vertices and edges leading
+from the final control word to a sink vertex,
+$\finalword \to \finalvertex{\kmerlen-1} \to \ldots \to \finalvertex{2} \to \finalvertex{1} \to \finalvertex{0}$.
+These final transitions are labeled with $\emptystring$'s.
+
+We have now constructed the graph $\controlgraph$ from which our transducer $\controlmachine$
+is derived via the following recipe:
+\begin{itemize}
+\item Every vertex in $\controlgraph$ is a state in $\controlmachine$.
+The initial and final vertices of $\controlgraph$ are the initial and final states of $\controlmachine$.
+\item Every edge in $\controlgraph$ is a unit-weight transition in $\controlmachine$.
+The output label of the transition is the label of the edge.
+\item The input label of each transition is determined as follows:
+\begin{itemize}
+\item For states in $\norepvertices$ with two outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the binary digits \bit{0} and \bit{1}.
+\item For states in $\norepvertices$ with three outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the trinary digits \trit{0}, \trit{1} and \trit{2}.
+\item For states in $\norepvertices$ with four outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the quaternary digits \quat{0}, \quat{1}, \quat{2} and \quat{3}.
+\item Transitions from states in $\norepvertices$ to states in $\controlbridges{n,\stepsto(\controlword_n,\controlset)}$,
+which begin a path to the $i$'th control word $\controlword_n$,
+are input-labeled with the special control digit \controldigit{n}.
+\item All other transitions have input label $\emptystring$.
+\end{itemize}
+\end{itemize}
+
+Thus, the input alphabet of $\controlmachine$
+is $\{ \bit{0}, \bit{1},
+       \trit{0}, \trit{1}, \trit{2},
+       \quat{0}, \quat{1}, \quat{2}, \quat{3},
+       \controlword_1 \ldots \controlword_{\ncontrols} \}$.
+
+\subsection*{The delayed transducer}
 
 \subsection*{A transducer that periodically flushes its output}
 

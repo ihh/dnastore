@@ -55,8 +55,39 @@
 
 \newcommand\kmerlen{{\cal N}}
 \newcommand\invreplen{K}
-\newcommand\norepgraph{{\cal G}}
-\newcommand\norepvertices{{\cal V}}
-\newcommand\norepedges{{\cal E}}
 
-\newcommand\constlen{{\cal L}}
+\newcommand\graph{{\cal G}}
+\newcommand\vertices{{\cal V}}
+\newcommand\edges{{\cal E}}
+
+\newcommand\debruijngraph{\graph_b}
+\newcommand\debruijnvertices{\vertices_b}
+\newcommand\debruijnedges{\edges_b}
+
+\newcommand\norepgraph{\graph_r}
+\newcommand\norepvertices{\vertices_r}
+\newcommand\norepedges{\edges_r}
+
+\newcommand\controlgraph{\graph_c}
+\newcommand\controlbridges[1]{\vertices_c(#1)}
+
+\newcommand\prequels{{\cal S}}
+\newcommand\stepsto{{\cal L}}
+
+\newcommand\ncontrols{N_c}
+\newcommand\controlset{{\cal C}}
+\newcommand\controlword{W}
+
+\newcommand\initword{\controlword_i}
+\newcommand\finalword{\controlword_f}
+
+\newcommand\initvertex[1]{u^{(#1)}_i}
+\newcommand\finalvertex[1]{v^{(#1)}_f}
+
+\newcommand\controlmachine{T_c}
+
+\newcommand\bit[1]{{\tt B#1}}
+\newcommand\trit[1]{{\tt T#1}}
+\newcommand\quat[1]{{\tt Q#1}}
+
+\newcommand\controldigit[1]{{\tt C}$#1$}
