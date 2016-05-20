@@ -59,7 +59,7 @@ an initial state $\initstate \in \states$
 and a final state $\finalstate \in \states$.
 
 The transducer $T$ can be thought of as an edge-labelled directed graph
-where each state is a node
+where each state is a vertex
 and each transition
 $\trans = (\src[\trans],\inlab[\trans],\outlab[\trans],\weight[\trans],\dest[\trans]) \in \transitions$
 is an edge from state $\src[\trans]$ to state $\dest[\trans]$
@@ -90,12 +90,15 @@ analogously to the Forward algorithm in the probabilistic semiring
 or the Viterbi algorithm in the tropical semiring
 \cite{Durbin98}.
 
+A state $\state \in \states$ has past context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
+and future context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
+
 \subsection*{Transducer composition}
 
 Given transducers
  $R = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
  $S = (\somealph, \outalph, \states_S, \transitions_S, \initstate_S, \finalstate_S)$
-which are compatible ($R$'s output alphabet, $\somealph$, is also $S$'s input alphabet),
+where $R$'s output alphabet is the same as $S$'s input alphabet,
 we can readily find a composite transducer
  $T = R \transcomp S = (\inalph, \outalph, \states_T, \transitions_T, \initstate_T, \finalstate_T)$
 such that, if $\tfunc{R}$, $\tfunc{S}$ and $\tfunc{T}$ are the corresponding transducer functions,
@@ -140,9 +143,20 @@ Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cit
 
 \subsection*{De Bruijn graphs}
 
+The $N$-dimension De Bruijn graph over an alphabet $\inalph$ of cardinality $M$
+is a directed graph with $M^N$ vertices,
+corresponding to all possible $N$-symbol strings
+$x_1 x_2 \ldots x_N \in \inalph^N$.
+There is an edge $u \to v$ between any two vertices
+$u=x_1 x_2 \ldots x_N$ and $v=x_2 x_3 \ldots x_{N+1}$
+that overlap by $N-1$ symbols.
+Thus, each vertex has $M$ incoming and $M$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
+
 \subsection*{A transducer for encoding signals in locally non-repetitive DNA}
 
-\subsection*{A transducer that flushes periodically}
+\subsection*{Allowing for reserved control words}
+
+\subsection*{A transducer that periodically flushes its output}
 
 \subsection*{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
