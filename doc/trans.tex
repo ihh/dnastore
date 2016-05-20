@@ -66,6 +66,14 @@ is an edge from state $\src[\trans]$ to state $\dest[\trans]$
 with input label $\inlab[\trans]$,
 output label $\outlab[\trans]$
 and weight $\weight[\trans]$.
+We use this conceptualization to render transducers pictorially,
+adopting the further convention that edges are labeled $\inlab{\tt /}\outlab$
+to show both input and output labels
+(the transition weights for the transducers shown pictorially in this paper are all equal to 1,
+and are omitted from the visual representation).
+\figref{HammingTransducer} shows a transducer that implements the Hamming(4,7) code,
+while
+\figref{BinaryToTrinary} shows a transducer that converts binary to trinary.
 
 A path in $T$ is a series of transitions that form a path in this graph.
 The input sequence and output sequence for a path are the concatenation of (respectively)
