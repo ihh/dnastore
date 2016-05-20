@@ -1,0 +1,155 @@
+\documentclass{article}
+\bibliographystyle{unsrt}
+\input{defs.tex}
+\input{notation.tex}
+\begin{document}
+
+\newcommand\authorstring{
+Ian Holmes$^{1,\ast}$ \\
+\textbf{1} Department of Bioengineering, University of California, Berkeley, CA, USA \\
+$\ast$ E-mail: ihh@berkeley.edu
+}
+
+\newcommand\titlestring{Transducer codes for DNA}
+\newcommand\shorttitlestring{Transducer codes for DNA}
+\markboth{\shorttitlestring}{\shorttitlestring}
+\begin{flushleft}
+{\Large \textbf{\titlestring} } \\
+\authorstring
+\end{flushleft}
+%\section*{Abstract}
+%\paragraph{Keywords:}
+%\tableofcontents
+
+\section*{Introduction}
+
+Transducers \cite{MohriPereiraRiley2000,WikipediaTransducers}
+
+In bioinformatics:
+protein classification \cite{EskinEtAl2000},
+phylogenetics \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
+cancer informatics \cite{SchwarzEtAl2014}
+
+Arithmetic coding \cite{Mackay2003}
+
+DNA storage \cite{ChurchEtAl2012,GoldmanEtAl2013}.
+Codes \cite{YazdiEtAl2015}
+
+
+\section*{Methods}
+
+\subsection*{Weighted finite-state transducers}
+
+Following \cite{MohriPereiraRiley2000}:
+Assume a general semiring
+$\semiring=(\srset,\srplus,\srtimes,\srplusid,\srtimesid)$
+which for our purposes is typically the probability semiring
+$(\Re,+,\times,0,1)$
+or the tropical semiring
+$(\Re_{+} \cup {\infty},\min,+,\infty,0)$.
+
+A weighted finite-state transducer is defined as a tuple
+$T = (\inalph,\outalph,\states,\transitions,\initstate,\finalstate)$
+consisting of an input alphabet $\inalph$,
+an output alphabet $\outalph$ (both alphabets being finite sets),
+a finite set of states $\states$,
+a finite set of transitions
+$\transitions \subseteq \states \times \maybe{\inalph} \times \maybe{\outalph} \times \srset \times \states$,
+an initial state $\initstate \in \states$
+and a final state $\finalstate \in \states$.
+
+The transducer $T$ can be thought of as an edge-labelled directed graph
+where each state is a node
+and each transition
+$\trans = (\src[\trans],\inlab[\trans],\outlab[\trans],\weight[\trans],\dest[\trans]) \in \transitions$
+is an edge from state $\src[\trans]$ to state $\dest[\trans]$
+with input label $\inlab[\trans]$,
+output label $\outlab[\trans]$
+and weight $\weight[\trans]$.
+
+A path in $T$ is a series of transitions that form a path in this graph.
+The input sequence and output sequence for a path are the concatenation of (respectively)
+the input and output labels of the transitions in the path.
+The path weight is the $\srtimes$-product of the transition weights.
+A successful path is one that starts in $\initstate$ and ends in $\finalstate$.
+The transduction weight for a given input sequence $\inseq \in \inseqs$
+and output sequence $\outseq \in \outseqs$
+is the $\srplus$-sum of all successful paths
+having $\inseq$ as the input sequence
+and $\outseq$ as the output sequence.
+Thus $T$ provides a mapping
+$\tfunc{T}:(\kleene{\inalph} \times \kleene{\outalph}) \to \srset$
+from sequence-pairs to weights.
+We call this mapping $\tfunc{T}$ the transducer function.
+For a given pair of sequences $(\inseq,\outseq)$
+and a semiring wherein $\srplus$ and $\srtimes$ are amortized-constant resource operations,
+it can be evaluated in time $\bigo(|\inseq| \cdot |\outseq| \cdot |\transitions|)$
+and memory $\bigo(|\inseq| \cdot |\outseq| \cdot |\states|)$
+by dynamic programming,
+analogously to the Forward algorithm in the probabilistic semiring
+or the Viterbi algorithm in the tropical semiring
+\cite{Durbin98}.
+
+\subsection*{Transducer composition}
+
+Given transducers
+ $R = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
+ $S = (\somealph, \outalph, \states_S, \transitions_S, \initstate_S, \finalstate_S)$
+which are compatible ($R$'s output alphabet, $\somealph$, is also $S$'s input alphabet),
+we can readily find a composite transducer
+ $T = R \transcomp S = (\inalph, \outalph, \states_T, \transitions_T, \initstate_T, \finalstate_T)$
+such that, if $\tfunc{R}$, $\tfunc{S}$ and $\tfunc{T}$ are the corresponding transducer functions,
+then
+\[
+\forall \inseq \in \inseqs, \outseq \in \outseqs:
+\quad
+\tfunc{T}(\inseq,\outseq) = \srsum_{\someseq \in \someseqs} \tfunc{R}(\inseq,\someseq) \tfunc{R}(\someseq,\outseq)
+\]
+that is, $T$ models the feeding of $R$'s output into $S$'s input
+(and this intermediate sequence is then summed out---i.e. marginalized, if we are in the probabilistic semiring).
+
+Loosely speaking, we can construct $T$ using the following recipe:
+\begin{itemize}
+\item Each $T$-state corresponds to a pair of $R$- and $S$-states,
+so $\state_T = (\state_R, \state_S)$
+and $\states_T \subseteq \states_R \times \states_S$.
+\item The initial $T$-state $\initstate_T=(\initstate_R,\initstate_S)$ pairs the initial states of $R$ and $S$.
+\item The final $T$-state $\finalstate_T=(\finalstate_R,\finalstate_S)$ pairs the final states of $R$ and $S$.
+\item $T$-transitions
+$\trans_T = ((\src_R,\src_S),\inlab,\outlab,\weight_T,(\dest_R,\dest_S))$
+represent (summaries of sets of) synchronized pairs of $R$-transitions
+$\trans_R = (\src_R,\inlab,\midlab,\weight_R,\dest_R)$
+and $S$-transitions
+$\trans_S = (\src_S,\midlab,\outlab,\weight_S,\dest_S)$
+which share the same intermediate label $\midlab$.
+The composite transition weight $\weight_T$ is the product $\weight_R \srtimes \weight_S$,
+or the sum over such products if there are multiple transition-pairs $(\trans_R,\trans_S)$
+consistent with a given $\trans_T$
+(which, in the probabilistic semiring, is equivalent to marginalizing out $\midlab$).
+\item Some additional manipulation is required to synchronize
+transitions involving empty input labels (``insertions''),
+empty output labels (``deletions''),
+or both (``null transitions'').
+For example, we can require that $S$-transitions accepting incoming symbols
+all originate from ``ready'' states which have no outgoing insertions.
+(If $S$ does not comply with this stipulation then we can easily derive a transducer
+with the same transducer function $\tfunc{S}$ that does comply.)
+\end{itemize}
+
+Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cite{WestessonEtAlArxiv2012,WestessonEtAl2012}.
+
+\subsection*{De Bruijn graphs}
+
+\subsection*{A transducer for encoding signals in locally non-repetitive DNA}
+
+\subsection*{A transducer that flushes periodically}
+
+\subsection*{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
+
+
+
+\bibliography{trans}
+
+
+
+\end{document}

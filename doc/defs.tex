@@ -1,0 +1,275 @@
+
+% Section
+\newcommand{\secref}[1]{Subsection~\ref{sec.#1}}
+\newcommand{\seclabel}[1]{\label{sec.#1}}
+
+% Appendix
+\newcommand{\appref}[1]{Appendix~\ref{app.#1}}
+\newcommand{\applabel}[1]{\label{app.#1}}
+
+% Table
+\newcommand{\tabnum}[1]{\ref{tab.#1}}
+\newcommand{\tabref}[1]{Table~\tabnum{#1}}
+\newcommand{\tablabel}[1]{\label{tab.#1}}
+
+% Equation
+\newcommand{\eqnref}[1]{Equation~\ref{Equations.#1}}
+\newcommand{\eqnlabel}[1]{\label{Equations.#1}}
+
+% Figure
+\newcommand{\figref}[1]{Figure~\ref{Figures.#1}}
+\newcommand{\figlabel}[1]{\label{Figures.#1}}
+
+\newcommand{\easyfig}[4]{
+\begin{figure}
+\includegraphics[#2]{#1}
+\caption{ \figlabel{#3} #4}
+\end{figure}}
+
+\newcommand{\pngfig}[2]{\easyfig{#1.png}{}{#1}{#2}}
+\newcommand{\pdffig}[2]{\easyfig{#1-fig.pdf}{}{#1}{#2}}
+
+\newcommand{\widepngfig}[2]{\easyfig{#1.png}{width=\textwidth}{#1}{#2}}
+\newcommand{\tallpngfig}[2]{\easyfig{#1.png}{height=.8\textheight}{#1}{#2}}
+\newcommand{\widepdffig}[2]{\easyfig{#1-fig.pdf}{width=\textwidth}{#1}{#2}}
+\newcommand{\tallpdffig}[2]{\easyfig{#1-fig.pdf}{height=.8\textheight}{#1}{#2}}
+
+\newcommand{\sidewayspngfig}[2]{
+\begin{sidewaysfigure}
+\includegraphics[width=\textwidth]{#1.png}
+\caption{\figlabel{#1} #2}
+\end{sidewaysfigure}
+}
+
+% ToDo
+\newcommand{\needfig}[1]{{\bf Need figure: } #1 }
+\newcommand{\needfigref}[1]{Figure~??? [#1] }
+
+\newcommand{\needcite}[1]{[CITE #1]}
+\newcommand{\todo}[1]{[TODO: #1]}
+
+% Packages
+
+\usepackage[boxed,noend]{algorithm2e}
+
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{color} 
+\usepackage{ifthen}
+\usepackage{rotating}
+%\usepackage{soul}
+\newcommand{\hl}[1]{#1}
+
+\newcommand{\profileSizeLimit}{p}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Imported parsetree.sty
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% parse trees
+%\input{parsetree.sty}
+%parsetree.sty - LaTeX style file with macros for typesetting parse trees
+% See parsetree.doc for extensive section-by-section comments to the code.
+% Eirik Hektoen, 1994-2-24
+
+% Some Initial Variables and Auxiliary Macros:
+
+\def\pterror#1{\errmessage{Parsetree ERROR: #1}}
+
+\newdimen\pthgap\def\pthorgap#1{\pthgap=#1}
+\newdimen\ptvgap\def\ptvergap#1{\ptvgap=#1}
+
+\newbox\ptnodestrutbox\def\ptnodestrut{\unhcopy\ptnodestrutbox}
+\newbox\ptleafstrutbox\def\ptleafstrut{\unhcopy\ptleafstrutbox}
+
+\def\ptnodefont#1#2#3{\def\ptnodefn{#1}
+  \setbox\ptnodestrutbox=\hbox{\vrule height#2 width0pt depth#3}}
+\def\ptleaffont#1#2#3{\def\ptleaffn{#1}
+  \setbox\ptleafstrutbox=\hbox{\vrule height#2 width0pt depth#3}}
+
+
+% Customizable Definitions (- NOTE: MAY BE REDEFINED IN DOCUMENT -):
+
+\pthorgap{12pt}                         % horizontal gap betw sisters
+\ptvergap{12pt}                         % vertical gap betw mother/daughter
+\ptnodefont{\normalsize\rm}{11pt}{3pt}  % font and strut height/depth: nodes
+\ptleaffont{\normalsize\it}{11pt}{3pt}  % font and strut height/depth: leaves
+
+
+% Hierarchy-building macros:
+
+\newcount\ptdepth           % current bracketing depth
+\newcount\ptn               % 1: m, 2: ma, 3: mab, 4: mabc
+\newbox\ptm \newdimen\ptmx  % m = mother
+\newbox\pta \newdimen\ptax  % a = 1st daughter
+\newbox\ptb \newdimen\ptbx  % b = 2nd daughter
+\newbox\ptc \newdimen\ptcx  % c = 3rd daughter (max)
+\newbox\ptx \newdimen\ptxx  % x = used for passing results
+\newif\ifpttri              % choose triangular subtree with \pttritrue
+
+\def\ptnext{\advance\ptn by 1 \ifcase\ptn
+  \or \setbox\ptm=\box\ptx \ptmx=\ptxx \or \setbox\pta=\box\ptx \ptax=\ptxx
+  \or \setbox\ptb=\box\ptx \ptbx=\ptxx \or \setbox\ptc=\box\ptx \ptcx=\ptxx
+  \else \pterror{More than 3 daughters in (sub)tree}\fi}
+
+\def\ptbegtree{\ptdepth=0}
+\def\ptendtree
+  {\ifnum\ptdepth>0 \pterror{Mismatched bracketing: too few ')'s!}\fi}
+
+\def\ptbeg{\ifnum\ptdepth=0 \leavevmode\fi\begingroup
+  \advance\ptdepth1 \ptn=0\pttrifalse}
+\def\ptend{\ifnum\ptdepth=0 \pterror{Mismatched bracketing: too many ')'s!}
+  \else\ptcons\endgroup\ifnum\ptdepth=0 \box\ptx\else\ptnext\fi\fi}
+
+\def\ptnodeaux#1{\setbox\ptx=\hbox{#1}\ptxx=0.5\wd\ptx\ptnext}
+\def\ptnode#1{\ptnodeaux{\ptnodefn\ptnodestrut #1}}
+\def\ptleaf#1{\ptnodeaux{\ptleaffn\ptleafstrut #1}}
+
+\def\pthoradjust#1{\ifcase\ptn
+  \or \pthadjbox{\ptm}{#1} \or \pthadjbox{\pta}{#1}
+  \or \pthadjbox{\ptb}{#1} \or \pthadjbox{\ptc}{#1}
+  \else \pterror{More than 3 daughters in (sub)tree}\fi}
+\def\pthadjbox#1#2{\setbox#1=\hbox{\box#1\kern#2}}
+
+
+% Subtree-constructing macros:
+
+\def\ptcons
+ {\ifnum\ptn=0 \ptconsz 
+  \else
+    \ifpttri\ptconstri\else
+      \ifcase\ptn \or\ptconsm\or\ptconsma\or\ptconsmab\or\ptconsmabc \fi \fi
+    \ptax=\ptxx \advance\ptax-\ptmx \ptbx=0pt
+    \ifdim\ptax<0pt \ptbx=-\ptax\ptax=0pt\ptxx=\ptmx \fi
+    \setbox\ptx=\vtop{\hbox{\kern\ptax\box\ptm}\nointerlineskip
+                      \hbox{\kern\ptbx\box\ptx}}\fi
+  \global\ptxx=\ptxx\global\setbox\ptx=\box\ptx}
+
+\def\ptavg#1#2#3{#1=#2\advance#1#3#1=0.5#1}     % #1 := average(#2,#3)
+\def\ptadv#1#2{\advance#1#2\advance#1\pthgap}   % #1 := #1 + #2 + \pthgap
+
+\def\ptconsz{\ptxx=0pt \setbox\ptx=\vtop{}}     % empty (zero) tree
+
+\def\ptconsm{\ptxx=0pt 
+  \setbox\ptx=\hbox{\ptedge{1}{0}{}{}}}         % mother only
+
+\def\ptconsma                                   % mother and one daughter
+ {\ptxx=\ptax\setbox\ptx=\vtop{
+    \hbox{\ptedge{1}\ptax{}{}}\nointerlineskip
+    \hbox{\box\pta}}}
+
+\def\ptconsmab                                  % mother and two daughters
+ {\ptadv\ptbx{\wd\pta}\ptavg\ptxx\ptax\ptbx
+  \setbox\ptx=\vtop{
+    \hbox{\ptedge{2}\ptax\ptbx{}}\nointerlineskip
+    \hbox{\box\pta\kern\pthgap\box\ptb}}}
+
+\def\ptconsmabc                                 % mother and three daughters
+ {\ptadv\ptbx{\wd\pta}\ptadv\ptcx{\wd\pta}%
+  \ptadv\ptcx{\wd\ptb}\ptavg\ptxx\ptax\ptcx
+  \setbox\ptx=\vtop{
+    \hbox{\ptedge{3}\ptax\ptbx\ptcx}\nointerlineskip
+    \hbox{\box\pta\kern\pthgap\box\ptb\kern\pthgap\box\ptc}}}
+
+\def\ptconstri                                  % triangular subtree
+ {\ifcase\ptn\or\setbox\pta\hbox{\kern2\pthgap}\or
+  \or\setbox\pta=\hbox{\box\pta\kern\pthgap\box\ptb}
+  \or\setbox\pta=\hbox{\box\pta\kern\pthgap\box\ptb\kern\pthgap\box\ptc}\fi
+  \ptxx=0.5\wd\pta
+  \setbox\ptx=\vtop{
+    \hbox{\ptedge{0}{0}{\wd\pta}{}}\nointerlineskip
+    \box\pta}}
+
+
+% Macros for `diagonal rules':
+
+\newcount\pted          % edge mode
+\newcount\ptedm         % position of mother
+\newcount\pteda         % position a
+\newcount\ptedb         % position b
+\newcount\ptedc         % position c
+\newcount\ptedl         % edge length
+\newcount\ptedh         % edge height
+\newcount\ptedhs        % horizontal slope
+\newcount\ptedvs        % vertical slope
+\newcount\ptedtemp      % temporary variable
+
+\def\ptedge#1#2#3#4{\pted=#1%
+  \pteda=#2\ifcase\pted\ptedb=#3\or\or\ptedb=#3\or\ptedb=#3\ptedc=#4\fi
+  \ptedm=\pteda\advance\ptedm\ifcase\pted\ptedb\or\pteda\or\ptedb\or\ptedc\fi
+  \divide\ptedm by 2
+  \ptedh=\ptvgap\ptedtemp=\ptedm\advance\ptedtemp-\pteda\divide\ptedtemp by 6
+  \ifnum\ptedh<\ptedtemp\ptedh=\ptedtemp\fi
+  \unitlength=1sp%
+  \begin{picture}(0,\ptedh)
+    \ifnum\pted=3 \ptedput\ptedc\fi
+    \ifnum\pted=1 \else\ptedput\ptedb\fi
+    \ptedput\pteda
+    \ifnum\pted=0 \ptedbot\fi 
+  \end{picture}}
+
+\def\ptedput#1{\ptedl=#1\advance\ptedl-\ptedm
+  \ifnum\ptedl>0 \ptedslope\else
+    \ptedl=-\ptedl\ptedslope\ptedhs=-\ptedhs\fi
+  \ifnum\ptedhs=0 \ptedl=\ptedh\fi
+  \put(\ptedm,\ptedh){\line(\ptedhs,-\ptedvs){\ptedl}}}
+
+\def\ptedbot
+ {\ptedtemp=\ptedl\multiply\ptedtemp by \ptedvs\divide\ptedtemp by \ptedhs
+  \ifnum\ptedtemp>0\ptedtemp=-\ptedtemp\fi \advance\ptedtemp-1
+  \advance\ptedtemp\ptedh\multiply\ptedl by 2
+  \put(\pteda,\ptedtemp){\line(1,0){\ptedl}}}
+
+\def\ptedslope
+ {\ifnum\ptedl>\ptedh\ptedhs=\ptedl\ptedvs=\ptedh
+  \else              \ptedvs=\ptedl\ptedhs=\ptedh \fi
+  \divide\ptedhs by 60 \divide\ptedvs by \ptedhs
+  \ifnum \ptedvs <  5 \ptedvs=0 \ptedhs=1 \else
+  \ifnum \ptedvs < 11 \ptedvs=1 \ptedhs=6 \else
+  \ifnum \ptedvs < 13 \ptedvs=1 \ptedhs=5 \else
+  \ifnum \ptedvs < 17 \ptedvs=1 \ptedhs=4 \else
+  \ifnum \ptedvs < 22 \ptedvs=1 \ptedhs=3 \else
+  \ifnum \ptedvs < 27 \ptedvs=2 \ptedhs=5 \else
+  \ifnum \ptedvs < 33 \ptedvs=1 \ptedhs=2 \else
+  \ifnum \ptedvs < 38 \ptedvs=3 \ptedhs=5 \else
+  \ifnum \ptedvs < 42 \ptedvs=2 \ptedhs=3 \else
+  \ifnum \ptedvs < 46 \ptedvs=3 \ptedhs=4 \else
+  \ifnum \ptedvs < 49 \ptedvs=4 \ptedhs=5 \else
+  \ifnum \ptedvs < 55 \ptedvs=5 \ptedhs=6 \else
+                      \ptedvs=1 \ptedhs=1 
+    \fi \fi \fi \fi \fi \fi \fi \fi \fi \fi \fi \fi
+  \ifnum \ptedl < \ptedh
+    \ptedtemp=\ptedhs \ptedhs=\ptedvs \ptedvs=\ptedtemp \fi}
+
+
+% Convenient End-User Environment:
+
+\newenvironment{parsetree}{\ptactivechardefs\ptbegtree}{\ptendtree}
+
+\def\ptcatcodes
+ {\catcode`(=\active \catcode`)=\active
+  \catcode`.=\active \catcode``=\active
+  \catcode`~=\active}
+
+{\ptcatcodes
+\gdef\ptactivechardefs
+ {\ptcatcodes
+  \def({\ptbeg\ignorespaces}
+  \def){\ptend\ignorespaces}
+  \def.##1.{\ptnode{##1}\ignorespaces} 
+  \def`##1'{\ptleaf{##1}\ignorespaces}
+  \def~{\pttritrue\ignorespaces}}}
+
+
+
+% to link empty nodes
+%\def\ptlink{\rule{0.4pt}{\ht\ptnodestrutbox + \dt\ptnodestrutbox}}
+\def\ptlink{\vrule height\ht\ptnodestrutbox depth\dp\ptnodestrutbox}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% End of imported parsetree.sty
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
