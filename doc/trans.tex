@@ -68,12 +68,13 @@ output label $\outlab[\trans]$
 and weight $\weight[\trans]$.
 We use this conceptualization to render transducers pictorially,
 adopting the further convention that edges are labeled $\inlab{\tt /}\outlab$
-to show both input and output labels
+to show both input and output labels, with empty labels ($\emptystring$) omitted
 (the transition weights for the transducers shown pictorially in this paper are all equal to 1,
-and are omitted from the visual representation).
-\figref{HammingTransducer} shows a transducer that implements the Hamming(4,7) code,
-while
-\figref{BinaryToTrinary} shows a transducer that converts binary to trinary.
+and are left out of the visual representation).
+\figref{HammingTransducer} shows a transducer that implements the Hamming(3,1) error-correcting code,
+\figref{NaiveDNATransducer} shows a transducer that converts a binary string into DNA,
+and
+\figref{DivisionByThree} shows a transducer that implements division by 3.
 
 A path in $T$ is a series of transitions that form a path in this graph.
 The input sequence and output sequence for a path are the concatenation of (respectively)
@@ -254,7 +255,7 @@ The output label of the transition is the label of the edge.
 \item For states in $\norepvertices$ with four outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the quaternary digits \quat{0}, \quat{1}, \quat{2} and \quat{3}.
 \item Transitions from states in $\norepvertices$ to states in $\controlbridges{n,\stepsto(\controlword_n,\controlset)}$,
 which begin a path to the $i$'th control word $\controlword_n$,
-are input-labeled with the special control digit \controldigit{n}.
+are input-labeled with the special control digit \controlsym{n}.
 \item All other transitions have input label $\emptystring$.
 \end{itemize}
 \end{itemize}
@@ -263,7 +264,7 @@ Thus, the input alphabet of $\controlmachine$
 is $\{ \bit{0}, \bit{1},
        \trit{0}, \trit{1}, \trit{2},
        \quat{0}, \quat{1}, \quat{2}, \quat{3},
-       \controlword_1 \ldots \controlword_{\ncontrols} \}$.
+       \controlsym{1} \ldots \controlsym{\ncontrols} \}$.
 
 \subsection*{The delayed transducer}
 
@@ -272,6 +273,42 @@ is $\{ \bit{0}, \bit{1},
 \subsection*{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
 
+
+
+\easyfig{hamming.png}{}{HammingTransducer}{
+A transducer that implements the Hamming(3,1) error-correcting code
+(which simply repeats every bit three times).
+S is both the initial state and the final state.}
+
+\easyfig{naive.png}{}{NaiveDNATransducer}{
+A transducer that converts a binary input string into DNA.
+The initial state is S and the final state is END.}
+
+\easyfig{divisionby3.png}{width=\textwidth}{NaiveDNATransducer}{
+A transducer that implements the operation ``division by three''.
+The machine accepts a binary divisor as its input sequence, most significant bit first.
+It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
+Binary digits are written as \{ \bit{0}, \bit{1} \} and trinary digits as \{ \trit{0}, \trit{1}, \trit{2} \}.
+By chaining together multiple transducers of this form, one can convert a binary number
+into trinary, up to a fixed number of trinary digits,
+with no loss of information \cite{MartinsFerreira2012}.
+}
+
+\easyfig{converter.png}{height=.8\textheight}{Converter}{
+A transducer that converts an input sequence of binary digits (\bit{0},\bit{1}),
+optionally interleaved with
+control symbols (\controlsym{n})
+and flush symbols (F),
+into a mixed output of binary digits,
+trinary digits (\trit{0},\trit{1},\trit{2}),
+quaternary digits (\quat{0},\quat{1},\quat{2},\quat{3}),
+and control symbols, which are simply echoed to the output;
+the flush symbol is used to drive the machine into a state (C) where it can accept control symbols.
+(Technically state C can be merged with state S, but is shown separately for layout reasons.)
+The conversion is wasteful in that trinary digits (trits) on average encode
+1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
+State S is both the initial state and the final state.
+}
 
 \bibliography{trans}
 

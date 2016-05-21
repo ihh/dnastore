@@ -1,0 +1,27 @@
+digraph G {
+	rankdir=LR;
+	
+	C -> S [label="Cn/Cn"];
+	S -> C [label="F/"];
+	
+	S -> 0 [label="0/"];
+	S -> 1 [label="1/"];
+	
+	0 -> S [label="/B0"];
+	1 -> S [label="/B1"];
+	
+	0 -> S [label="0/T0"];
+	0 -> S [label="1/T1"];
+	1 -> S [label="/T2"];
+
+	0 -> S [label="0/Q0"];
+	0 -> S [label="1/Q1"];
+	1 -> S [label="0/Q2"];
+	1 -> S [label="1/Q3"];
+
+	0 -> C [label="F/T0"];
+	1 -> C [label="F/T1"];
+
+	0 -> C [label="F/Q0"];
+	1 -> C [label="F/Q1"];
+}
