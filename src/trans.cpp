@@ -137,6 +137,7 @@ void Machine::writeDot (ostream& out) const {
     }
     out << endl;
   }
+  out << "}" << endl;
 }
 
 void Machine::write (ostream& out) const {
