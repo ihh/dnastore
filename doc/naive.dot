@@ -6,7 +6,7 @@ digraph G {
 	0 -> S [label="1/C"];
 	1 -> S [label="0/G"];
 	1 -> S [label="1/T"];
-	S -> END;
+	S -> END [label="/"];
 	S -> END [label="0/A"];
 	S -> END [label="1/C"];
 }
