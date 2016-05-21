@@ -288,7 +288,10 @@ A transducer that converts a binary input string into DNA.
 The initial state is S and the final state is END.}
 
 \newpage
-\dotfig{divisionby3}{width=\textwidth}{DivisionByThree}{
+\begin{figure}
+\includedot{divisionby3}{width=\textwidth}
+\caption{
+\figlabel{DivisionByThree}
 A transducer that implements the operation ``division by three''.
 The machine accepts a binary divisor as its input sequence, most significant bit first.
 It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
@@ -298,6 +301,7 @@ By chaining together multiple transducers of this form, one can convert a binary
 into trinary, up to a fixed number of trinary digits,
 with no loss of information \cite{MartinsFerreira2012}.
 }
+\end{figure}
 
 \newpage
 \dotfig{converter}{height=.8\textheight}{Converter}{

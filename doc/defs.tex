@@ -26,10 +26,14 @@
 \caption{ \figlabel{#3} #4}
 \end{figure}}
 
-\newcommand{\dotfig}[4]{
-\begin{figure}
+\newcommand{\includedot}[2]{
 \input{#1.tex}
 \includegraphics[#2]{#1.ps}
+}
+
+\newcommand{\dotfig}[4]{
+\includedot{#1}{#2}
+\begin{figure}
 \caption{ \figlabel{#3} #4}
 \end{figure}}
 
