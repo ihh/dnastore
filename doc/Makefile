@@ -2,8 +2,9 @@
 # Figures:
 ALLDOT := $(wildcard *.dot)
 ALLLADOT := $(wildcard *.ladot)
+ALLLACIRCO := $(wildcard *.lacirco)
 ALLFIG := $(subst .dot,,$(ALLDOT))
-ALLLAFIG := $(subst .ladot,,$(ALLLADOT))
+ALLLAFIG := $(subst .ladot,,$(ALLLADOT)) $(subst .lacirco,,$(ALLLACIRCO))
 ALLFIGPS := $(addsuffix .ps,$(ALLFIG))
 ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
 ALLFIGJUNK := $(ALLFIGTEX)
@@ -51,6 +52,11 @@ clean: tidy
 %.tex: %.ladot
 	./ladot $<
 
+# lacirco
+%.tex: %.lacirco
+	./lacirco $<
+
+# Hamming(7,4) transducer
 hamming74.dot: hamming74.pl
 	perl $< >$@
 

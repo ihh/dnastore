@@ -281,10 +281,9 @@ is $\{ \bit{0}, \bit{1},
 
 \subsection*{The delayed transducer}
 
-\subsection*{A transducer that periodically flushes its output}
-
 \subsection*{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
+\figref{Converter}...
 
 \newpage
 \section*{Figures}
@@ -360,8 +359,13 @@ $ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcom
 \end{figure}
 
 \newpage
-\dotfig{converter}{width=.5\textwidth}{Converter}{
-A transducer that converts an input sequence of binary digits ($\bit{0},\bit{1}$),
+\begin{figure}
+\includedot{converter}{width=.5\textwidth}
+\includedot{flush8}{width=.5\textwidth}
+\caption{
+\figlabel{Converter}
+Left:
+A transducer ($\transmixed$) that converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
 control symbols ($\controlsym{n}$)
 and flush symbols ($\flushsym$),
@@ -373,7 +377,16 @@ the flush symbol is used to drive the machine into a state (C) where it can acce
 The conversion is suboptimal in that trinary digits (trits) on average encode
 1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
 State S is both the initial state and the final state.
+Right:
+A transducer ($\transflush$) that copies input bits to the output, sending a flush symbol after every 8-bit byte.
+Accurate decoding of the output sequence from $\transmixed$ requires that the decoder
+knows at what points in the sequence flush symbols have been encoded.
+This synchronization can be achieved by using $\transflush \transcomp \transmixed$,
+i.e. passing the input sequence through the ``flush every 8 bits'' transducer
+before feeding it to the ``convert to binary/trinary/quaternary'' transducer.
+Note that in this model, control symbols can only be sent between bytes.
 }
+\end{figure}
 
 \newpage
 \bibliography{trans}
