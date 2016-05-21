@@ -121,6 +121,24 @@ State Machine::startState() const {
 Machine::Machine()
 { }
 
+void Machine::writeDot (ostream& out) const {
+  out << "digraph G {\n";
+  for (State s = 0; s < nStates(); ++s) {
+    const MachineState& ms = state[s];
+    out << " " << s << " [label=\"" << ms.name << "\"];" << endl;
+  }
+  out << endl;
+  for (State s = 0; s < nStates(); ++s) {
+    const MachineState& ms = state[s];
+    for (const auto& t: ms.trans) {
+      out << " " << s << " -> " << t.dest << " [label=\"" << charToString(t.in) << "/";
+      if (t.outputNonempty()) out << t.out;
+      out << "\"];" << endl;
+    }
+    out << endl;
+  }
+}
+
 void Machine::write (ostream& out) const {
   const size_t iw = stateIndexWidth();
   const size_t nw = stateNameWidth();

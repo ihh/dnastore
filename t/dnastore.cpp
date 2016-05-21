@@ -48,6 +48,7 @@ int main (int argc, char** argv) {
       ("no-start,s", "do not use a control word at start of encoded sequence")
       ("no-eof,f", "do not use a control word at end of encoded sequence")
       ("delay,y", "build delayed machine")
+      ("dot", "print in Graphviz format")
       ("rate,R", "calculate compression rate")
       ("load-machine,L", po::value<string>(), "load machine from JSON file")
       ("save-machine,S", po::value<string>(), "save machine to JSON file")
@@ -155,7 +156,10 @@ int main (int argc, char** argv) {
 
     } else {
       // Output the transducer
-      machine.write (cout);
+      if (vm.count("dot"))
+	machine.writeDot (cout);
+      else
+	machine.write (cout);
     }
 
 #ifndef DEBUG

@@ -78,6 +78,7 @@ struct Machine {
   void verifyContexts() const;
 
   void write (ostream& out) const;
+  void writeDot (ostream& out) const;
   void writeJSON (ostream& out) const;
   void readJSON (istream& in);
   static Machine fromJSON (istream& in);
