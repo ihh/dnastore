@@ -32,9 +32,9 @@ while (<>) {
 	    s/\[/\[style=dotted;/;
 	}
 	if (/"End/) {
-	    s/"End.*"/"End"/;
+	    s/"End.*"/"E"/;
 	} elsif (/"Start/) {
-	    s/"Start.*"/"Start"/;
+	    s/"Start.*"/"S"/;
 	    $incoming{$s} = 1;  # hack to keep start...
 	} else {
 	    #	    s/label="\S+#(\d+) (\S+)/label="$2$1/;

@@ -253,6 +253,7 @@ For symmetry and representational convenience, we also add a chain of final vert
 from the final control word to a sink vertex,
 $\finalword \to \finalvertex{\kmerlen-1} \to \ldots \to \finalvertex{2} \to \finalvertex{1} \to \finalvertex{0}$.
 These final transitions are labeled with $\emptystring$'s.
+(If the start and end control words are the same, then this vertex should be duplicated to prevent cycles.)
 
 We have now constructed the graph $\controlgraph$ from which our transducer $\controlmachine$
 is derived via the following recipe:
@@ -390,9 +391,18 @@ Note that in this model, control symbols can only be sent between bytes.
 
 \newpage
 \begin{figure}
-\includedot{dna2}{width=\textwidth}
+\includedot{dna1rep}{width=.2\textwidth}
+\includedot{dna2rep}{width=.4\textwidth}
+\includedot{dna2repnoend}{width=.4\textwidth}
+\includedot{dna2noend}{width=.4\textwidth}
+\includedot{dna2}{width=.4\textwidth}
 \caption{
-\figlabel{DNAStore}
+  \figlabel{DNAStore}
+  Solid-line transitions from triangle states encode trinary input digits.
+  Dashed-line transitions from double-circle states encode binary input digits.
+  Bold-line transitions from rectangular states encode quaternary input digits.
+  Dotted-line transitions do not encode input digits;
+  states that can only be exited via these transitions are shown as rectangles.
 }
 \end{figure}
 
