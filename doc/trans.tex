@@ -67,10 +67,9 @@ is an edge from state $\src[\trans]$ to state $\dest[\trans]$
 with input label $\inlab[\trans]$,
 output label $\outlab[\trans]$
 and weight $\weight[\trans]$.
-We use this conceptualization to render transducers pictorially,
-adopting the further convention that transition labels are written $\inlab{\tt /}\outlab$
-(the transition weights for the transducers shown pictorially in this paper are all equal to 1,
-and are left out of the visual representation).
+For the figures in this paper,
+we adopt the convention that transition labels are annotated as $\inlab{\tt /}\outlab$
+(the transition weights for the transducers in the figures are all equal to 1, and are not shown).
 \figref{HammingTransducer} shows a transducer that implements the Hamming(3,1) error-correcting code,
 \figref{NaiveDNATransducer} shows a transducer that converts a binary string into DNA,
 and
@@ -323,15 +322,15 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \end{tabular}
 \caption{
 \figlabel{NaiveDNATransducer}
-Left:
-Transducer $\transbintoquat$ (a) converts a binary input string (presented least-significant digit first) into a quaternary input string.
+Left (a):
+Transducer $\transbintoquat$ converts a binary input string (presented least-significant digit first) into a quaternary input string.
 Binary input digits are written showing the base 2 suffix ($\bit{0}$, $\bit{1}$),
 while quaternary output digits are written showing the base 4 suffix, ($\quat{0}$, $\quat{1}$, $\quat{2}$, $\quat{3}$).
 The initial state is S and the final state is E.
-Middle:
-Transducer $\transquattodna$ (b) converts a quaternary input string into a DNA string.
-Right:
-Transducer $\transbintoquat \transcomp \transquattodna$ (c)
+Middle (b):
+Transducer $\transquattodna$ converts a quaternary input string into a DNA string.
+Right (c):
+Transducer $\transbintoquat \transcomp \transquattodna$
 converts a binary input string to DNA.
 This machine is obtained by composing the ``binary to quaternary'' transducer ($\transbintoquat$) with the ``quaternary to DNA'' transducer ($\transquattodna$).
 }
@@ -354,22 +353,25 @@ This machine is obtained by composing the ``binary to quaternary'' transducer ($
 \end{tabular}
 \caption{
 \figlabel{DivisionByThree}
-Top row:
-Transducer $\transdivthree$ (a) implements the operation ``division by three''.
+Top row (a):
+Transducer $\transdivthree$ implements the operation ``division by three''.
 The machine accepts as its input sequence a binary number representing the divisor, which must be presented most significant bit first.
 It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
 The machine's state encodes the current remainder at any stage during the division.
 Binary digits are written as $(\bit{0}, \bit{1})$
 and trinary digits as $(\trit{0}, \trit{1}, \trit{2})$.
-Middle row:
+Middle row (b,c,d):
 Some additional simple transducers that are useful in the implementation of ``binary to trinary conversion''.
-The left machine $\transternid$ (b) implements ``trinary identity'', copying a trinary input string to its output.
-The middle machine $\transbinerase$ (c) erases a single binary zero and outputs the empty string.
-The right machine $\transternid \transconcat \transbinerase$ (d) is the concatenation of the first two.
-Bottom row:
-Transducer $\transternid \transconcat \transdivthree$ (e)
-is a concatentation of the ``trinary identity'' transducer $\transternid$ (b)
-with the ``division by three'' transducer $\transdivthree$ (a).
+Left of middle row (b):
+Transducer $\transternid$ implements ``trinary identity'', copying a trinary input string to its output.
+Center of middle row (c):
+Transducer $\transbinerase$ erases a single binary zero and outputs the empty string.
+Right of middle row (d):
+Transducer $\transternid \transconcat \transbinerase$ is the concatenation of the first two.
+Bottom row (e):
+Transducer $\transternid \transconcat \transdivthree$
+is a concatentation of the ``trinary identity'' transducer (b)
+with the ``division by three'' transducer (a).
 It uses the S and T states from $\transternid$ and the $0$, $1$, $10$ and E states from $\transdivthree$.
 By composing a series of $N$ transducers of this form, along with a final step that removes the remaining binary digit,
 we can convert a binary number into $N$ trinary digits \cite{MartinsFerreira2012}.
@@ -387,8 +389,8 @@ $ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcom
   \end{tabular}
 \caption{
 \figlabel{Converter}
-Left:
-Transducer $\transmixed$ (a) converts an input sequence of binary digits ($\bit{0},\bit{1}$),
+Left (a):
+Transducer $\transmixed$ converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
 control symbols ($\controlsym{n}$)
 and flush symbols ($\flushsym$),
@@ -400,8 +402,8 @@ the flush symbol is used to drive the machine into a state (C) where it can acce
 The conversion is suboptimal in that trinary digits (trits) on average encode
 1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
 State S is both the initial state and the final state.
-Right:
-Transducer $\transflush$ (b) copies input bits to the output, sending a flush symbol after every 8-bit byte.
+Right (b):
+Transducer $\transflush$ copies input bits to the output, sending a flush symbol after every 8-bit byte.
 Accurate decoding of the output sequence from $\transmixed$ requires that the decoder
 knows at what points in the sequence flush symbols have been encoded.
 This synchronization can be formalized by using $\transflush \transcomp \transmixed$,
@@ -436,7 +438,7 @@ will have no successful path through the transducer.
   Top row (a,b,c): codes in which dinucleotide repeats are not prohibited.
   Bottom row (d,e,f): codes in which dinucleotide repeats are not prohibited.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
-  Middle column (b,e): codes in which there is one reserved control words, which only ever appears at the start of the encoded DNA sequence.
+  Central column (b,e): codes in which there is one reserved control words, which only ever appears at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control words, which only ever appears at the start and end of the encoded DNA sequence.
   The leftmost machine in the top row (a) is equivalent to $\transbintoquat \transcomp \transquattodna$ of \figref{NaiveDNATransducer}(c),
   while the leftmost machine in the bottom row (d) is equivalent to the code of \cite{GoldmanEtAl2013}.
