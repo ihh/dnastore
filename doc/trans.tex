@@ -290,21 +290,26 @@ The initial state is S and the final state is END.}
 \newpage
 \begin{figure}
 \includedot{divisionby3}{width=\textwidth}
+\includedot{binary2trinary}{width=\textwidth}
 \caption{
 \figlabel{DivisionByThree}
+Top:
 A transducer that implements the operation ``division by three''.
 The machine accepts a binary divisor as its input sequence, most significant bit first.
 It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
 Binary digits are written as $\{ \bit{0}, \bit{1} \}$
 and trinary digits as $\{ \trit{0}, \trit{1}, \trit{2} \}$.
-By chaining together multiple transducers of this form, one can convert a binary number
-into trinary, up to a fixed number of trinary digits,
-with no loss of information \cite{MartinsFerreira2012}.
+Bottom:
+A concatenation of the ``division by three'' transducer (the $0$, $1$, $10$ and END states)
+with an identity transducer (the $S$ state)
+that copies trinary digits from its input to its output.
+By composing a series of $N$ transducers of this form, one can convert a binary number
+into trinary, up to $N$ trinary digits \cite{MartinsFerreira2012}.
 }
 \end{figure}
 
 \newpage
-\dotfig{converter}{height=.8\textheight}{Converter}{
+\dotfig{converter}{width=\textwidth}{Converter}{
 A transducer that converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
 control symbols ($\controlsym{n}$)
