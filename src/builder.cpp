@@ -189,6 +189,8 @@ void TransBuilder::indexStates() {
     nStates += buildDelayedMachine ? (len/2) : len;
   else
     nStates++;
+  if (isStartControlIndex(0) && isEndControlIndex(0))
+    ++nStates;
   for (auto kmer: controlWord)
     kmerState[kmer] = nStates++;
   for (auto kmer: kmers)
@@ -280,10 +282,10 @@ Machine TransBuilder::makeMachine() {
       ms.name = "Source";
       for (size_t c = 0; c < controlWord.size(); ++c)
 	if (kmer == controlWord[c]) {
-	  if (isStartControlIndex(c))
-	    ms.name = isEndControlIndex(c) ? string("Control(Start+End)") : string("Control(Start)");
-	  else if (isEndControlIndex(c))
+	  if (isEndControlIndex(c))
 	    ms.name = string("Control(End)");
+	  else if (isStartControlIndex(c))
+	    ms.name = string("Control(Start)");
 	  else
 	    ms.name = string("Control(") + controlChar(c) + ")";
 	}
@@ -380,6 +382,13 @@ Machine TransBuilder::makeMachine() {
 	ms.trans.push_back (MachineTransition (MachineEOF, 0, endState));
     }
     if (controlWordAtEnd && kmer == endControlWord()) {
+
+      if (isStartControlIndex(0) && isEndControlIndex(0)) {
+	swap (ms.trans, machine.state[s-1].trans);  // give the Start copy all the outgoing transitions
+	machine.state[s-1].leftContext = ms.leftContext;
+	machine.state[s-1].name = string("Control(Start)") + "#" + to_string(s-1);
+      }
+
       if (buildDelayedMachine)
 	ms.trans.push_back (MachineTransition (0, '*', endState - len/2));
       else
@@ -404,7 +413,7 @@ Machine TransBuilder::makeMachine() {
   machine.state[endState].leftContext = buildDelayedMachine
     ? (kmerSubstring(endControlWord(),1,len/2) + string(len/2,'*'))
     : (controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*'));
-
+  
   if (buildDelayedMachine) {
     for (Pos pos = 1; pos <= len/2; ++pos) {
       const State s = endState - 1 - len/2 + pos;
