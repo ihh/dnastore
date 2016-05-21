@@ -60,5 +60,9 @@ clean: tidy
 hamming74.dot: hamming74.pl
 	perl $< >$@
 
+# 2-mer DNA
+dna2.lacirco:
+	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@
+
 # hey make! don't delete all my stuff
 .SECONDARY:

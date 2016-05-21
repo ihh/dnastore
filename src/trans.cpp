@@ -125,7 +125,9 @@ void Machine::writeDot (ostream& out) const {
   out << "digraph G {\n";
   for (State s = 0; s < nStates(); ++s) {
     const MachineState& ms = state[s];
-    out << " " << s << " [label=\"" << ms.name << "\"];" << endl;
+    out << " " << s << " [label=\"";
+    out << ms.name << " " << ms.leftContext << " " << ms.rightContext;
+    out << "\"];" << endl;
   }
   out << endl;
   for (State s = 0; s < nStates(); ++s) {
