@@ -1,6 +1,6 @@
 # All source files
 # Figures:
-DNASTORE := dna1rep dna2rep dna2repnoend dna2noend dna2 dna3
+DNASTORE := dna1full dna2full dna2start dna2startend dna2norep dna2startnorep dna2startendnorep dna3
 DNASTOREPS := $(addsuffix .ps,$(DNASTORE))
 DNASTORETEX := $(addsuffix .tex,$(DNASTORE))
 
@@ -62,26 +62,32 @@ hamming74.dot: hamming74.pl
 	perl $< >$@
 
 # DNAstore machines
-dna1rep.lacirco: filter.pl Makefile
+dna1full.lacirco: filter.pl Makefile
 	../bin/dnastore -l1 -c0 -k -t0 --no-start --no-eof --dot | perl filter.pl >$@
 
-dna2.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k --dot | perl filter.pl >$@
-
-dna2noend.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k --no-eof --dot | perl filter.pl >$@
-
-dna2repnoend.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k -t0 --no-eof --dot | perl filter.pl >$@
-
-dna2rep.lacirco: filter.pl Makefile
+dna2full.lacirco: filter.pl Makefile
 	../bin/dnastore -l2 -c0 -k -t0 --no-start --no-eof --dot | perl filter.pl >$@
 
+dna2start.lacirco: filter.pl Makefile
+	../bin/dnastore -l2 -c1 -k -t0 --no-eof --dot | perl filter.pl >$@
+
+dna2startend.lacirco: filter.pl Makefile
+	../bin/dnastore -l2 -c1 -k -t0 --dot | perl filter.pl >$@
+
+dna2norep.lacirco: filter.pl Makefile
+	../bin/dnastore -l2 -c0 -k --no-eof --dot | perl filter.pl >$@
+
+dna2startnorep.lacirco: filter.pl Makefile
+	../bin/dnastore -l2 -c1 -k --no-eof --dot | perl filter.pl >$@
+
+dna2startendnorep.lacirco: filter.pl Makefile
+	../bin/dnastore -l2 -c1 -k --dot | perl filter.pl >$@
+
 dna3.lacirco: filter.pl Makefile
-	../bin/dnastore -l3 --dot | perl filter.pl >$@
+	../bin/dnastore -l3 -k --dot | perl filter.pl >$@
 
 # Paper rules:
-%.ps: %.tex figures bib
+%.ps: %.tex figures bib $(TEXINCLUDES)
 	test -e $*.aux && rm $*.aux || eval
 	latex -shell-escape $*
 	bibtex $*

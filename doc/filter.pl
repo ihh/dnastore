@@ -10,10 +10,10 @@ while (<>) {
 	my ($src, $dest) = ($1, $2);
 	if (/\%/ || /EOF/ || /NULL/) {
 
-	    if (/\%4/) { s/\[/\[style=bold;/; $shape{$src} = "rect" }
-	    elsif (/\%3/) { s/\[/\[style=solid;/; $shape{$src} = "triangle"  }
-	    elsif (/\%2/) { s/\[/\[style=dashed;/; $shape{$src} = "doublecircle"  }
-	    else { s/\[/\[style=dotted;/; $shape{$src} = "circle" unless defined $shape{$src}  }
+	    if (/\%4/) { s/\[/\[style=bold;color=black;/; $shape{$src} = "rect" }
+	    elsif (/\%3/) { s/\[/\[style=solid;color=darkslategrey;/; $shape{$src} = "triangle"  }
+	    elsif (/\%2/) { s/\[/\[style=dashed;color=darkslategrey;/; $shape{$src} = "doublecircle"  }
+	    else { s/\[/\[style=dotted;color=darkslategrey;/; $shape{$src} = "circle" unless defined $shape{$src}  }
 
 	    s/"/\$/g;
 	    s/\%/_/g;

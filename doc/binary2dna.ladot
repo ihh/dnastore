@@ -1,14 +1,12 @@
 digraph G {
 	rankdir=LR;
-	SX -> Y0 [label=$0_2/\epsilon$];
-	SX -> Y1 [label=$1_2/\epsilon$];
-	Y0 -> SX [label=$0_2/\mbox{A}$];
-	Y0 -> SX [label=$1_2/\mbox{C}$];
-	Y1 -> SX [label=$0_2/\mbox{G}$];
-	Y1 -> SX [label=$1_2/\mbox{T}$];
-	SX -> EY [label=$\epsilon/\epsilon$];
-	SX -> EY [label=$0_2/\mbox{A}$];
-	SX -> EY [label=$1_2/\mbox{C}$];
-	Y0 [label="0Y"];
-	Y1 [label="1Y"];
+	S -> 0 [label=$0_2/\epsilon$];
+	S -> 1 [label=$1_2/\epsilon$];
+	0 -> S [label=$0_2/\mbox{A}$];
+	0 -> S [label=$1_2/\mbox{C}$];
+	1 -> S [label=$0_2/\mbox{G}$];
+	1 -> S [label=$1_2/\mbox{T}$];
+	S -> E [label=$\epsilon/\epsilon$];
+	S -> E [label=$0_2/\mbox{A}$];
+	S -> E [label=$1_2/\mbox{C}$];
 }
