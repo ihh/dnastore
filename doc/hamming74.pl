@@ -16,11 +16,7 @@ for ($n = 0; $n < 8; ++$n) {
 }
 
 for ($n = 0; $n < 16; ++$n) {
-    trans (bin($n>>1,3), bin($n,4), $n % 2, undef);
-}
-
-for ($n = 0; $n < 16; ++$n) {
-    trans (bin($n,4), "p1_".bin($n,4), undef, parity($n,1,2,4));
+    trans (bin($n>>1,3), "p1_".bin($n,4), $n % 2, parity($n,1,2,4));
 }
 
 for ($n = 0; $n < 16; ++$n) {
