@@ -61,7 +61,6 @@ for ($n = 0; $n < 8; ++$n) {
 }
 
 for ($n = 0; $n < 16; ++$n) {
-    state (bin($n,4));
     state ("p1_".bin($n,4));
     state ("p2_".bin($n,4));
 }
