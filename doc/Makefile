@@ -1,47 +1,55 @@
 # All source files
 # Figures:
 ALLDOT := $(wildcard *.dot)
+ALLLADOT := $(wildcard *.ladot)
 ALLFIG := $(subst .dot,,$(ALLDOT))
+ALLLAFIG := $(subst .ladot,,$(ALLLADOT))
 ALLFIGPNG := $(addsuffix .png,$(ALLFIG))
+ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
+ALLFIGJUNK := $(ALLFIGTEX)
 
-# Source files that only render properly as PNGs
-FIGURES := $(ALLFIGPNG)
+FIGURES := $(ALLFIGPNG) $(ALLFIGTEX)
 
 # LaTeX:
 TEXINCLUDES := defs.tex notation.tex
 ALLTEX := $(filter-out $(TEXINCLUDES),$(filter-out $(ALLFIGJUNK),$(wildcard *.tex)))
-ALLTEXPDF := $(subst .tex,.pdf,$(ALLTEX))
+ALLTEXPS := $(subst .tex,.ps,$(ALLTEX))
 ALLTEXJUNK := $(addsuffix .aux,$(ALLTEX)) $(addsuffix .log,$(ALLTEX))
 ALLBIB := $(wildcard *.bib)
 
 # Top-level rules
-all: $(FIGURES) $(ALLTEXPDF)
+all: $(FIGURES) $(ALLTEXPS)
 
-open: $(ALLTEXPDF)
-	open $(ALLTEXPDF)
+open: $(ALLTEXPS)
+	open $(ALLTEXPS)
 
 tidy:
 	rm -f $(ALLFIGJUNK) $(ALLTEXJUNK) *~
 
 clean: tidy
-	rm -f $(ALLTEXPDF) $(ALLFIGPDF) $(ALLFIGPNG)
+	rm -f $(ALLTEXPS) $(ALLFIGTEX) $(ALLFIGPNG) *.dvi
 
 # General rules:
 %.open: %
 	open $<
 
 # Paper rules:
-%.pdf: %.tex $(FIGURES) $(TEXINCLUDES) $(ALLBIB)
+%.ps: %.tex $(FIGURES) $(TEXINCLUDES) $(ALLBIB)
 	test -e $*.aux && rm $*.aux || eval
-	pdflatex -shell-escape $*
+	latex -shell-escape $*
 	bibtex $*
-	pdflatex -shell-escape $*
-	pdflatex -shell-escape $*
+	latex -shell-escape $*
+	latex -shell-escape $*
+	dvips $*
 
 # Figure rules:
 # PNGs (requires graphviz only)
 %.png: %.dot
 	dot -Tpng $< >$@
+
+# ladot
+%.tex: %.ladot
+	./ladot $<
 
 # hey make! don't delete all my stuff
 .SECONDARY:

@@ -1,0 +1,12 @@
+digraph G {
+	rankdir=LR;
+	0 -> 0 [label=$0_2/0_2$];
+	0 -> 1 [label=$1_2/\epsilon$];
+	0 -> END [label=$\epsilon/0_3$];
+	1 -> 10 [label=$0_2/\epsilon$];
+	1 -> 0 [label=$1_2/1_2$];
+	1 -> END [label=$\epsilon/1_3$];
+	10 -> 1 [label=$0_2/1_2$];
+	10 -> 10 [label=$1_2/1_2$];
+	10 -> END [label=$\epsilon/2_3$];
+}
