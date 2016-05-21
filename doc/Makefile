@@ -34,6 +34,9 @@ clean: tidy
 %.open: %
 	open $<
 
+test:
+	@echo $(FIGURES) $(TEXINCLUDES) $(ALLBIB)
+
 # Paper rules:
 %.ps: %.tex $(FIGURES) $(TEXINCLUDES) $(ALLBIB)
 	test -e $*.aux && rm $*.aux || eval
@@ -49,20 +52,23 @@ clean: tidy
 	dot -Tps $< >$@
 
 # ladot
-%.tex: %.ladot
+%.tex: %.ladot ladot
 	./ladot $<
 
 # lacirco
-%.tex: %.lacirco
+%.tex: %.lacirco lacirco
 	./lacirco $<
 
 # Hamming(7,4) transducer
 hamming74.dot: hamming74.pl
 	perl $< >$@
 
-# 2-mer DNA
-dna2.lacirco:
-	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@
+# DNAstore codes
+dna2.lacirco: filter.pl
+	../bin/dnastore -l2 -c1 -k --dot | perl filter.pl >$@
+
+dna3.lacirco: filter.pl
+	../bin/dnastore -l3 --dot | perl filter.pl >$@
 
 # hey make! don't delete all my stuff
 .SECONDARY:

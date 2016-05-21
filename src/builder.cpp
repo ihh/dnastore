@@ -168,7 +168,7 @@ void TransBuilder::buildEdges() {
   EdgeVector out;
   for (auto kmer: kmers) {
     EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
-    if (!keepDegenerates) {
+    if (edgeFlagsToCount(outFlags) > 2 && !keepDegenerates) {
       if ((outFlags & 3) == 3)  // A,G
 	outFlags = dropWorseEdge (kmer, outFlags, out, 0, 1);
       if ((outFlags & 12) == 12)  // C,T
