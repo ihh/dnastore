@@ -102,7 +102,7 @@ or the Viterbi algorithm in the tropical semiring
 A state $\state \in \states$ has past context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
 and future context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
 
-\subsection*{Transducer composition}
+\subsection*{Transducer composition and concatenation}
 
 Given transducers
  $R = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
@@ -149,6 +149,19 @@ with the same transducer function $\tfunc{S}$ that does comply.)
 \end{itemize}
 
 Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cite{WestessonEtAlArxiv2012,WestessonEtAl2012}.
+A simple example of transducer composition is shown in \figref{NaiveDNATransducer}.
+
+Anther operation on transducers that is useful in constructing DNA codes
+is concatenation.
+Suppose
+ $A = (\inalph, \outalph, \states_A, \transitions_A, \initstate_A, \finalstate_A)$ and
+ $B = (\inalph, \outalph, \states_B, \transitions_B, \initstate_B, \finalstate_B)$
+are transducers with the same input and output alphabets and disjoint state spaces.
+The concatenated transducer $C = A \transconcat B$ can be constructed by
+taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
+from $\finalstate_A$ to $\initstate_B$.
+This models feeding the part of a sequence through $A$ and then feeding the second part through $B$.
+Some simple examples of concatenation are shown in \figref{DivisionByThree}.
 
 \subsection*{De Bruijn graphs}
 
@@ -277,39 +290,77 @@ is $\{ \bit{0}, \bit{1},
 \section*{Figures}
 
 \newpage
-\dotfig{hamming}{width=\textwidth}{HammingTransducer}{
+\begin{figure}
+\includedot{hamming31}{width=.5\textwidth}
+\includegraphics[width=.5\textwidth]{hamming74.ps}
+\caption{ \figlabel{HammingTransducer}
+Left:
 A transducer that implements the Hamming(3,1) error-correcting code
 (which simply repeats every bit three times).
-S is both the initial state and the final state.}
-
-\newpage
-\dotfig{naive}{width=\textwidth}{NaiveDNATransducer}{
-A transducer that converts a binary input string into DNA.
-The initial state is S and the final state is END.}
-
-\newpage
-\begin{figure}
-\includedot{divisionby3}{width=\textwidth}
-\includedot{binary2trinary}{width=\textwidth}
-\caption{
-\figlabel{DivisionByThree}
-Top:
-A transducer that implements the operation ``division by three''.
-The machine accepts a binary divisor as its input sequence, most significant bit first.
-It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
-Binary digits are written as $\{ \bit{0}, \bit{1} \}$
-and trinary digits as $\{ \trit{0}, \trit{1}, \trit{2} \}$.
-Bottom:
-A concatenation of the ``division by three'' transducer (the $0$, $1$, $10$ and END states)
-with an identity transducer (the $S$ state)
-that copies trinary digits from its input to its output.
-By composing a series of $N$ transducers of this form, one can convert a binary number
-into trinary, up to $N$ trinary digits \cite{MartinsFerreira2012}.
+S is both the initial state and the final state.
+Right:
+A transducer that implements the Hamming(7,4) error-correcting code,
+with four data bits and three parity bits.
+Due to the large number of states, the state names have been omitted from this diagram,
+as have the $\epsilon$ labels for empty inputs or outputs.
 }
 \end{figure}
 
 \newpage
-\dotfig{converter}{width=\textwidth}{Converter}{
+\begin{figure}
+\includedot{binary2quaternary}{width=.3\textwidth}
+\includedot{quaternary2dna}{width=.3\textwidth}
+\includedot{binary2dna}{width=.3\textwidth}
+\caption{
+\figlabel{NaiveDNATransducer}
+Left:
+A transducer ($\transbintoquat$) that converts a binary input string (presented least-significant digit first) into a quaternary input string.
+Binary input digits are written showing the base 2 suffix ($\bit{0}$, $\bit{1}$),
+while quaternary output digits are written showing the base 4 suffix, ($\quat{0}$, $\quat{1}$, $\quat{2}$, $\quat{3}$).
+The initial state is S and the final state is E.
+Middle:
+A transducer ($\transquattodna$) that converts a quaternary input string into a DNA string.
+Right:
+A transducer ($\transbintoquat \transcomp \transquattodna$)
+which converts a binary input string to DNA.
+This machine is obtained by composing the ``binary to quaternary'' transducer ($\transbintoquat$) with the ``quaternary to DNA'' transducer ($\transquattodna$).
+}
+\end{figure}
+
+\newpage
+\begin{figure}
+\includedot{divisionby3}{width=\textwidth}
+\includedot{trinaryid}{width=.25\textwidth}
+\includedot{binaryeraser}{width=.25\textwidth}
+\includedot{trinaryonly}{width=.45\textwidth}
+\includedot{binary2trinary}{width=\textwidth}
+\caption{
+\figlabel{DivisionByThree}
+Top row:
+A transducer ($\transdivthree$) that implements the operation ``division by three''.
+The machine accepts as its input sequence a binary number representing the divisor, which must be presented most significant bit first.
+It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
+The machine's state encodes the current remainder at any stage during the division.
+Binary digits are written as $(\bit{0}, \bit{1})$
+and trinary digits as $(\trit{0}, \trit{1}, \trit{2})$.
+Middle row:
+Some additional simple transducers that are useful in the implementation of ``binary to trinary conversion''.
+The left machine ($\transternid$) implements ``trinary identity'', copying a trinary input string to its output;
+the middle machine ($\transbinerase$) erases a single binary zero and outputs the empty string;
+and the right machine ($\transternid \transconcat \transbinerase$) is the concatenation of the first two.
+Bottom row:
+A transducer ($\transternid \transconcat \transdivthree$)
+that is a concatentation of the ``trinary identity'' transducer (the S and T states from $\transternid$)
+with the ``division by three'' transducer (the $0$, $1$, $10$ and E states from $\transdivthree$).
+By composing a series of $N$ transducers of this form, along with a final step that removes the remaining binary digit,
+we can convert a binary number into $N$ trinary digits \cite{MartinsFerreira2012}.
+For example, to output three trinary digits, we use the composed transducer
+$ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transbinerase)$.
+}
+\end{figure}
+
+\newpage
+\dotfig{converter}{width=.5\textwidth}{Converter}{
 A transducer that converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
 control symbols ($\controlsym{n}$)

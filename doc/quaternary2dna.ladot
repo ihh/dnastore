@@ -1,0 +1,8 @@
+digraph G {
+	rankdir=LR;
+	X -> Y [label=$0_4/\mbox{A}$];
+	X -> Y [label=$1_4/\mbox{C}$];
+	X -> Y [label=$2_4/\mbox{G}$];
+	X -> Y [label=$3_4/\mbox{T}$];
+	Y -> X [label=$\epsilon/\epsilon$];
+}
