@@ -333,7 +333,7 @@ We need a converter that can context-switch between binary, trinary, and quatern
 
 Consider first the simpler task of mapping a binary sequence to a trinary sequence...
 
-To do this at the Shannon limit requires an arithmetic conversion of the binary number into the decimal number
+To do this at the Shannon limit requires an arithmetic conversion of the binary number into the trinary number
 
 As an side, somewhat reminiscent of arithmetic coding \cite{Mackay2003}
 where a probability distribution over symbols is used to compress
@@ -348,7 +348,8 @@ The 4-state machine $\transdivthree$ performs one division by three and outputs 
 By composing $N$ of these together we can convert a binary number to $N$ trinary digits.
 This takes $\sim 4^N$ states (some may be unreachable or duplicates that can be eliminated).
 
-Converting this to a mixed-radix sequence of bits, trits and quats
+Converting a binary sequence to a mixed-radix sequence of bits, trits and quats
+% can be done arithmetically in principle... explain the interpretation... radix at each position specified in advance
 is a matter of taking the union of the division-by-three transducer
 in \figref{DivisionByThree}
 with the division-by-two and division-by-four transducers
