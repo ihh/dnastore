@@ -1,8 +1,8 @@
 digraph G {
 	rankdir=LR;
 	
-	C -> S [label=$C_n/C_n$];
-	S -> C [label=$F/\epsilon$];
+	T -> S [label=$C_n/C_n$];
+	S -> T [label=$F/\epsilon$];
 	
 	S -> 0 [label=$0_2/\epsilon$];
 	S -> 1 [label=$1_2/\epsilon$];

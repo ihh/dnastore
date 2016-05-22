@@ -10,11 +10,15 @@ while (<>) {
 	my ($src, $dest) = ($1, $2);
 	if (/\%/ || /EOF/ || /NULL/) {
 
-	    if (/\%4/) { s/\[/\[style=bold;color=black;/; $shape{$src} = "rect" }
-	    elsif (/\%3/) { s/\[/\[style=solid;color=darkslategrey;/; $shape{$src} = "triangle"  }
-	    elsif (/\%2/) { s/\[/\[style=dashed;color=darkslategrey;/; $shape{$src} = "doublecircle"  }
-	    else { s/\[/\[style=dotted;color=darkslategrey;/; $shape{$src} = "circle" unless defined $shape{$src}  }
+	    if (/\%4/) { s/\[/\[style=bold;dir=both;arrowtail=odot;color=black;/; $node{$src} = 'shape=rect' }
+	    elsif (/\%3/) { s/\[/\[style=solid;dir=both;arrowtail=odot;color=darkslategrey;/; $node{$src} = 'shape=triangle'  }
+	    elsif (/\%2/) { s/\[/\[style=dashed;dir=both;arrowtail=odot;color=darkslategrey;/; $node{$src} = 'shape=doublecircle'  }
+	    else { s/\[/\[style=dotted;color=darkslategrey;/; $node{$src} = 'style=dotted' unless defined $node{$src}  }
 
+	    if (/\/"/) {
+		s/\[/\[arrowhead=empty;/;
+	    }
+	    
 	    s/"/\$/g;
 	    s/\%/_/g;
 	    s/([ACGT])/\\mbox\{$1\}/;
@@ -51,8 +55,8 @@ print "digraph G {\nrankdir=LR;\n", @trans;
 for my $i (0..$#state) {
     my $s = $stateId[$i];
     if ($incoming{$s}) {
-	if (defined $shape{$s}) {
-	    $state[$i] =~ s/\[/\[shape=$shape{$s};/;
+	if (defined $node{$s}) {
+	    $state[$i] =~ s/\[/\[$node{$s};/;
 	}
 	print $state[$i];
     }

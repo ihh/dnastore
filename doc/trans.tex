@@ -101,7 +101,7 @@ or the Viterbi algorithm in the tropical semiring
 A state $\state \in \states$ has past context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
 and future context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
 
-\subsection{Transducer composition and concatenation}
+\subsection{Transducer composition}
 
 Given transducers
  $R = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
@@ -149,6 +149,8 @@ with the same transducer function $\tfunc{S}$ that does comply.)
 
 Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cite{WestessonEtAlArxiv2012,WestessonEtAl2012}.
 A simple example of transducer composition is shown in \figref{NaiveDNATransducer}.
+
+\subsection{Transducer concatenation}
 
 Anther operation on transducers that is useful in constructing DNA codes
 is concatenation.
@@ -245,14 +247,11 @@ In each case the newly-added edge is copied from a corresponding edge in $\norep
 and inherits the same edge label.
 
 It can be useful to force the transducer to start with a particular control word $\initword$
-and end with a particular control word $\finalword$.
+and finish with another (or the same) control word $\finalword$.
 To guarantee this we can add a chain of initial vertices and edges leading from source vertex to the initial control word,
 $\initvertex{0} \to \initvertex{1} \to \initvertex{2} \to \ldots \to \initvertex{\kmerlen-1} \to \initword$,
 with each transition labeled with consecutive symbols from the initial control word.
-For symmetry and representational convenience, we also add a chain of final vertices and edges leading
-from the final control word to a sink vertex,
-$\finalword \to \finalvertex{\kmerlen-1} \to \ldots \to \finalvertex{2} \to \finalvertex{1} \to \finalvertex{0}$.
-These final transitions are labeled with $\emptystring$'s.
+We also need to add a transition from the final control word to the final state.
 (If the start and end control words are the same, then this vertex should be duplicated to prevent cycles.)
 
 We have now constructed the graph $\controlgraph$ from which our transducer $\controlmachine$
@@ -398,7 +397,7 @@ into a mixed output of binary digits,
 trinary digits ($\trit{0},\trit{1},\trit{2}$),
 quaternary digits ($\quat{0},\quat{1},\quat{2},\quat{3}$),
 and control symbols, which are simply echoed to the output;
-the flush symbol is used to drive the machine into a state (C) where it can accept control symbols.
+the flush symbol is used to drive the machine into a state (T) where it can accept control symbols.
 The conversion is suboptimal in that trinary digits (trits) on average encode
 1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
 State S is both the initial state and the final state.
@@ -434,12 +433,12 @@ will have no successful path through the transducer.
   \figlabel{DNAStore}
   Transducers generated using the method of \secref{DeBruijnTransducer} with $\kmerlen=2$.
   These codes are all fundamentally based on the 2-dimensional De Bruijn graph
-  from which vertices are duplicated, deleted and added to arrive at a machine with the designated properties.
+  from which vertices are duplicated, deleted and added to arrive at a transition graph with the required properties.
   Top row (a,b,c): codes in which dinucleotide repeats are not prohibited.
   Bottom row (d,e,f): codes in which dinucleotide repeats are not prohibited.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
-  Central column (b,e): codes in which there is one reserved control words, which only ever appears at the start of the encoded DNA sequence.
-  Right-hand column (c,f): codes in which there is one reserved control words, which only ever appears at the start and end of the encoded DNA sequence.
+  Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
+  Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
   The leftmost machine in the top row (a) is equivalent to $\transbintoquat \transcomp \transquattodna$ of \figref{NaiveDNATransducer}(c),
   while the leftmost machine in the bottom row (d) is equivalent to the code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
@@ -450,6 +449,8 @@ will have no successful path through the transducer.
   Dashed-line transitions from double-circle states encode binary input digits.
   Dotted-line transitions do not encode input digits;
   states that can only be exited via these transitions are shown as rectangles.
+  Transitions that encode input digits have empty circles at the source end;
+  transitions that encode output digits have filled arrowheads at the destination end.
 }
 \end{figure}
 

@@ -1,6 +1,7 @@
 # All source files
 # Figures:
 DNASTORE := dna1full dna2full dna2start dna2startend dna2norep dna2startnorep dna2startendnorep dna3
+DNASTORELACIRCO := $(addsuffix .lacirco,$(DNASTORE))
 DNASTOREPS := $(addsuffix .ps,$(DNASTORE))
 DNASTORETEX := $(addsuffix .tex,$(DNASTORE))
 
@@ -25,6 +26,8 @@ ALLBIB := $(wildcard *.bib)
 # Top-level rules
 all: figures texps
 
+dnastore: $(DNASTOREPS)
+
 figures: $(FIGURES)
 
 texps: $(ALLTEXPS)
@@ -39,6 +42,9 @@ tidy:
 
 clean: tidy
 	rm -f $(ALLTEXPS) $(ALLFIGTEX) $(ALLFIGPS) *.dvi
+
+cleanstore:
+	rm -f $(DNASTORELACIRCO)
 
 # General rules:
 %.open: %
