@@ -64,12 +64,6 @@ S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
   {S}ystem}.
 \newblock {\em Sci Rep}, 5:14138, 2015.
 
-\bibitem{Durbin98}
-R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
-\newblock {\em Biological Sequence Analysis: Probabilistic Models of Proteins
-  and Nucleic Acids}.
-\newblock Cambridge University Press, Cambridge, UK, 1998.
-
 \bibitem{DeBruijn1946}
 N.~G. de~Bruijn.
 \newblock {A Combinatorial Problem}.
@@ -80,6 +74,41 @@ N.~G. de~Bruijn.
 P.~A. Pevzner, H.~Tang, and M.~S. Waterman.
 \newblock {{A}n {E}ulerian path approach to {D}{N}{A} fragment assembly}.
 \newblock {\em Proc. Natl. Acad. Sci. U.S.A.}, 98(17):9748--9753, Aug 2001.
+
+\bibitem{ZerbinoBirney2008}
+D.~R. Zerbino and E.~Birney.
+\newblock {{V}elvet: algorithms for de novo short read assembly using de
+  {B}ruijn graphs}.
+\newblock {\em Genome Res.}, 18(5):821--829, May 2008.
+
+\bibitem{IqbalEtAl2012}
+Z.~Iqbal, M.~Caccamo, I.~Turner, P.~Flicek, and G.~McVean.
+\newblock {{D}e novo assembly and genotyping of variants using colored de
+  {B}ruijn graphs}.
+\newblock {\em Nat. Genet.}, 44(2):226--232, Feb 2012.
+
+\bibitem{Durbin98}
+R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
+\newblock {\em Biological Sequence Analysis: Probabilistic Models of Proteins
+  and Nucleic Acids}.
+\newblock Cambridge University Press, Cambridge, UK, 1998.
+
+\bibitem{PereiraRiley1996}
+Fernando C.~N. Pereira and Michael Riley.
+\newblock Speech recognition by composition of weighted finite automata.
+\newblock {\em CoRR}, cmp-lg/9603001, 1996.
+
+\bibitem{Holmes2003}
+I.~Holmes.
+\newblock {{U}sing guide trees to construct multiple-sequence evolutionary
+  {H}{M}{M}s}.
+\newblock {\em Bioinformatics}, 19 Suppl 1:i147--157, 2003.
+
+\bibitem{Holmes2007}
+I.~Holmes.
+\newblock {{P}hylocomposer and phylodirector: analysis and visualization of
+  transducer indel models}.
+\newblock {\em Bioinformatics}, 23(23):3263--3264, Dec 2007.
 
 \bibitem{MartinsFerreira2012}
 N.~Martins-Ferreira and T~Linden.

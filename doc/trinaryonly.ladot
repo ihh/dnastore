@@ -6,4 +6,5 @@ digraph G {
 	T -> S [label=$\epsilon/\epsilon$];
 	T -> X [label=$\epsilon/\epsilon$];
 	X -> Y [label=$0_2/\epsilon$];
+	Y -> X [label=$\epsilon/\epsilon$];
 }

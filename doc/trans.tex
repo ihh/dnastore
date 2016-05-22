@@ -148,7 +148,8 @@ all originate from ``ready'' states which have no outgoing insertions.
 with the same transducer function $\tfunc{S}$ that does comply.)
 \end{itemize}
 
-Examples of this construction are given in \cite{MohriPereiraRiley2000} and \cite{WestessonEtAlArxiv2012,WestessonEtAl2012}.
+This algorithm can be made precise enough to automate;
+more detailed workings are given elsewhere \cite{PereiraRiley1996,MohriPereiraRiley2000,Holmes2003,Holmes2007,WestessonEtAlArxiv2012,WestessonEtAl2012}.
 A simple example of transducer composition is shown in \figref{NaiveDNATransducer}.
 
 \subsection{Transducer concatenation}
@@ -366,8 +367,8 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \figlabel{NaiveDNATransducer}
 Left (a):
 Transducer $\transbintoquat$ converts a binary input string (presented least-significant digit first) into a quaternary input string.
-Binary input digits are written showing the base 2 suffix ($\bit{0}$, $\bit{1}$),
-while quaternary output digits are written showing the base 4 suffix, ($\quat{0}$, $\quat{1}$, $\quat{2}$, $\quat{3}$).
+Binary input digits are written showing the radix-2 suffix ($\bit{0}$, $\bit{1}$),
+while quaternary output digits are written showing the radix-4 suffix, ($\quat{0}$, $\quat{1}$, $\quat{2}$, $\quat{3}$).
 The initial state is S and the final state is E.
 Middle (b):
 Transducer $\transquattodna$ converts a quaternary input string into a DNA string.
@@ -384,14 +385,18 @@ This machine is obtained by composing the ``binary to quaternary'' transducer ($
 \multicolumn{3}{c}{}
 (a) \includedot{divisionby3}{width=\textwidth}
 \\
-(b) \includedot{trinaryid}{width=.2\textwidth}
+(b) \includedot{trinary0}{width=.2\textwidth}
 &
-(c) \includedot{binaryeraser}{width=.15\textwidth}
+(c) \includedot{trinaryunion}{width=.2\textwidth}
 &
-(d) \includedot{trinaryonly}{width=.45\textwidth}
+(d) \includedot{trinaryid}{width=.2\textwidth}
+\\
+(e) \includedot{binaryeraser}{width=.15\textwidth}
+&
+(f) \includedot{trinaryonly}{width=.45\textwidth}
 \\
 \multicolumn{3}{c}{}
-(e) \includedot{binary2trinary}{width=\textwidth}
+(g) \includedot{binary2trinary}{width=\textwidth}
 \end{tabular}
 \caption{
 \figlabel{DivisionByThree}
@@ -402,23 +407,32 @@ It outputs the quotient (as a similar binary sequence) followed by the remainder
 The machine's state encodes the current remainder at any stage during the division.
 Binary digits are written as $(\bit{0}, \bit{1})$
 and trinary digits as $(\trit{0}, \trit{1}, \trit{2})$.
-Middle row (b,c,d):
-Some additional simple transducers that are useful in the implementation of ``binary to trinary conversion''.
-Left of middle row (b):
-Transducer $\transternid$ implements ``trinary identity'', copying a trinary input string to its output.
-Center of middle row (c):
-Transducer $\transbinerase$ erases a single binary zero and outputs the empty string.
-Right of middle row (d):
-Transducer $\transternid \transconcat \transbinerase$ is the concatenation of the first two.
-Bottom row (e):
+Second row (b,c,d):
+Union and Kleene closure.
+Left of second row (b):
+The transducer $\transid(\sym)$ echoes a single specified digit from input to output; in this case, $\sym=\trit{0}$.
+Center of second row (c):
+The transducer union $\transid(\trit{0}) \cup \transid(\trit{1}) \cup \transid(\trit{2})$, which echoes any of the three trinary digits.
+Right of second row (d):
+The transducer $\transternid$ echoes any number of trinary digits, and may be written as
+the Kleene closure $\transternid = \left( \transid(\trit{0}) \cup \transid(\trit{1}) \cup \transid(\trit{2}) \right)^\ast$.
+This implements the identity operation for trinary sequences.
+Third row (e,f):
+Some further simple transducers that are useful in the implementation of ``binary to trinary conversion'',
+also illustrating transducer concatenation.
+Left of middle row (e):
+Transducer $\transerase(\sym)$ erases a given symbol (i.e accepts that symbol on the input but outputs the empty string); in this case, the erased symbol is the binary zero, $\bit{0}$.
+Right of middle row (f):
+Transducer $\transternid \transconcat \transerase(\bit{0})^\ast$ is the concatenation of the trinary identity (d) with the Kleene closure of the binary-zero eraser (e).
+Bottom row (g):
 Transducer $\transternid \transconcat \transdivthree$
-is a concatentation of the ``trinary identity'' transducer (b)
+is a concatentation of the ``trinary identity'' transducer (d)
 with the ``division by three'' transducer (a).
 It uses the S and T states from $\transternid$ and the $0$, $1$, $10$ and E states from $\transdivthree$.
 By composing a series of $N$ transducers of this form, along with a final step that removes the remaining binary digit,
 we can convert a binary number into $N$ trinary digits \cite{MartinsFerreira2012}.
 For example, to output three trinary digits, we could use the composed transducer
-$ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transbinerase)$.
+$ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transerase(\bit{0})^\ast)$.
 }
 \end{figure}
 
@@ -459,6 +473,27 @@ will have no successful path through the transducer.
 
 \newpage
 \begin{figure}
+\begin{tabular}{ll}
+  (a) \includedot{divisionby2}{width=.5\textwidth}
+&
+  (b) \includedot{divisionby4}{width=.5\textwidth}
+  \end{tabular}
+\caption{
+\figlabel{EvenDivision}
+Left (a):
+Transducer $\transdivtwo$ divides a binary input by two,
+outputting quotient and remainder in binary.
+To distinguish quotient from remainder,
+the remainder is expressed using a different alphabet $\{ \rbit{0}, \rbit{1} \}$.
+The quotient is expressed using the same alphabet as the divisor $\{ \bit{0}, \bit{1} \}$.
+Right (b):
+Transducer $\transdivfour$ divides a binary input by two,
+outputting quotient in binary followed by remainder in quaternary.
+}
+\end{figure}
+
+\newpage
+\begin{figure}
 \begin{tabular}{ccc}
 (a) \includedot{dna2full}{width=.3\textwidth}
 &
@@ -482,8 +517,8 @@ will have no successful path through the transducer.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
-  The leftmost machine in the top row (a) is equivalent to $\transbintoquat \transcomp \transquattodna$ of \figref{NaiveDNATransducer}(c),
-  while the leftmost machine in the bottom row (d) is equivalent to the code of \cite{GoldmanEtAl2013}.
+  The leftmost machine in the top row (a) is similar to $\transbintoquat \transcomp \transquattodna$ of \figref{NaiveDNATransducer}(c),
+  while the leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
   Transition label annotations have been omitted from this diagram to reduce clutter.
   Instead, they may be deduced from the node and edge shapes, as follows:

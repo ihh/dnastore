@@ -1,0 +1,7 @@
+digraph G {
+	rankdir=LR;
+	S -> S [label=$0_2/0_2$];
+	S -> S [label=$1_2/1_2$];
+	S -> T [label=$0_2/0^{\ast}_2$];
+	S -> T [label=$1_2/1^{\ast}_2$];
+}
