@@ -102,6 +102,8 @@ or the Viterbi algorithm in the tropical semiring
 A state $\state \in \states$ has past context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
 and future context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
 
+% This is input context - similarly for output context
+
 \subsection{Transducer composition}
 
 Given transducers
@@ -287,6 +289,7 @@ is $\{ \bit{0}, \bit{1},
 
 By virtue of being derived from the De Bruijn graph, most of the states in the transducer of \secref{DeBruijnTransducer}
 have $\kmerlen$ nucleotides of past context.
+% This confuses input and output context - fix!
 We can transform this transducer into an equivalent one wherein most of the states have
 $\kmerlen/2$ nucleotides of past context
 and $\kmerlen/2$ nucleotides of future context.
