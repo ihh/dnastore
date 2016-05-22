@@ -1,4 +1,5 @@
 digraph G {
 	rankdir=LR;
-	X -> Y [label=$0_2/\epsilon$];
+	S -> S [label=$0_2/\epsilon$];
+	S -> S [label=$!2$];
 }

@@ -1,21 +1,21 @@
 digraph G {
 	rankdir=LR;
 	F -> F [label=$C_n/C_n$];
-	F -> 1 [label=$0_2/\epsilon$];
-	F -> 1 [label=$1_2/\epsilon$];
-	1 -> 2 [label=$0_2/\epsilon$];
-	1 -> 2 [label=$1_2/\epsilon$];
-	2 -> 3 [label=$0_2/\epsilon$];
-	2 -> 3 [label=$1_2/\epsilon$];
-	3 -> 4 [label=$0_2/\epsilon$];
-	3 -> 4 [label=$1_2/\epsilon$];
-	4 -> 5 [label=$0_2/\epsilon$];
-	4 -> 5 [label=$1_2/\epsilon$];
-	5 -> 6 [label=$0_2/\epsilon$];
-	5 -> 6 [label=$1_2/\epsilon$];
-	6 -> 7 [label=$0_2/\epsilon$];
-	6 -> 7 [label=$1_2/\epsilon$];
-	7 -> 8 [label=$0_2/\epsilon$];
-	7 -> 8 [label=$1_2/\epsilon$];
+	F -> 1 [label=$0_2/0_2$];
+	F -> 1 [label=$1_2/1_2$];
+	1 -> 2 [label=$0_2/0_2$];
+	1 -> 2 [label=$1_2/1_2$];
+	2 -> 3 [label=$0_2/0_2$];
+	2 -> 3 [label=$1_2/1_2$];
+	3 -> 4 [label=$0_2/0_2$];
+	3 -> 4 [label=$1_2/1_2$];
+	4 -> 5 [label=$0_2/0_2$];
+	4 -> 5 [label=$1_2/1_2$];
+	5 -> 6 [label=$0_2/0_2$];
+	5 -> 6 [label=$1_2/1_2$];
+	6 -> 7 [label=$0_2/0_2$];
+	6 -> 7 [label=$1_2/1_2$];
+	7 -> 8 [label=$0_2/0_2$];
+	7 -> 8 [label=$1_2/1_2$];
 	8 -> F [label=$\epsilon/F$];
 }

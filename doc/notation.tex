@@ -93,19 +93,33 @@
 \newcommand\controlsym[1]{C_{#1}}
 \newcommand\flushsym{F}
 
-\newcommand\transid{T_{\mbox{\tiny ID}}}
-\newcommand\transerase{T_{\mbox{\tiny DEL}}}
+\newcommand\figtrans[2]{T_{\ref{Figures.#1}#2}}
 
-\newcommand\transdivtwo{T_{DIV2}}
-\newcommand\transdivthree{T_{DIV3}}
-\newcommand\transdivfour{T_{DIV4}}
+\newcommand\transsingle[2]{T_{#1 \to #2}}
+\newcommand\transid[1]{\transsingle{#1}{#1}}
+\newcommand\transerase[1]{\transsingle{#1}{\epsilon}}
 
-\newcommand\transternid{T_{3 \to 3}}
+\newcommand\rbit[1]{#1_{2R}}
 
-\newcommand\transbintoquat{T_{2 \to 4}}
-\newcommand\transquattodna{T_{4 \to \mbox{\tiny DNA}}}
+\newcommand\hammingthreeone{\figtrans{HammingTransducer}{a}}
+\newcommand\hammingsevenfour{\figtrans{HammingTransducer}{b}}
 
-\newcommand\transmixed{T_{2 \to 234}}
-\newcommand\transflush{T_F}
+\newcommand\transbintoquat{\figtrans{NaiveDNATransducer}{a}}
+\newcommand\transquattodna{\figtrans{NaiveDNATransducer}{b}}
+\newcommand\transbintodna{\figtrans{NaiveDNATransducer}{c}}
 
-\newcommand\rbit[1]{\bit{#1}^{\ast}}
+\newcommand\transdivthree{\figtrans{DivisionByThree}{a}}
+\newcommand\transternzeroid{\figtrans{DivisionByThree}{b}}
+\newcommand\transternsymid{\figtrans{DivisionByThree}{c}}
+\newcommand\transternseqid{\figtrans{DivisionByThree}{d}}
+\newcommand\transerasezerobits{\figtrans{DivisionByThree}{e}}
+\newcommand\transechodivthree{\figtrans{DivisionByThree}{f}}
+
+\newcommand\transmixed{\figtrans{Converter}{a}}
+\newcommand\transflush{\figtrans{Converter}{b}}
+
+\newcommand\transechodivtwo{\figtrans{EvenDivision}{a}}
+\newcommand\transechodivfour{\figtrans{EvenDivision}{b}}
+
+\newcommand\transechodivmixed{T_{234}}
+\newcommand\transmixedid{T_{0}}

@@ -12,4 +12,9 @@ digraph G {
 	01 -> E [label=$\epsilon/1_4$];
 	10 -> E [label=$\epsilon/2_4$];
 	11 -> E [label=$\epsilon/3_4$];
+
+	00 -> 00 [label=$!2$];
+	01 -> 01 [label=$!2$];
+	10 -> 10 [label=$!2$];
+	11 -> 11 [label=$!2$];
 }

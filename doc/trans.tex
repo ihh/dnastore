@@ -99,10 +99,9 @@ analogously to the Forward algorithm in the probabilistic semiring
 or the Viterbi algorithm in the tropical semiring
 \cite{Durbin98}.
 
-A state $\state \in \states$ has past context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
-and future context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
-
-% This is input context - similarly for output context
+A state $\state \in \states$ has past input context $\inseqpast$ if every path from $\initstate$ to $\state$ has an input sequence with suffix $\inseqpast$,
+and future input context $\inseqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\inseqnext$.
+The past output context and future output context of a state are defined similarly.
 
 \subsection{Transducer composition}
 
@@ -288,11 +287,10 @@ is $\{ \bit{0}, \bit{1},
 \subsection{The delayed transducer}
 
 By virtue of being derived from the De Bruijn graph, most of the states in the transducer of \secref{DeBruijnTransducer}
-have $\kmerlen$ nucleotides of past context.
-% This confuses input and output context - fix!
+have $\kmerlen$ nucleotides of past output context.
 We can transform this transducer into an equivalent one wherein most of the states have
-$\kmerlen/2$ nucleotides of past context
-and $\kmerlen/2$ nucleotides of future context.
+$\kmerlen/2$ nucleotides of past output context
+and $\kmerlen/2$ nucleotides of future output context.
 
 This can be a convenient way to think about context, for the purpose of modeling errors in DNA replication and sequencing.
 Common decoding and replication errors include local tandem and inverted duplications, as well as context-dependent substitutions.
@@ -303,21 +301,25 @@ The transformation requires that the output sequence of all successful paths thr
 begin with a particular $\kmerlen$-mer and end with a particular $\kmerlen$-mer,
 which can be ensured using the method described in \secref{DeBruijnTransducer}.
 
-Let $\someseq = \inseqpast(\state)$ be the past context for a given state $\state$.
+Let $\someseq = \inseqpast(\state)$ be the past output context for a given state $\state$.
 All of the transitions $\trans$ into $\state$ have the same input label $\inlab[\trans] \equiv \inlab[\state]$,
-which corresponds to the most recent nucleotide of context for that state,
+which corresponds to the most recent nucleotide of output context for that state,
 i.e. the $\kmerlen$'th symbol of $\someseq$.
 If, instead, we set $\inlab[\trans]$ to be the $(\kmerlen/2)$'th symbol of $\someseq$
 for all transitions into $\state$, then we have effectively delayed all output by $\kmerlen/2$ symbols.
 We can now predict the next $\kmerlen/2$ symbols in the output sequence for the path from a state,
-so we have traded $\kmerlen/2$ of past context for $\kmerlen/2$ of future context.
+so we have traded $\kmerlen/2$ of past output context for $\kmerlen/2$ of future output context.
 
 We need to add $\kmerlen/2$ extra padding states after (what was originally) the final state,
 with a chain of transitions that flushes out the final $\kmerlen/2$ delayed output symbols.
-Conversely, the first $\kmerlen/2$ transitions from the initial state will, after the transformation,
+Conversely, the first $\kmerlen/2$ transitions from the initial state
+(into states with $\kmerlen/2$ or fewer nucleotides of output context)
+will, after the transformation,
 be null transitions (with both input and output labels equal to $\emptystring$),
 so these transitions and the corresponding states can be deleted.
 
+An analogous procedure can be used to transform a machine with $\kmerlen$ symbols of past input context
+into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future input context.
 
 
 \subsection{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
@@ -345,12 +347,12 @@ Error-modeling transducer...
 (b) \includegraphics[width=.45\textwidth]{hamming74.ps}
 \end{tabular}
 \caption{ \figlabel{HammingTransducer}
-Left (a):
-A transducer that implements the Hamming(3,1) error-correcting code
+  Left:
+Transducer $\hammingthreeone$ implements the Hamming(3,1) error-correcting code
 (which simply repeats every bit three times).
 S is both the initial state and the final state.
-Right (b):
-A transducer that implements the Hamming(7,4) error-correcting code,
+Right:
+Transducer $\hammingsevenfour$ implements the Hamming(7,4) error-correcting code,
 with four data bits and three parity bits.
 Due to the large number of states, the state names have been omitted from this diagram,
 as have the $\epsilon$ labels for empty inputs or outputs.
@@ -376,30 +378,29 @@ The initial state is S and the final state is E.
 Middle (b):
 Transducer $\transquattodna$ converts a quaternary input string into a DNA string.
 Right (c):
-Transducer $\transbintoquat \transcomp \transquattodna$
+Transducer $\transbintodna$
 converts a binary input string to DNA.
-This machine is obtained by composing the ``binary to quaternary'' transducer ($\transbintoquat$) with the ``quaternary to DNA'' transducer ($\transquattodna$).
+This machine can be regarded as a composition of the ``binary to quaternary'' transducer ($\transbintoquat$) with the ``quaternary to DNA'' transducer ($\transquattodna$),
+and so can be written $\transbintodna = \transbintoquat \transcomp \transquattodna$.
 }
 \end{figure}
 
 \newpage
 \begin{figure}
-\begin{tabular}{lcr}
-\multicolumn{3}{c}{}
+\begin{tabular}{cc}
+\multicolumn{2}{c}{}
 (a) \includedot{divisionby3}{width=\textwidth}
 \\
 (b) \includedot{trinary0}{width=.2\textwidth}
 &
 (c) \includedot{trinaryunion}{width=.2\textwidth}
-&
+\\
 (d) \includedot{trinaryid}{width=.2\textwidth}
-\\
-(e) \includedot{binaryeraser}{width=.15\textwidth}
 &
-(f) \includedot{trinaryonly}{width=.45\textwidth}
+(e) \includedot{binaryeraser}{width=.15\textwidth}
 \\
-\multicolumn{3}{c}{}
-(g) \includedot{binary2trinary}{width=\textwidth}
+\multicolumn{2}{c}{}
+(f) \includedot{binary2trinary}{width=\textwidth}
 \end{tabular}
 \caption{
 \figlabel{DivisionByThree}
@@ -410,32 +411,36 @@ It outputs the quotient (as a similar binary sequence) followed by the remainder
 The machine's state encodes the current remainder at any stage during the division.
 Binary digits are written as $(\bit{0}, \bit{1})$
 and trinary digits as $(\trit{0}, \trit{1}, \trit{2})$.
-Second row (b,c,d):
-Union and Kleene closure.
-Left of second row (b):
-The transducer $\transid(\sym)$ echoes a single specified digit from input to output; in this case, $\sym=\trit{0}$.
-Center of second row (c):
-The transducer union $\transid(\trit{0}) \cup \transid(\trit{1}) \cup \transid(\trit{2})$, which echoes any of the three trinary digits.
-Right of second row (d):
-The transducer $\transternid$ echoes any number of trinary digits, and may be written as
-the Kleene closure $\transternid = \left( \transid(\trit{0}) \cup \transid(\trit{1}) \cup \transid(\trit{2}) \right)^\ast$.
-This implements the identity operation for trinary sequences.
-Third row (e,f):
-Some further simple transducers that are useful in the implementation of ``binary to trinary conversion'',
-also illustrating transducer concatenation.
-Left of middle row (e):
-Transducer $\transerase(\sym)$ erases a given symbol (i.e accepts that symbol on the input but outputs the empty string); in this case, the erased symbol is the binary zero, $\bit{0}$.
-Right of middle row (f):
-Transducer $\transternid \transconcat \transerase(\bit{0})^\ast$ is the concatenation of the trinary identity (d) with the Kleene closure of the binary-zero eraser (e).
-Bottom row (g):
-Transducer $\transternid \transconcat \transdivthree$
-is a concatentation of the ``trinary identity'' transducer (d)
-with the ``division by three'' transducer (a).
-It uses the S and T states from $\transternid$ and the $0$, $1$, $10$ and E states from $\transdivthree$.
-By composing a series of $N$ transducers of this form, along with a final step that removes the remaining binary digit,
+Second row (b,c):
+Transducers that are useful in implementing automata-theoretic division, also illustrating the operation of transducer union.
+Left of second row:
+Transducer $\transternzeroid$ echoes a single zero trit ($\trit{0}$) from input to output.
+Adopting the notation $\transsingle{\inlab}{\outlab}$ for a transducer with one transition $(S,\inlab,\outlab,1,T)$
+we can write $\transternzeroid = \transid{\trit{0}}$.
+Right of second row:
+Transducer $\transternsymid$ echoes any single trit ($\trit{0}$, $\trit{1}$ or $\trit{2}$).
+This machine may be viewed as the union of three single-transition transducers,
+$\transternsymid = (\transid{\trit{0}}) \cup (\transid{\trit{1}}) \cup (\transid{\trit{2}})$.
+Third row (d,e):
+More transducers that are useful for automata-theoretic division, also illustrating Kleene closure.
+Left of third row:
+Transducer $\transternseqid$ echoes any sequence of trits, and may be written as
+the Kleene closure $\transternseqid = \kleene{(\transternsymid)}$.
+Right of third row:
+Transducer $\transerasezerobits$ erases any sequence of binary zeroes,
+while passing through any symbols that are not binary digits.
+The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
+with $y \notin \{ \bit{0}, \bit{1} \}$
+that echo anything which is {\em not} a binary digit.
+Bottom row:
+Transducer $\transechodivthree$,
+when fed a binary sequence $X$ representing a divisor,
+followed by a trinary sequence $Y$ representing the remainders from previous divisions,
+will print out the quotient $X/3$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 3$ (in trinary).
+By composing a series of $N$ transducers of this form, along with a final step that removes the binary zeroes,
 we can convert a binary number into $N$ trinary digits \cite{MartinsFerreira2012}.
 For example, to output three trinary digits, we could use the composed transducer
-$ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transdivthree) \transcomp (\transternid \transconcat \transerase(\bit{0})^\ast)$.
+$(\transdivthree) \transcomp (\transechodivthree) \transcomp (\transechodivthree) \transcomp (\transerasezerobits)$.
 }
 \end{figure}
 
@@ -448,7 +453,7 @@ $ \transdivthree \transcomp (\transternid \transconcat \transdivthree) \transcom
   \end{tabular}
 \caption{
 \figlabel{Converter}
-Left (a):
+Left:
 Transducer $\transmixed$ converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
 control symbols ($\controlsym{n}$)
@@ -461,7 +466,7 @@ the flush symbol is used to drive the machine into a state (T) where it can acce
 The conversion is suboptimal in that trinary digits (trits) on average encode
 1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
 State S is both the initial state and the final state.
-Right (b):
+Right:
 Transducer $\transflush$ copies input bits to the output, sending a flush symbol after every 8-bit byte.
 Accurate decoding of the output sequence from $\transmixed$ requires that the decoder
 knows at what points in the sequence flush symbols have been encoded.
@@ -483,15 +488,29 @@ will have no successful path through the transducer.
   \end{tabular}
 \caption{
 \figlabel{EvenDivision}
-Left (a):
-Transducer $\transdivtwo$ divides a binary input by two,
-outputting quotient and remainder in binary.
+Left:
+Transducer $\transechodivtwo$ models a single step of long division by two.
+When fed a binary sequence $X$ representing a divisor,
+followed by a sequence $Y$ representing any remainders from previous divisions,
+will print out the quotient $X/2$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in binary).
 To distinguish quotient from remainder,
 the remainder is expressed using a different alphabet $\{ \rbit{0}, \rbit{1} \}$.
 The quotient is expressed using the same alphabet as the divisor $\{ \bit{0}, \bit{1} \}$.
-Right (b):
-Transducer $\transdivfour$ divides a binary input by two,
-outputting quotient in binary followed by remainder in quaternary.
+The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
+with $y \notin \{ \bit{0}, \bit{1} \}$
+that echo anything which is {\em not} a binary digit;
+these will pass remainder digits through unaffected.
+Right:
+Transducer $\transechodivfour$ models a single step of long division by four.
+When fed a binary sequence $X$ representing a divisor,
+followed by a sequence $Y$ representing any remainders from previous divisions,
+it will print out the quotient $X/4$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in quaternary).
+We can construct a single-step mixed-radix long-division transducer capable of dividing by two, three or four
+using transducer union $\transechodivmixed = (\transechodivtwo \cup \transechodivthree \cup \transechodivfour)$,
+and then construct a transducer that can encode a binary input into a sequence of up to $N$ such mixed-radix digits
+via a composition of $N$ such transducers.
+For example, to convert three mixed-radix digits:
+$(\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transerasezerobits)$.
 }
 \end{figure}
 
@@ -520,11 +539,11 @@ outputting quotient in binary followed by remainder in quaternary.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
-  The leftmost machine in the top row (a) is similar to $\transbintoquat \transcomp \transquattodna$ of \figref{NaiveDNATransducer}(c),
+  The leftmost machine in the top row (a) is similar to $\transbintodna$ of \figref{NaiveDNATransducer}(c),
   while the leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
-  Transition label annotations have been omitted from this diagram to reduce clutter.
-  Instead, they may be deduced from the node and edge shapes, as follows:
+  Transition label annotations have been omitted from this diagram.
+  Instead, the labels may be deduced from the node and edge shapes, as follows:
   Bold-line transitions from rectangular states encode quaternary input digits.
   Solid-line transitions from triangular states encode trinary input digits.
   Dashed-line transitions from double-circle states encode binary input digits.
@@ -532,6 +551,7 @@ outputting quotient in binary followed by remainder in quaternary.
   states that can only be exited via these transitions are shown as rectangles.
   Transitions that encode input digits have empty circles at the source end;
   transitions that encode output digits have filled arrowheads at the destination end.
+  The output label of a transition into a state $XY$ is always either $Y$ or $\epsilon$.
 }
 \end{figure}
 
