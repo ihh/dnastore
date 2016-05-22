@@ -24,19 +24,23 @@ $\ast$ E-mail: ihh@berkeley.edu
 
 \section{Introduction}
 
-Transducers \cite{MohriPereiraRiley2000,WikipediaTransducers}
+DNA storage \cite{ChurchEtAl2012,GoldmanEtAl2013}.
+Codes \cite{YazdiEtAl2015}
 
+Useful to represent everything as state machines,
+can then add a statistically-parameterized model of errors
+in DNA sequencing and replication,
+and use Viterbi algorithm for decoding
+
+Transducers are a good technology \cite{MohriPereiraRiley2000,WikipediaTransducers}
 In bioinformatics:
 protein classification \cite{EskinEtAl2000},
 phylogenetics \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
 cancer informatics \cite{SchwarzEtAl2014}
 
-Arithmetic coding \cite{Mackay2003}
-
-DNA storage \cite{ChurchEtAl2012,GoldmanEtAl2013}.
-Codes \cite{YazdiEtAl2015}
-
 De Bruijn graphs \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012}
+
+
 
 \section{Methods}
 
@@ -266,9 +270,9 @@ The initial and final vertices of $\controlgraph$ are the initial and final stat
 The output label of the transition is the label of the edge.
 \item The input label of each transition is determined as follows:
 \begin{itemize}
-\item For states in $\norepvertices$ with two outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the binary digits $\bit{0}$ and $\bit{1}$.
-\item For states in $\norepvertices$ with three outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the trinary digits $\trit{0}$, $\trit{1}$ and $\trit{2}$.
-\item For states in $\norepvertices$ with four outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the quaternary digits $\quat{0}$, $\quat{1}$, $\quat{2}$ and $\quat{3}$.
+\item For states in $\norepvertices$ with two outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the binary digits (bits) $\bit{0}$ and $\bit{1}$.
+\item For states in $\norepvertices$ with three outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the trinary digits (trits) $\trit{0}$, $\trit{1}$ and $\trit{2}$.
+\item For states in $\norepvertices$ with four outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the quaternary digits (quats) $\quat{0}$, $\quat{1}$, $\quat{2}$ and $\quat{3}$.
 \item Transitions from states in $\norepvertices$ to states in $\controlbridges{n,\stepsto(\controlword_n,\controlset)}$,
 which begin a path to the $n$'th control word $\controlword_n$,
 are input-labeled with the special control digit $\controlsym{n}$.
@@ -321,14 +325,66 @@ so these transitions and the corresponding states can be deleted.
 An analogous procedure can be used to transform a machine with $\kmerlen$ symbols of past input context
 into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future input context.
 
-
 \subsection{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
 Not every state accepts symbols of the same radix...
 
 We need a converter that can context-switch between binary, trinary, and quaternary...
 
-\figref{Converter}...
+Consider first the simpler task of mapping a binary sequence to a trinary sequence...
+
+To do this at the Shannon limit requires an arithmetic conversion of the binary number into the decimal number
+
+As an side, somewhat reminiscent of arithmetic coding \cite{Mackay2003}
+where a probability distribution over symbols is used to compress
+a symbol stream into a floating-point binary number
+
+The arithmetic conversion requires repeated divisons by three...
+
+An automata-theoretic approach to this is illustrated in...
+\figref{DivisionByThree}...
+
+The 4-state machine $\transdivthree$ performs one division by three and outputs one trinary digit.
+By composing $N$ of these together we can convert a binary number to $N$ trinary digits.
+This takes $\sim 4^N$ states (some may be unreachable or duplicates that can be eliminated).
+
+Converting this to a mixed-radix sequence of bits, trits and quats
+is a matter of taking the union of the division-by-three transducer
+in \figref{DivisionByThree}
+with the division-by-two and division-by-four transducers
+in \figref{EvenDivision},
+each of which divide a binary input by the appropriate divisor (2 or 4)
+and output the modulus in the corresponding radix.
+However, the union of these transducers has 12=3+4+5 states
+and so the $N$-digit converter has $\sim 12^N$ states,
+which is expensive.
+
+We can improve on this e.g. by using machine state to record the input sequence
+(the principle behind \figref{HammingTransducer}(b))
+and hard-code the results of every division step.
+However it is always $\bigo(A^N)$ for some $A$, except in the special cases where the input and output radix
+are related by an integer multiplier, as in the base $2 \to 4$ conversion of \figref{NaiveDNATransducer}(a).
+
+In view of this, if we do not mind a small amount of inefficiency,
+we can use a simpler mapping between a binary input and a mixed-radix output,
+such as the mapping defined in \figref{Converter}(a)...
+
+\figref{Converter}(a)
+encodes 1 bit of input per bit of output,
+2 bits of input per quat of output,
+and 1.5 bits of input per trit of output.
+For comparison,
+an exact arithmetic conversion
+encodes 1 bit of input per bit of output,
+2 bits of input per quat of output,
+and $\log_2(3) \simeq 1.58$ bits of input per trit of output.
+This difference is small, is confined to trits only.
+Indeed, if one is constrained to round up to the nearest integer number of output symbols per input byte,
+then the two approaches are basically indistinguishable:
+both will require 6 trits per byte, or 4 quats per byte, or 8 bits, or some mixture that
+(in most cases) will be the same. % CHECK THIS!!
+
+
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
 
@@ -347,6 +403,7 @@ Error-modeling transducer...
 (b) \includegraphics[width=.45\textwidth]{hamming74.ps}
 \end{tabular}
 \caption{ \figlabel{HammingTransducer}
+State machines implementing Hamming codes for error correction.
   Left:
 Transducer $\hammingthreeone$ implements the Hamming(3,1) error-correcting code
 (which simply repeats every bit three times).
@@ -370,6 +427,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \end{tabular}
 \caption{
 \figlabel{NaiveDNATransducer}
+State machines implementing naive conversions of binary sequences to DNA.
 Left (a):
 Transducer $\transbintoquat$ converts a binary input string (presented least-significant digit first) into a quaternary input string.
 Binary input digits are written showing the radix-2 suffix ($\bit{0}$, $\bit{1}$),
@@ -404,9 +462,11 @@ and so can be written $\transbintodna = \transbintoquat \transcomp \transquattod
 \end{tabular}
 \caption{
 \figlabel{DivisionByThree}
+An automata-theoretic approach to long division by the number three,
+relevant to conversion from binary to trinary.
 Top row (a):
 Transducer $\transdivthree$ implements the operation ``division by three''.
-The machine accepts as its input sequence a binary number representing the divisor, which must be presented most significant bit first.
+The machine accepts as its input sequence a binary number representing the dividend, which must be presented most significant bit first.
 It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
 The machine's state encodes the current remainder at any stage during the division.
 Binary digits are written as $(\bit{0}, \bit{1})$
@@ -434,7 +494,7 @@ with $y \notin \{ \bit{0}, \bit{1} \}$
 that echo anything which is {\em not} a binary digit.
 Bottom row:
 Transducer $\transechodivthree$,
-when fed a binary sequence $X$ representing a divisor,
+when fed a binary sequence $X$ representing a dividend,
 followed by a trinary sequence $Y$ representing the remainders from previous divisions,
 will print out the quotient $X/3$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 3$ (in trinary).
 By composing a series of $N$ transducers of this form, along with a final step that removes the binary zeroes,
@@ -447,12 +507,52 @@ $(\transdivthree) \transcomp (\transechodivthree) \transcomp (\transechodivthree
 \newpage
 \begin{figure}
 \begin{tabular}{ll}
+  (a) \includedot{divisionby2}{width=.5\textwidth}
+&
+  (b) \includedot{divisionby4}{width=.5\textwidth}
+  \end{tabular}
+\caption{
+\figlabel{EvenDivision}
+An automata-theoretic approach to long division by two (a) and by four (b),
+relevant to conversion from binary to mixed-radix sequences
+that include binary and quaternary digits.
+Left:
+Transducer $\transechodivtwo$ models a single step of long division by two.
+When fed a binary sequence $X$ representing a dividend,
+followed by a sequence $Y$ representing any remainders from previous divisions,
+will print out the quotient $X/2$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in binary).
+To distinguish quotient from remainder,
+the remainder is expressed using a different alphabet $\{ \rbit{0}, \rbit{1} \}$.
+The quotient is expressed using the same alphabet as the dividend $\{ \bit{0}, \bit{1} \}$.
+The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
+with $y \notin \{ \bit{0}, \bit{1} \}$
+that echo anything which is {\em not} a binary digit;
+these will pass remainder digits through unaffected.
+Right:
+Transducer $\transechodivfour$ models a single step of long division by four.
+When fed a binary sequence $X$ representing a dividend,
+followed by a sequence $Y$ representing any remainders from previous divisions,
+it will print out the quotient $X/4$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in quaternary).
+We can construct a single-step mixed-radix long-division transducer capable of dividing by two, three or four
+using transducer union $\transechodivmixed = (\transechodivtwo \cup \transechodivthree \cup \transechodivfour)$,
+and then construct a transducer that can encode a binary input into a sequence of up to $N$ such mixed-radix digits
+via a composition of $N$ such transducers.
+For example, to convert three mixed-radix digits:
+$(\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transerasezerobits)$.
+}
+\end{figure}
+
+\newpage
+\begin{figure}
+\begin{tabular}{ll}
   (a) \includedot{converter}{width=.5\textwidth}
 &
   (b) \includedot{flush8}{width=.5\textwidth}
   \end{tabular}
 \caption{
 \figlabel{Converter}
+An inefficient, but simple, approach
+to the conversion of a binary input into a mixed-radix output (binary, trinary and quaternary).
 Left:
 Transducer $\transmixed$ converts an input sequence of binary digits ($\bit{0},\bit{1}$),
 optionally interleaved with
@@ -476,41 +576,6 @@ before feeding it to the ``convert to binary/trinary/quaternary'' transducer.
 In this model, bytes cannot be split up; a control symbol can only be sent before or after a byte,
 and an input bitstream that has a control symbol partway through an 8-bit block
 will have no successful path through the transducer.
-}
-\end{figure}
-
-\newpage
-\begin{figure}
-\begin{tabular}{ll}
-  (a) \includedot{divisionby2}{width=.5\textwidth}
-&
-  (b) \includedot{divisionby4}{width=.5\textwidth}
-  \end{tabular}
-\caption{
-\figlabel{EvenDivision}
-Left:
-Transducer $\transechodivtwo$ models a single step of long division by two.
-When fed a binary sequence $X$ representing a divisor,
-followed by a sequence $Y$ representing any remainders from previous divisions,
-will print out the quotient $X/2$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in binary).
-To distinguish quotient from remainder,
-the remainder is expressed using a different alphabet $\{ \rbit{0}, \rbit{1} \}$.
-The quotient is expressed using the same alphabet as the divisor $\{ \bit{0}, \bit{1} \}$.
-The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
-with $y \notin \{ \bit{0}, \bit{1} \}$
-that echo anything which is {\em not} a binary digit;
-these will pass remainder digits through unaffected.
-Right:
-Transducer $\transechodivfour$ models a single step of long division by four.
-When fed a binary sequence $X$ representing a divisor,
-followed by a sequence $Y$ representing any remainders from previous divisions,
-it will print out the quotient $X/4$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in quaternary).
-We can construct a single-step mixed-radix long-division transducer capable of dividing by two, three or four
-using transducer union $\transechodivmixed = (\transechodivtwo \cup \transechodivthree \cup \transechodivfour)$,
-and then construct a transducer that can encode a binary input into a sequence of up to $N$ such mixed-radix digits
-via a composition of $N$ such transducers.
-For example, to convert three mixed-radix digits:
-$(\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transerasezerobits)$.
 }
 \end{figure}
 
