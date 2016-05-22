@@ -36,6 +36,7 @@ Arithmetic coding \cite{Mackay2003}
 DNA storage \cite{ChurchEtAl2012,GoldmanEtAl2013}.
 Codes \cite{YazdiEtAl2015}
 
+De Bruijn graphs \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012}
 
 \section{Methods}
 
@@ -283,9 +284,51 @@ is $\{ \bit{0}, \bit{1},
        
 \subsection{The delayed transducer}
 
+By virtue of being derived from the De Bruijn graph, most of the states in the transducer of \secref{DeBruijnTransducer}
+have $\kmerlen$ nucleotides of past context.
+We can transform this transducer into an equivalent one wherein most of the states have
+$\kmerlen/2$ nucleotides of past context
+and $\kmerlen/2$ nucleotides of future context.
+
+This can be a convenient way to think about context, for the purpose of modeling errors in DNA replication and sequencing.
+Common decoding and replication errors include local tandem and inverted duplications, as well as context-dependent substitutions.
+These can occur on either strand of and therefore (depending on the representation) may be best represented as depending
+on future context as well as past context.
+
+The transformation requires that the output sequence of all successful paths through the transducer
+begin with a particular $\kmerlen$-mer and end with a particular $\kmerlen$-mer,
+which can be ensured using the method described in \secref{DeBruijnTransducer}.
+
+Let $\someseq = \inseqpast(\state)$ be the past context for a given state $\state$.
+All of the transitions $\trans$ into $\state$ have the same input label $\inlab[\trans] \equiv \inlab[\state]$,
+which corresponds to the most recent nucleotide of context for that state,
+i.e. the $\kmerlen$'th symbol of $\someseq$.
+If, instead, we set $\inlab[\trans]$ to be the $(\kmerlen/2)$'th symbol of $\someseq$
+for all transitions into $\state$, then we have effectively delayed all output by $\kmerlen/2$ symbols.
+We can now predict the next $\kmerlen/2$ symbols in the output sequence for the path from a state,
+so we have traded $\kmerlen/2$ of past context for $\kmerlen/2$ of future context.
+
+We need to add $\kmerlen/2$ extra padding states after (what was originally) the final state,
+with a chain of transitions that flushes out the final $\kmerlen/2$ delayed output symbols.
+Conversely, the first $\kmerlen/2$ transitions from the initial state will, after the transformation,
+be null transitions (with both input and output labels equal to $\emptystring$),
+so these transitions and the corresponding states can be deleted.
+
+
+
 \subsection{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
+Not every state accepts symbols of the same radix...
+
+We need a converter that can context-switch between binary, trinary, and quaternary...
+
 \figref{Converter}...
+
+\subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
+
+Error-modeling transducer...
+% Use future context to reduce # of states needed for invreps?
+
 
 \newpage
 \section{Figures}
