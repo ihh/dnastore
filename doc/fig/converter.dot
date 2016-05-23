@@ -1,0 +1,27 @@
+digraph G {
+	rankdir=LR;
+	
+	F -> S [label="C_n/C_n"];
+	S -> F [label="F/\epsilon"];
+	
+	S -> 0 [label="0_2/\epsilon"];
+	S -> 1 [label="1_2/\epsilon"];
+	
+	0 -> S [label="\epsilon/0_2"];
+	1 -> S [label="\epsilon/1_2"];
+	
+	0 -> S [label="0_2/0_3"];
+	0 -> S [label="1_2/1_3"];
+	1 -> S [label="\epsilon/2_3"];
+
+	0 -> S [label="0_2/0_4"];
+	0 -> S [label="1_2/1_4"];
+	1 -> S [label="0_2/2_4"];
+	1 -> S [label="1_2/3_4"];
+
+	0 -> F [label="F/0_3"];
+	1 -> F [label="F/1_3"];
+
+	0 -> F [label="F/0_4"];
+	1 -> F [label="F/1_4"];
+}

@@ -50,7 +50,9 @@
 \newcommand\nucalph{\somealph_{\mbox{\tiny DNA}}}
 \newcommand\sym{x}
 \newcommand\comp[1]{\tilde{#1}}
-\newcommand\revcomp[1]{\tilde{#1}}
+\newcommand\revcomp[1]{\comp{#1}}
+\newcommand\ntrans[1]{\underline{#1}}
+\newcommand\ntranscomp[1]{\comp{\ntrans{#1}}}
 \newcommand\seqlen[1]{|#1|}
 \newcommand\otherseq{\lambda}
 
@@ -123,3 +125,9 @@
 
 \newcommand\transechodivmixed{T_{234}}
 \newcommand\transmixedid{T_{0}}
+
+\newcommand\nuc[1]{\mbox{#1}}
+\newcommand\nuca{\nuc{A}}
+\newcommand\nucc{\nuc{C}}
+\newcommand\nucg{\nuc{G}}
+\newcommand\nuct{\nuc{T}}
