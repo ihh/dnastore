@@ -547,9 +547,9 @@ The other transitions can be deduced using the following rules:
 \src & \inlab & \outlab & \weight & \dest \\
 \hline
 \symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \emptystring & \pdelopen & \delstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\destblock \neq f$} \\
-\symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \emptystring & \emptystring & \pdelopen & \symstate{f}(\emptystring,\emptystring) & \text{if $\destblock = f$} \\
-\delstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \outsym & \pdelend \psub{} & \symstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\srcblock \neq b$} \\
+\symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \emptystring & \pdelopen & \symstate{f}(\emptystring,\emptystring) & \text{if $\destblock = f$} \\
 \delstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \emptystring & \pdelext & \delstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\srcblock \neq b$} \\
+\delstate{\srcblock}(\inseqpast,\sym \inseqnext) & \emptystring & \emptystring & \pdelend & \symstate{\srcblock}(\inseqpast',\inseqnext') & \text{if $\srcblock \neq b$} \\
 \hline
 \end{array}
 \]
