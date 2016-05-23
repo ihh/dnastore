@@ -2,8 +2,8 @@
 \newcommand\srset{\mathbb{K}}
 \newcommand\srplus{\oplus}
 \newcommand\srtimes{\otimes}
-\newcommand\srplusid{\bar{0}}
-\newcommand\srtimesid{\bar{1}}
+\newcommand\srplusid{\underline{0}}
+\newcommand\srtimesid{\underline{1}}
 \newcommand\srsum{\bigoplus}
 \newcommand\srprod{\bigotimes}
 
@@ -23,7 +23,7 @@
 \newcommand\lab{\ell}
 \newcommand\inlab{\lab_i}
 \newcommand\outlab{\lab_o}
-\newcommand\weight{w}
+\newcommand\weight{\mathbb{W}}
 
 \newcommand\somealph{\Gamma}
 \newcommand\someseq{\gamma}
@@ -44,16 +44,17 @@
 
 \newcommand\bigo{{\cal O}}
 
-\newcommand\inseqpast{\inseq_p}
-\newcommand\inseqnext{\inseq_q}
+\newcommand\seqof[1]{\bar{#1}}
+\newcommand\sympast{v}
+\newcommand\symnext{w}
+\newcommand\seqpast{\seqof{\sympast}}
+\newcommand\seqnext{\seqof{\symnext}}
 
 \newcommand\nucalph{\somealph_{\mbox{\tiny DNA}}}
 \newcommand\sym{x}
-\newcommand\sympast{w}
-\newcommand\symnext{\sym}
 \newcommand\comp[1]{\tilde{#1}}
 \newcommand\revcomp[1]{\comp{#1}}
-\newcommand\ntrans[1]{\bar{#1}}
+\newcommand\ntrans[1]{\hat{#1}}
 \newcommand\seqlen[1]{|#1|}
 \newcommand\otherseq{\lambda}
 
@@ -134,10 +135,10 @@
 \newcommand\nucg{\nuc{G}}
 \newcommand\nuct{\nuc{T}}
 
-\newcommand\contextlen{C}
-\newcommand\conseq[2]{\sym_{#1} \ldots \sym_{#2}}
-\newcommand\conseqpast[2]{\sympast_{#1} \ldots \sympast_{#2}}
-\newcommand\conseqnext[2]{\symnext_{#1} \ldots \symnext_{#2}}
+\newcommand\contextlen{L}
+\newcommand\seqsyms[2]{\sym_{#1} \ldots \sym_{#2}}
+\newcommand\seqpastsyms[2]{\sympast_{#1} \ldots \sympast_{#2}}
+\newcommand\seqnextsyms[2]{\symnext_{#1} \ldots \symnext_{#2}}
 \newcommand\outsym{y}
 
 \newcommand\param[1]{\mathbb{P}_{#1}}
@@ -158,7 +159,8 @@
 \newcommand\submat{\param{s}}
 \newcommand\lendist{\param{l}}
 
-\newcommand\psub[1]{\submat(\sym_{#1},\outsym)}
+\newcommand\psub{\submat(\sym,\outsym)}
+\newcommand\psubnext[1]{\submat(\symnext_{#1},\outsym)}
 \newcommand\psubpast[1]{\submat(\sympast_{#1},\outsym)}
 \newcommand\psubcomppast[1]{\submat(\sympast_{#1},\comp{\outsym})}
 \newcommand\psubcompnext[1]{\submat(\symnext_{#1},\comp{\outsym})}
