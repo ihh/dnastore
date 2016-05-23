@@ -203,15 +203,17 @@ Some simple examples of concatenation are shown in \figref{DivisionByThree}.
 
 \subsection{De Bruijn graphs}
 
-The $\kmerlen$-dimensional De Bruijn graph over an alphabet $\somealph$ of cardinality $M$
-is a directed graph with $M^\kmerlen$ vertices,
-corresponding to all possible $\kmerlen$-symbol strings
-$\sym_1 \sym_2 \ldots \sym_\kmerlen \in \somealph^\kmerlen$.
-There is an edge $u \to v$ between any two vertices
+Denote by $\somealph^\kmerlen$
+the set of all possible $\kmerlen$-symbol strings
+$\sym_1 \sym_2 \ldots \sym_\kmerlen$ over some alphabet $\somealph$.
+
+The $\kmerlen$-dimensional De Bruijn graph over $\somealph$
+has vertex set $\somealph^\kmerlen$
+and a directed edge $u \to v$ between any two vertices
 $u=\sym_1 \sym_2 \ldots \sym_\kmerlen$ and $v=\sym_2 \ldots \sym_\kmerlen \sym_{\kmerlen+1}$
 that overlap by $\kmerlen-1$ symbols; this edge is labeled with symbol $\sym_{\kmerlen+1}$ (the last symbol of $v$).
-Thus, each vertex has $M$ incoming and $M$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
-Denote this graph by $\debruijngraph = (\debruijnvertices,\debruijnedges)$.
+Thus, each vertex has $|\somealph|$ incoming and $|\somealph|$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
+Denote this graph by $\debruijngraph(\somealph^\kmerlen) = (\somealph^\kmerlen,\debruijnedges(\somealph^\kmerlen))$.
 
 \subsection{DNA alphabets and repeats}
 
@@ -231,7 +233,7 @@ of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $
 \subsection{A transducer for encoding signals as DNA without short repeats or reserved words}
 \seclabel{DeBruijnTransducer}
 
-Start with $\debruijngraph$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
+Start with $\debruijngraph(\nucalph^\kmerlen)$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
 Delete all nodes corresponding to sequences that contain substrings which are
 direct tandem repeats of any length,
 direct inverted repeats of length $\geq 2$,
@@ -425,10 +427,48 @@ both will require 6 trits per byte, or 4 quats per byte, or 8 bits, or some mixt
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
 
-Error-modeling transducer...
-% Use future context to reduce # of states needed for invreps?
-% No - we don't need future context for invreps or duplications. Do everything with past context.
-% Oh, actually... maybe we do. So we can have inverted duplications in both directions: right (ACG.->ACG.CGT) and left (.ACG->CGT.ACG)
+The error-model transducer has input and output alphabets $\outalph$,
+context $\contextlen=\kmerlen/2$
+and the following state space:
+\begin{itemize}
+\item There is a state $S_A(\emptystring,\emptystring)$ which is the initial state
+ %
+\item For every $k:1 \leq k < \contextlen$ and every $k$-mer $\inseqnext \in \outalph^k$
+  there is a state $S_B(\emptystring,\inseqnext)$
+  %
+\item For every $j:0 \leq j \leq \contextlen$, every $j$-mer $\inseqpast \in \outalph^j$ and every $\contextlen$-mer $\inseqnext \in \outalph^\contextlen$
+  there is a state $S_C(\inseqpast,\inseqnext)$,
+  $\contextlen$ states $\{ R_C(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$ and
+  $2j$ states $\{ T_C(\inseqpast,\inseqnext,i), F_C(\inseqpast,\inseqnext,i): 1 \leq i \leq j \}$
+  %
+\item For every pair of $\contextlen$-mers $\inseqpast, \inseqnext \in \outalph^\contextlen$
+  there is a state $S_D(\inseqpast,\inseqnext)$ and
+  $3\contextlen$ states $\{ T_D(\inseqpast,\inseqnext,i), F_D(\inseqpast,\inseqnext,i), R_D(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$
+  %
+\item For every $k:0 \leq k < \contextlen$, every $\contextlen$-mer $\inseqpast \in \outalph^\contextlen$ and every $k$-mer $\inseqnext \in \outalph^k$
+  there is a state $S_E(\inseqpast,\inseqnext)$,
+  $2\contextlen$ states $\{ T_E(\inseqpast,\inseqnext,i), F_E(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$ and 
+  $k$ states $\{ R_E(\inseqpast,\inseqnext,i): 1 \leq i \leq k \}$ 
+  %
+\item There is a state $S_F(\emptystring,\emptystring)$ which is the final state
+\end{itemize}
+These states have the following significance:
+\begin{itemize}
+  \item $S_B$ states load input symbols into the future context queue
+  \item $S_C$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
+  \item $S_D$ states have fully loaded past and future context queues. They load input symbols, shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
+  \item $S_E$ states have fully loaded past context queues, but emptying future context queues. No future input symbols are loaded at this point. They shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
+  \item $T_x$ states are used for tandem duplications
+  \item $F_x$ states are used for forward inverse duplications
+  \item $R_x$ states are used for reverse inverse duplications
+  \item Each state is indexed with its past context $\inseqpast$, its future context $\inseqnext$ and (for duplication states) the remaining duplication length $i$
+\end{itemize}
+
+The transitions of this machine are as follows:
+%\begin{tabular}{rlllll}
+%  \end{tabular}
+
+% where \submat(i,j) = \left{ identity... transitions... transversions...
 
 \subsection{Adding error-correcting codes}
 
