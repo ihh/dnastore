@@ -84,7 +84,7 @@ consisting of an input alphabet $\inalph$,
 an output alphabet $\outalph$ (both alphabets being finite sets),
 a finite set of states $\states$,
 a finite set of transitions
-$\transitions \subseteq \states \times \maybe{\inalph} \times \maybe{\outalph} \times \srset \times \states$,
+$\transitions \subseteq \states \times (\maybe{\inalph}) \times (\maybe{\outalph}) \times \srset \times \states$,
 an initial state $\initstate \in \states$
 and a final state $\finalstate \in \states$.
 
@@ -195,7 +195,7 @@ Suppose
  $A = (\inalph, \outalph, \states_A, \transitions_A, \initstate_A, \finalstate_A)$ and
  $B = (\inalph, \outalph, \states_B, \transitions_B, \initstate_B, \finalstate_B)$
 are transducers with the same input and output alphabets and disjoint state spaces.
-The concatenated transducer $C = A \transconcat B$ can be constructed by
+The concatenated transducer $T = A \transconcat B$ can be constructed by
 taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
 from $\finalstate_A$ to $\initstate_B$.
 This models feeding the part of a sequence through $A$ and then feeding the second part through $B$.
@@ -221,8 +221,7 @@ Let $\nucalph = \{ \mbox{A}, \mbox{C}, \mbox{G}, \mbox{T} \} $ be the nucleotide
 Let $\comp{x}$ denote the complement of a nucleotide symbol $x$,
 and $\revcomp{\someseq}$ the reverse complement of a nucleotide sequence $\someseq$.
 Let $\ntrans{x}$ denote the nucleotide related to $x$ by a transition substitution
-(so $\ntrans{\nuca} = \nucg$, $\ntrans{\nucc}=\nuct$, etc.)
-and let $\ntranscomp{x}$ denote the complement of $\ntrans{x}$.
+(so $\ntrans{\nuca} = \nucg$, $\ntrans{\nucc}=\nuct$, etc.).
 
 A direct tandem repeat of length $k$ is a nucleotide sequence followed by an exact copy of itself, $\someseq \someseq$, where the length of each copy is $\seqlen{\someseq}=k$
 (note this includes repeated single nucleotides when $k=1$).
@@ -250,15 +249,17 @@ that does not pass through any of the vertices in $A$
 Define $\stepsto(D,A)$ to be the smallest value of $N$ for which $\prequels(D,A,N) = \norepvertices$,
 if such a value of $N$ exists; otherwise, let $\stepsto(D,A)$ be $\infty$.
 We can find $\prequels(D,A,N)$ from $\prequels(D,A,N-1)$ by recursive backtracking,
-and so determine in $M$ steps whether $\stepsto(D,A) \leq M$.
+and so determine in $k$ steps whether $\stepsto(D,A) \leq k$.
 
-We now allocate $\ncontrols$ ``control words'': $\kmerlen$-mers that in our transducer
-will be unreachable except by specially constructed paths of uniform length.
+We now allocate $\ncontrols$ ``control words'': $\kmerlen$-mers are reserved for marking metadata boundaries,
+including the starts and ends of messages.
+In the transducer, these will be unreachable except by specially constructed paths of uniform length.
 Specifically, we seek an indexed set of vertices
 $\controlset = \{ \controlword_1, \controlword_2 \ldots \controlword_{\ncontrols} \}$
-such that $\stepsto(\controlword_n,\controlset) \leq M$ for all $n$
-and some value of $M$ (e.g. $M = 2\kmerlen$).
+such that $\stepsto(\controlword_n,\controlset) \leq k$ for all $n$
+and for some pre-specified value of $k$.
 Our implementation finds this list $\controlset$ by brute-force recursive search
+(using $k = 2\kmerlen$)
 and further attempts to maximize the shortest Hamming distance between any two control words in $\controlset$.
 Note that there is a ceiling to the number of control words that may be found
 for any given value of $\kmerlen$ (and $\invreplen$),
@@ -427,48 +428,163 @@ both will require 6 trits per byte, or 4 quats per byte, or 8 bits, or some mixt
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
 
+In this section we describe a statistical error model that includes
+tandem duplications (ACG$\to$ACGACG),
+forward inverse duplications (ACG$\to$ACGCGT),
+reverse inverse duplications (ACG$\to$CGTACG),
+and substitutions (with a transition/transversion ratio) that also apply to the duplications.
+We also describe how to account for partial observation of the sequence.
+
 The error-model transducer has input and output alphabets $\outalph$,
 context $\contextlen=\kmerlen/2$
 and the following state space:
 \begin{itemize}
-\item There is a state $S_A(\emptystring,\emptystring)$ which is the initial state
+\item There is a state $\symstate{a}(\emptystring,\emptystring)$ which is the initial state
  %
 \item For every $k:1 \leq k < \contextlen$ and every $k$-mer $\inseqnext \in \outalph^k$
-  there is a state $S_B(\emptystring,\inseqnext)$
+  there is a state $\symstate{b}(\emptystring,\inseqnext)$
   %
-\item For every $j:0 \leq j \leq \contextlen$, every $j$-mer $\inseqpast \in \outalph^j$ and every $\contextlen$-mer $\inseqnext \in \outalph^\contextlen$
-  there is a state $S_C(\inseqpast,\inseqnext)$,
-  $\contextlen$ states $\{ R_C(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$ and
-  $2j$ states $\{ T_C(\inseqpast,\inseqnext,i), F_C(\inseqpast,\inseqnext,i): 1 \leq i \leq j \}$
+\item For every $k:1 \leq k < \contextlen$, every $k$-mer $\inseqpast \in \outalph^k$ and every $\contextlen$-mer $\inseqnext \in \outalph^\contextlen$
+  there are two states $\{ \symstate{c}(\inseqpast,\inseqnext), \delstate{c}(\inseqpast,\inseqnext) \}$,
+  $\contextlen$ states $\{ \revstate{i}{c}(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$ and
+  $2k$ states $\{ \tanstate{c}{i}(\inseqpast,\inseqnext), \fwdstate{c}{i}(\inseqpast,\inseqnext): 1 \leq i \leq k \}$
   %
 \item For every pair of $\contextlen$-mers $\inseqpast, \inseqnext \in \outalph^\contextlen$
-  there is a state $S_D(\inseqpast,\inseqnext)$ and
-  $3\contextlen$ states $\{ T_D(\inseqpast,\inseqnext,i), F_D(\inseqpast,\inseqnext,i), R_D(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$
+  there are two states $\{ \symstate{d}(\inseqpast,\inseqnext), \delstate{D}(\inseqpast,\inseqnext) \}$ and
+  $3\contextlen$ states $\{ \tanstate{d}{i}(\inseqpast,\inseqnext), \fwdstate{d}{i}(\inseqpast,\inseqnext), \revstate{d}{i}(\inseqpast,\inseqnext): 1 \leq i \leq \contextlen \}$
   %
-\item For every $k:0 \leq k < \contextlen$, every $\contextlen$-mer $\inseqpast \in \outalph^\contextlen$ and every $k$-mer $\inseqnext \in \outalph^k$
-  there is a state $S_E(\inseqpast,\inseqnext)$,
-  $2\contextlen$ states $\{ T_E(\inseqpast,\inseqnext,i), F_E(\inseqpast,\inseqnext,i): 1 \leq i \leq \contextlen \}$ and 
-  $k$ states $\{ R_E(\inseqpast,\inseqnext,i): 1 \leq i \leq k \}$ 
+\item For every $k:1 \leq k < \contextlen$, every $\contextlen$-mer $\inseqpast \in \outalph^\contextlen$ and every $k$-mer $\inseqnext \in \outalph^k$
+  there are two states $\{ \symstate{e}(\inseqpast,\inseqnext), \delstate{D}(\inseqpast,\inseqnext) \}$,
+  $2\contextlen$ states $\{ \tanstate{e}{i}(\inseqpast,\inseqnext), \fwdstate{e}{i}(\inseqpast,\inseqnext): 1 \leq i \leq \contextlen \}$ and 
+  $k$ states $\{ \revstate{e}{i}(\inseqpast,\inseqnext): 1 \leq i \leq k \}$ 
   %
-\item There is a state $S_F(\emptystring,\emptystring)$ which is the final state
+\item There is a state $\symstate{f}(\emptystring,\emptystring)$ which is the final state
 \end{itemize}
 These states have the following significance:
 \begin{itemize}
-  \item $S_B$ states load input symbols into the future context queue
-  \item $S_C$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
-  \item $S_D$ states have fully loaded past and future context queues. They load input symbols, shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
-  \item $S_E$ states have fully loaded past context queues, but emptying future context queues. No future input symbols are loaded at this point. They shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
-  \item $T_x$ states are used for tandem duplications
-  \item $F_x$ states are used for forward inverse duplications
-  \item $R_x$ states are used for reverse inverse duplications
+  \item $\symstate{b}$ states load input symbols into the future context queue
+  \item $\symstate{c}$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
+  \item $\symstate{d}$ states have fully loaded past and future context queues. They load input symbols, shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
+  \item $\symstate{e}$ states have fully loaded past context queues, but emptying future context queues. No future input symbols are loaded at this point. They shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
+  \item $\delstate{\block}$ states are used for deletions ($\block \in \{ c, d, e \}$)
+  \item $\tanstate{\block}{i}$ states are used for tandem duplications ($1 \leq i \leq \contextlen$)
+  \item $\fwdstate{\block}{i}$ states are used for forward inverse duplications
+  \item $\revstate{\block}{i}$ states are used for reverse inverse duplications
   \item Each state is indexed with its past context $\inseqpast$, its future context $\inseqnext$ and (for duplication states) the remaining duplication length $i$
 \end{itemize}
 
-The transitions of this machine are as follows:
-%\begin{tabular}{rlllll}
-%  \end{tabular}
+The transitions $(p, \inlab, \outlab, \weight, q)$,
+that involve $S$-states,
+so $p = \symstate{\srcblock}(\ldots)$ and $q = \symstate{\destblock}(\ldots)$,
+are shown in the table.
+In all cases
+$1 < k \leq \contextlen$ measures a partial context length,Q
+$\sym_1 \ldots \sym_{2\contextlen+1} \in \outalph$ represent input symbols and
+$\outsym \in \outalph$ represents an output symbol.
+\[
+\begin{array}{lllll}
+\src & \inlab & \outlab & \weight & \dest \\
+\hline
+\symstate{a}(\emptystring,\emptystring) & \sym_1 & \emptystring & 1 & \symstate{b}(\emptystring,\sym_1) \\
+\symstate{b}(\emptystring,\conseq{1}{k-1}) & \sym_k & \emptystring & 1 & \symstate{b}(\emptystring,\conseq{1}{k}) \\
+\symstate{b}(\emptystring,\conseq{1}{\contextlen}) & \sym_{\contextlen+1} & \outsym & \pcont(0,\contextlen) \psub{1} & \symstate{c}(\sym_1,\conseq{2}{\contextlen+1}) \\
+\symstate{c}(\conseq{1}{k-1},\conseq{k}{\contextlen+k-1}) & \sym_{\contextlen+k} & \outsym & \pcont(k-1,\contextlen) \psub{k} & \symstate{c}(\conseq{1}{k},\conseq{k+1}{\contextlen+k}) \\
+\symstate{c}(\conseq{1}{\contextlen-1},\conseq{\contextlen}{2\contextlen-1}) & \sym_{2\contextlen} & \outsym & \pcont(\contextlen-1,\contextlen) \psub{\contextlen} & \symstate{d}(\conseq{1}{\contextlen},\conseq{\contextlen+1}{2\contextlen}) \\
+\symstate{d}(\conseq{1}{\contextlen},\conseq{\contextlen+1}{2\contextlen}) & \sym_{2\contextlen+1} & \outsym & \pcont(\contextlen,\contextlen) \psub{\contextlen+1} & \symstate{d}(\conseq{2}{\contextlen+1},\conseq{\contextlen+2}{2\contextlen+1}) \\
+\symstate{d}(\conseq{1}{\contextlen},\conseq{\contextlen+1}{2\contextlen}) & \emptystring & \outsym & \pcont(\contextlen,\contextlen) \psub{\contextlen+1} & \symstate{e}(\conseq{2}{\contextlen+1},\conseq{\contextlen+1}{2\contextlen}) \\
+\symstate{e}(\conseq{1}{\contextlen},\conseq{\contextlen+1}{\contextlen+k}) & \emptystring & \outsym & \pcont(\contextlen,k) \psub{\contextlen+1} & \symstate{e}(\conseq{2}{\contextlen+1},\conseq{\contextlen+1}{\contextlen+k-1}) \\
+\symstate{e}(\conseq{1}{\contextlen},\sym_{\contextlen+1}) & \emptystring & \outsym & \pcont(\contextlen,1) \psub{\contextlen+1} & \symstate{f}(\emptystring,\emptystring) \\
+\hline
+\end{array}
+\]
 
-% where \submat(i,j) = \left{ identity... transitions... transversions...
+The other transitions can be deduced using the following rules:
+\[
+\begin{array}{llllll}
+  \multicolumn{6}{l}{
+    \text{For every state of the form...}
+  } \\
+\hline
+\symstate{\block}(\inseqpast,\inseqnext) & & & & & \text{with $\inseqpast = \conseqpast{1}{j},\ 0 \leq j \leq \contextlen$} \\
+& & & & & \text{and $\inseqnext = \conseqnext{1}{k},\ 0 \leq k \leq \contextlen$} \\
+\hline
+\\
+%
+\multicolumn{6}{l}{
+  \text{...there are transitions of the form...}
+} \\
+\src & \inlab & \outlab & \weight & \dest \\
+\hline
+\symstate{\block}(\inseqpast,\inseqnext) & \emptystring & \emptystring & \ptandup \lendist(i) & \tanstate{\block}{i}(\inseqpast,\inseqnext) & \forall 1 \leq i \leq j \\
+\symstate{\block}(\inseqpast,\inseqnext) & \emptystring & \emptystring & \pfwddup             & \fwdstate{\block}{1}(\inseqpast,\inseqnext) & \\
+\symstate{\block}(\inseqpast,\inseqnext) & \emptystring & \emptystring & \prevdup \lendist(i) & \revstate{\block}{i}(\inseqpast,\inseqnext) & \forall 1 \leq i \leq k \\
+%
+\tanstate{\block}{i}(\inseqpast,\inseqnext) & \emptystring & \outsym & \psubpast{j+1-i} & \tanstate{\block}{i-1}(\inseqpast,\inseqnext) & \forall 1 < i \leq j \\
+\tanstate{\block}{1}(\inseqpast,\inseqnext) & \emptystring & \outsym & \psubpast{j} & \symstate{\block}(\inseqpast,\inseqnext) & \\
+%
+\fwdstate{\block}{i}(\inseqpast,\inseqnext) & \emptystring & \outsym & \psubcomppast{j+1-i} & \fwdstate{\block}{i+1}(\inseqpast,\inseqnext) & \forall 1 \leq i < j \\
+\fwdstate{\block}{1}(\inseqpast,\inseqnext) & \emptystring & \outsym & \lendist(i) \psubcomppast{j+1-i} & \symstate{\block}(\inseqpast,\inseqnext) & \forall 1 \leq i \leq j \\
+%
+\revstate{\block}{i}(\inseqpast,\inseqnext) & \emptystring & \outsym & \psubcompnext{i} & \revstate{\block}{i-1}(\inseqpast,\inseqnext) & \forall 1 < i \leq k \\
+\revstate{\block}{1}(\inseqpast,\inseqnext) & \emptystring & \outsym & \psubcompnext{1} & \symstate{\block}(\inseqpast,\inseqnext) & \\
+\hline
+%
+\\
+\multicolumn{6}{l}{
+    \text{For every transition of the form...}
+  } \\
+\src & \inlab & \outlab & \weight & \dest \\
+\hline
+%
+\symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \outsym & \pcont(\ldots) \psub{} & \symstate{\destblock}(\inseqpast',\inseqnext') & \text{with $\inseqpast,\inseqpast',\inseqnext,\inseqnext' \in \kleene{\outalph}$} \\
+  & & & & & \text{and $\sym,\outsym \in \outalph$} \\
+\hline
+%
+\\
+  \multicolumn{6}{l}{
+    \text{...there are also transitions of the form...}
+  } \\
+\src & \inlab & \outlab & \weight & \dest \\
+\hline
+\symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \emptystring & \pdelopen & \delstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\destblock \neq f$} \\
+\symstate{\srcblock}(\inseqpast,\sym \inseqnext) & \emptystring & \emptystring & \pdelopen & \symstate{f}(\emptystring,\emptystring) & \text{if $\destblock = f$} \\
+\delstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \outsym & \pdelend \psub{} & \symstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\srcblock \neq b$} \\
+\delstate{\srcblock}(\inseqpast,\sym \inseqnext) & \sym & \emptystring & \pdelext & \delstate{\destblock}(\inseqpast',\inseqnext') & \text{if $\srcblock \neq b$} \\
+\hline
+\end{array}
+\]
+
+The probability parameters are
+$\pdelopen$ to open a deletion,
+$\pdelext$ to extend a deletion,
+$\pdelend$ to end a deletion,
+$\ptandup$ for a tandem duplication,
+$\pfwddup$ for a forward inverse duplication,
+$\prevdup$ for a reverse inverse duplication,
+$\pnogap$ for no gap,
+$\ptransition$ for a transition substitution,
+$\ptransversion$ for a transversion substitution,
+$\pmatch$ for no substitution, and
+$\plen{k}$ for the probability that a duplication has length $k$.
+The constraints on these parameters are
+$\pdelopen+\ptandup+\pfwddup+\prevdup+\pnogap=1$,
+$\pdelext+\pdelend=1$,
+$\ptransition+\ptransversion+\pmatch=1$,
+and
+$\sum_{k=1}^{\kmerlen} \plen{k} = 1$.
+
+The substitution matrix is $\submat(\sym,\outsym)$, defined to be $\pmatch$ if $x=y$ (no substitution), $\ptransition$ if $x = \ntrans{y}$ (transition)
+and $\ptransversion/2$ otherwise (transversion).
+
+The context-adjusted probability of not opening a gap at a site with $j$ nucleotides of past context and $k$ nucleotides of future context is
+\[
+\pcont(j,k) = \pnogap + (\ptandup + \pfwddup) \sum_{i=j+1}^{\kmerlen} \lendist(i) + \prevdup \sum_{i=k+1}^{\kmerlen} \lendist(i)
+\]
+
+The probability parameters can be estimated directly from alignments of reads to known reference sequences using the Forward-Backward algorithm \cite{Durbin98}.
+
+The transducer described in this section models errors but still assumes observation of the full-length sequence.
+By composing it with the transducer in \figref{PartialObservation}, we can model errors and partial observation.
 
 \subsection{Adding error-correcting codes}
 
@@ -538,8 +654,9 @@ and so can be written $\transbintodna = \transbintoquat \transcomp \transquattod
 \newpage
 \begin{figure}
 \begin{tabular}{cc}
-\multicolumn{2}{c}{}
+\multicolumn{2}{c}{
 (a) \includedot{divisionby3}{width=\textwidth}
+}
 \\
 (b) \includedot{trinary0}{width=.2\textwidth}
 &
@@ -549,8 +666,9 @@ and so can be written $\transbintodna = \transbintoquat \transcomp \transquattod
 &
 (e) \includedot{binaryeraser}{width=.15\textwidth}
 \\
-\multicolumn{2}{c}{}
-(f) \includedot{binary2trinary}{width=\textwidth}
+\multicolumn{2}{c}{
+  (f) \includedot{binary2trinary}{width=\textwidth}
+  }
 \end{tabular}
 \caption{
 \figlabel{DivisionByThree}
@@ -711,6 +829,12 @@ will have no successful path through the transducer.
   The output label of a transition into a state $XY$ is always either $Y$ or $\epsilon$.
 }
 \end{figure}
+
+\dotfig{partial}{width=.5\textwidth}{PartialObservation}{
+  Transducer $\transpartial$ models partial observation of a sequence.
+  Borrowing the terminology of local vs global alignment \cite{Durbin98},
+  this machine effectively converts a global model for a sequence into a local one.
+}
 
 \newpage
 \bibliography{trans}

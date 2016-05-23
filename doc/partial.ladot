@@ -1,0 +1,20 @@
+digraph G {
+	rankdir=LR;
+	L -> M [label=$\epsilon/\epsilon$];
+	M -> R [label=$\epsilon/\epsilon$];
+
+	L -> L [label=$\mbox{A}/\epsilon$];
+	L -> L [label=$\mbox{C}/\epsilon$];
+	L -> L [label=$\mbox{G}/\epsilon$];
+	L -> L [label=$\mbox{T}/\epsilon$];
+
+	M -> M [label=$\mbox{A}/\mbox{A}$];
+	M -> M [label=$\mbox{C}/\mbox{C}$];
+	M -> M [label=$\mbox{G}/\mbox{G}$];
+	M -> M [label=$\mbox{T}/\mbox{T}$];
+
+	R -> R [label=$\mbox{A}/\epsilon$];
+	R -> R [label=$\mbox{C}/\epsilon$];
+	R -> R [label=$\mbox{G}/\epsilon$];
+	R -> R [label=$\mbox{T}/\epsilon$];
+}

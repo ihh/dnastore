@@ -24,7 +24,7 @@ while ($line = <INFILE>)
         # print "SIZEHINT: $sizehint\n";
         $tex = $1;
 	$tex =~ s/^\$/\$\\scriptscriptstyle /;  # force \scriptscriptstyle (IH, 5/21/2016)
-	$tex =~ s/mbox\{/mbox\{\\tiny /;  # force \tiny in \mbox's (IH, 5/21/2016)
+	$tex =~ s/mbox\{/mbox\{\\tiny /g;  # force \tiny in \mbox's (IH, 5/21/2016)
         $stub = make_stub($tex, $sizehint);
         $line =~ s/(\$.*?\$)(\((\d+)\))?/$stub/;
         print TEXOUT "\\psfrag{$stub}[cc][cc]{$tex}\n";
