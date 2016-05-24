@@ -14,7 +14,7 @@ ALLFIGPS := $(addsuffix .ps,$(ALLFIG))
 ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
 ALLFIGJUNK := $(ALLFIGTEX)
 
-FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX)
+FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps
 
 # LaTeX:
 TEXINCLUDES := defs.tex notation.tex
@@ -41,7 +41,7 @@ tidy:
 	rm -f $(ALLFIGJUNK) $(ALLTEXJUNK) *~
 
 clean: tidy
-	rm -f $(ALLTEXPS) $(ALLFIGTEX) $(ALLFIGPS) *.dvi
+	rm -f $(ALLTEXPS) $(ALLFIGTEX) *.ps *.dvi
 
 cleanstore:
 	rm -f $(DNASTORELACIRCO)
@@ -69,28 +69,28 @@ hamming74.dot: hamming74.pl
 
 # DNAstore machines
 dna1full.lacirco: filter.pl Makefile
-	../bin/dnastore -l1 -c0 -k -t0 --no-start --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l1 -c0 -t0 --no-start --no-eof --dot | perl filter.pl >$@
 
 dna2full.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c0 -k -t0 --no-start --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c0 -t0 --no-start --no-eof --dot | perl filter.pl >$@
 
 dna2start.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k -t0 --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 -t0 --no-eof --dot | perl filter.pl >$@
 
 dna2startend.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k -t0 --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 -t0 --dot | perl filter.pl >$@
 
 dna2norep.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c0 -k --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c0 --no-eof --dot | perl filter.pl >$@
 
 dna2startnorep.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 --no-eof --dot | perl filter.pl >$@
 
 dna2startendnorep.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -k --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@
 
 dna3.lacirco: filter.pl Makefile
-	../bin/dnastore -l3 -k --dot | perl filter.pl >$@
+	../bin/dnastore -l3 --dot | perl filter.pl >$@
 
 # Paper rules:
 %.ps: %.tex figures bib $(TEXINCLUDES)
