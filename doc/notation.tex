@@ -16,7 +16,7 @@
 \newcommand\emptystring{\epsilon}
 \newcommand\maybe[1]{#1 \cup \{ \emptystring \}}
 
-\newcommand\transducer[1]{{\cal #1}}
+\newcommand\transducer[1]{#1}
 \newcommand\trt{\transducer{T}}
 \newcommand\trr{\transducer{R}}
 \newcommand\trs{\transducer{S}}
@@ -31,6 +31,13 @@
 \newcommand\inlab{\lab_i}
 \newcommand\outlab{\lab_o}
 \newcommand\weight{\mathbb{W}}
+
+\newcommand\tprop[2]{#1_{\transducer{#2}}}
+\newcommand\tpt[1]{\tprop{#1}{T}}
+\newcommand\tpr[1]{\tprop{#1}{R}}
+\newcommand\tps[1]{\tprop{#1}{S}}
+\newcommand\tpa[1]{\tprop{#1}{A}}
+\newcommand\tpb[1]{\tprop{#1}{B}}
 
 \newcommand\somealph{\Gamma}
 \newcommand\someseq{\gamma}

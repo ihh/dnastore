@@ -16,13 +16,7 @@ typedef int ControlIndex;
 #define MachineBit0         '0'
 #define MachineBit1         '1'
 
-#define MachineFlushedBit0  '8'
-#define MachineFlushedBit1  '9'
-
-#define MachineEscapedA     'a'
-#define MachineEscapedC     'c'
-#define MachineEscapedG     'g'
-#define MachineEscapedT     't'
+#define MachineFlush        'f'
 
 #define MachineStrictBit0   'i'
 #define MachineStrictBit1   'j'
@@ -62,9 +56,12 @@ struct MachineState {
   MachineState();
   const MachineTransition* transFor (InputSymbol in) const;
   bool isEnd() const;  // true if this has no outgoing transitions
-  bool acceptsInputOrEof() const;
-  bool emitsOutput() const;
-  bool isDeterministic() const;  // true if this has only one non-absorbing transition
+  bool exitsWithInput() const;  // true if this has an input transition
+  bool exitsWithoutInput() const;  // true if this has a non-input transition
+  bool emitsOutput() const;  // true if this has an output transition
+  bool isDeterministic() const;  // true if this has only one transition and it is non-input
+  bool isWait() const;  // exitsWithInput() && !exitsWithoutInput()
+  bool isNonWait() const;  // !exitsWithInput() && exitsWithoutInput()
   const MachineTransition& next() const;
 };
 
@@ -76,6 +73,7 @@ struct Machine {
   State startState() const;
   
   void verifyContexts() const;
+  bool isWaitingMachine() const;
 
   void write (ostream& out) const;
   void writeDot (ostream& out) const;

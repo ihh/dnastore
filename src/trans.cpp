@@ -25,13 +25,7 @@ MachineTokenLookup::MachineTokenLookup() {
   add (MachineBit0, "0");
   add (MachineBit1, "1");
 
-  add (MachineFlushedBit0, "0.");
-  add (MachineFlushedBit1, "1.");
-
-  add (MachineEscapedA, "A");
-  add (MachineEscapedC, "C");
-  add (MachineEscapedG, "G");
-  add (MachineEscapedT, "T");
+  add (MachineFlush, "FLUSH");
 
   add (MachineStrictBit0, "0%2");
   add (MachineStrictBit1, "1%2");
@@ -86,11 +80,26 @@ bool MachineState::isEnd() const {
   return trans.empty();
 }
 
-bool MachineState::acceptsInputOrEof() const {
+bool MachineState::exitsWithInput() const {
   for (const auto& t: trans)
     if (t.in)
       return true;
   return false;
+}
+
+bool MachineState::exitsWithoutInput() const {
+  for (const auto& t: trans)
+    if (!t.in)
+      return true;
+  return false;
+}
+
+bool MachineState::isWait() const {
+  return exitsWithInput() && !exitsWithoutInput();
+}
+
+bool MachineState::isNonWait() const {
+  return !exitsWithInput() && exitsWithoutInput();
 }
 
 bool MachineState::emitsOutput() const {
@@ -243,7 +252,7 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
   map<State,double> current;
   size_t nSources = 0;
   for (State s = 0; s < nStates(); ++s)
-    if (state[s].acceptsInputOrEof()) {
+    if (state[s].exitsWithInput()) {
       current[s] = 1;
       ++nSources;
     }
@@ -282,7 +291,7 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
 	  if (seen.count(s))  // guard against infinite loops
 	    break;
 	  seen.insert(s);
-	  if (state[s].acceptsInputOrEof() || state[s].isEnd())
+	  if (state[s].exitsWithInput() || state[s].isEnd())
 	    break;
 	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs: %s", state[s].name.c_str());
 	  t = &state[s].next();
@@ -382,6 +391,7 @@ void Machine::readJSON (istream& in) {
     state.push_back (ms);
   }
   verifyContexts();
+  Assert (isWaitingMachine(), "Not a waiting machine");
 }
 
 Machine Machine::fromJSON (istream& in) {
@@ -409,4 +419,11 @@ void Machine::verifyContexts() const {
       }
     }
   }
+}
+
+bool Machine::isWaitingMachine() const {
+  for (const auto& ms: state)
+    if (!ms.isWait() && !ms.isNonWait() && !ms.isEnd())
+      return false;
+  return true;
 }

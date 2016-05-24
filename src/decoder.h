@@ -134,7 +134,7 @@ struct Decoder {
     if (current.size() == 1) {
       auto iter = current.begin();
       const MachineState& ms = machine.state[iter->first];
-      if (ms.acceptsInputOrEof())
+      if (ms.exitsWithInput())
 	flush (iter);
     } else
       shiftResolvedSymbols();

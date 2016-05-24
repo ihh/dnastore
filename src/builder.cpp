@@ -8,7 +8,7 @@ TransBuilder::TransBuilder (Pos len)
     maxKmer (kmerMask (len)),
     maxTandemRepeatLen (len / 2),
     invertedRepeatLen (0),
-    keepDegenerates (false),
+    keepDegenerates (true),
     nControlWords (0),
     controlWordAtStart (false),
     controlWordAtEnd (false),
@@ -307,8 +307,7 @@ Machine TransBuilder::makeMachine() {
       ms.trans.push_back (MachineTransition (MachineBit0, outChar[i2], outState[i2]));
       ms.trans.push_back (MachineTransition (MachineBit1, outChar[j2], outState[j2]));
 
-      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
-      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+      ms.trans.push_back (MachineTransition (MachineFlush, MachineNull, s));
 
       ms.trans.push_back (MachineTransition (MachineStrictBit0, outChar[i2], outState[i2]));
       ms.trans.push_back (MachineTransition (MachineStrictBit1, outChar[j2], outState[j2]));
@@ -321,17 +320,12 @@ Machine TransBuilder::makeMachine() {
       ms.trans.push_back (MachineTransition (MachineBit1, outChar[k3], outState[k3]));
 
       machine.state[s0].leftContext = kmerString(kmer,len);
-      machine.state[s0].name = string("Split#") + to_string(s0);
+      machine.state[s0].name = string("Split0#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i3], outState[i3]));
       machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j3], outState[j3]));
 
-      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i3], outState[i3]));
-      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j3], outState[j3]));
-
-      const int rotate2 = (++nOut2 % 2);
-      const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
-      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
-      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+      ms.trans.push_back (MachineTransition (MachineFlush, MachineNull, s));
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlush, outChar[i3], outState[i3]));
 
       ms.trans.push_back (MachineTransition (MachineStrictTrit0, outChar[i3], outState[i3]));
       ms.trans.push_back (MachineTransition (MachineStrictTrit1, outChar[j3], outState[j3]));
@@ -346,25 +340,18 @@ Machine TransBuilder::makeMachine() {
       ms.trans.push_back (MachineTransition (MachineBit1, MachineNull, s1));
 
       machine.state[s0].leftContext = kmerString(kmer,len);
-      machine.state[s0].name = string("Split#") + to_string(s0);
+      machine.state[s0].name = string("Split0#") + to_string(s0);
       machine.state[s0].trans.push_back (MachineTransition (MachineBit0, outChar[i4], outState[i4]));
       machine.state[s0].trans.push_back (MachineTransition (MachineBit1, outChar[j4], outState[j4]));
 
-      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i4], outState[i4]));
-      machine.state[s0].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j4], outState[j4]));
-
       machine.state[s1].leftContext = kmerString(kmer,len);
-      machine.state[s1].name = string("Split#") + to_string(s1);
+      machine.state[s1].name = string("Split1#") + to_string(s1);
       machine.state[s1].trans.push_back (MachineTransition (MachineBit0, outChar[k4], outState[k4]));
       machine.state[s1].trans.push_back (MachineTransition (MachineBit1, outChar[l4], outState[l4]));
 
-      machine.state[s1].trans.push_back (MachineTransition (MachineFlushedBit0, outChar[k4], outState[k4]));
-      machine.state[s1].trans.push_back (MachineTransition (MachineFlushedBit1, outChar[l4], outState[l4]));
-
-      const int rotate2 = (++nOut2 % 2);
-      const size_t i2 = rotate2, j2 = (rotate2 + 1) % 2;
-      ms.trans.push_back (MachineTransition (MachineFlushedBit0, outChar[i2], outState[i2]));
-      ms.trans.push_back (MachineTransition (MachineFlushedBit1, outChar[j2], outState[j2]));
+      ms.trans.push_back (MachineTransition (MachineFlush, MachineNull, s));
+      machine.state[s0].trans.push_back (MachineTransition (MachineFlush, outChar[i4], outState[i4]));
+      machine.state[s1].trans.push_back (MachineTransition (MachineFlush, outChar[l4], outState[l4]));
 
       ms.trans.push_back (MachineTransition (MachineStrictQuat0, outChar[i4], outState[i4]));
       ms.trans.push_back (MachineTransition (MachineStrictQuat1, outChar[j4], outState[j4]));

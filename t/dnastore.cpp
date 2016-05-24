@@ -43,7 +43,7 @@ int main (int argc, char** argv) {
       ("invrep,i", po::value<int>()->default_value(4), "reject nonlocal inverted repeats of this length (separated by at least 2 bases)")
       ("exclude,x", po::value<vector<string> >(), "motif(s) to exclude")
       ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
-      ("keep-degen,k", "keep degenerate transitions")
+      ("elim-trans", "eliminate degenerate transitions")
       ("controls,c", po::value<int>()->default_value(4), "number of control words")
       ("no-start,s", "do not use a control word at start of encoded sequence")
       ("no-eof,f", "do not use a control word at end of encoded sequence")
@@ -88,8 +88,8 @@ int main (int argc, char** argv) {
     getMotifs (vm, "exclude", builder.excludedMotif, builder.excludedMotifRevComp);
     getMotifs (vm, "source", builder.sourceMotif, builder.excludedMotifRevComp);
 
-    if (vm.count("keep-degen"))
-      builder.keepDegenerates = true;
+    if (vm.count("elim-trans"))
+      builder.keepDegenerates = false;
 
     builder.nControlWords = vm.at("controls").as<int>();
     builder.controlWordAtStart = !vm.count("no-start");

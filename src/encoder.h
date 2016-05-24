@@ -38,7 +38,7 @@ struct Encoder {
   }
 
   void advance() {
-    while (!machine.state[current].acceptsInputOrEof()) {
+    while (!machine.state[current].exitsWithInput()) {
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");
       const MachineTransition& tn = machine.state[current].next();
@@ -68,7 +68,7 @@ struct Encoder {
 		<< "output " << t->out
 		<< endl);
       current = t->dest;
-      if (machine.state[current].acceptsInputOrEof() || machine.state[current].isEnd())
+      if (machine.state[current].exitsWithInput() || machine.state[current].isEnd())
 	break;
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");

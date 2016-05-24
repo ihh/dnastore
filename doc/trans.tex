@@ -37,6 +37,11 @@ Or if archiving data for retrieval in distant future, given current market where
 
 Here we present a modular strategy for designing codes that meet such flexible needs
 including error-avoidance, error-correction, and demarcated metadata
+We do not address the higher-level organization of DNA ``filesystem'',
+which has been addressed by others \cite{YazdiEtAl2015}
+The code described here operates at a lower level, though our use of reserved ``control words''
+can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks
+(for example, oligonucleotide sequences)
 
 Our strategy represents different stages of the encoding and decoding process
 modularly as state machines.
@@ -147,11 +152,11 @@ constructed using the method of \secref{DeBruijnTransducer}.
 \subsection{Transducer composition}
 
 Given transducers
- $\trr = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
- $\trs = (\somealph, \outalph, \states_S, \transitions_S, \initstate_S, \finalstate_S)$
+ $\trr = (\inalph, \somealph, \tpr{\states}, \tpr{\transitions}, \tpr{\initstate}, \tpr{\finalstate})$ and
+ $\trs = (\somealph, \outalph, \tps{\states}, \tps{\transitions}, \tps{\initstate}, \tps{\finalstate})$
 where $\trr$'s output alphabet is the same as $\trs$'s input alphabet,
 we can readily find a composite transducer
- $\trt = \trr \transcomp \trs = (\inalph, \outalph, \states_T, \transitions_T, \initstate_T, \finalstate_T)$
+ $\trt = \trr \transcomp \trs = (\inalph, \outalph, \tpt{\states}, \tpt{\transitions}, \tpt{\initstate}, \tpt{\finalstate})$
 such that, if $\tfunc{R}$, $\tfunc{S}$ and $\tfunc{T}$ are the corresponding transducer functions,
 then
 \[
@@ -165,20 +170,20 @@ that is, $\trt$ models the feeding of $\trr$'s output into $\trs$'s input
 Loosely speaking, we can construct $\trt$ using the following recipe:
 \begin{itemize}
 \item Each $\trt$-state corresponds to a pair of $\trr$- and $\trs$-states,
-so $\state_T = (\state_R, \state_S)$
-and $\states_T \subseteq \states_R \times \states_S$.
-\item The initial $\trt$-state $\initstate_T=(\initstate_R,\initstate_S)$ pairs the initial states of $\trr$ and $\trs$.
-\item The final $\trt$-state $\finalstate_T=(\finalstate_R,\finalstate_S)$ pairs the final states of $\trr$ and $\trs$.
+so $\tpt{\state} = (\tpr{\state}, \tps{\state})$
+and $\tpt{\states} \subseteq \tpr{\states} \times \tps{\states}$.
+\item The initial $\trt$-state $\tpt{\initstate}=(\tpr{\initstate},\tps{\initstate})$ pairs the initial states of $\trr$ and $\trs$.
+\item The final $\trt$-state $\tpt{\finalstate}=(\tpr{\finalstate},\tps{\finalstate})$ pairs the final states of $\trr$ and $\trs$.
 \item $\trt$-transitions
-$\trans_T = ((\src_R,\src_S),\inlab,\outlab,\weight_T,(\dest_R,\dest_S))$
+$\tpt{\trans} = ((\tpr{\src},\tps{\src}),\inlab,\outlab,\tpt{\weight},(\tpr{\dest},\tps{\dest}))$
 represent (summaries of sets of) synchronized pairs of $\trr$-transitions
-$\trans_R = (\src_R,\inlab,\midlab,\weight_R,\dest_R)$
+$\tpr{\trans} = (\tpr{\src},\inlab,\midlab,\tpr{\weight},\tpr{\dest})$
 and $\trs$-transitions
-$\trans_S = (\src_S,\midlab,\outlab,\weight_S,\dest_S)$
+$\tps{\trans} = (\tps{\src},\midlab,\outlab,\tps{\weight},\tps{\dest})$
 which share the same intermediate label $\midlab$.
-The composite transition weight $\weight_T$ is the product $\weight_R \srtimes \weight_S$,
-or the sum over such products if there are multiple transition-pairs $(\trans_R,\trans_S)$
-consistent with a given $\trans_T$
+The composite transition weight $\tpt{\weight}$ is the product $\tpr{\weight} \srtimes \tps{\weight}$,
+or the sum over such products if there are multiple transition-pairs $(\tpr{\trans},\tps{\trans})$
+consistent with a given $\tpt{\trans}$
 (which, in the probabilistic semiring, is equivalent to marginalizing out $\midlab$).
 \item Some additional manipulation is required to synchronize
 transitions involving empty input labels (``insertions''),
@@ -206,12 +211,12 @@ A simple example of (manual) transducer composition is shown in \figref{NaiveDNA
 Anther operation on transducers that is useful in constructing DNA codes
 is concatenation.
 Suppose
- $\tra = (\inalph, \outalph, \states_A, \transitions_A, \initstate_A, \finalstate_A)$ and
- $\trb = (\inalph, \outalph, \states_B, \transitions_B, \initstate_B, \finalstate_B)$
+ $\tra = (\inalph, \outalph, \tpa{\states}, \tpa{\transitions}, \tpa{\initstate}, \tpa{\finalstate})$ and
+ $\trb = (\inalph, \outalph, \tpb{\states}, \tpb{\transitions}, \tpb{\initstate}, \tpb{\finalstate})$
 are transducers with the same input and output alphabets and disjoint state spaces.
 The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed by
 taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
-from $\finalstate_A$ to $\initstate_B$.
+from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
 This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
 Some simple examples of concatenation are shown in \figref{DivisionByThree}.
 
@@ -457,11 +462,17 @@ or some mixture of bits, trits and quats bounded by these amounts.
 In this section we describe a statistical error model,
 implemented as a transducer $\transerror$,
 that includes
-tandem duplications (ACG$\to$ACGACG),
-forward inverse duplications (ACG$\to$ACGCGT),
-reverse inverse duplications (ACG$\to$CGTACG),
-and substitutions (with a transition/transversion ratio) that also apply to the duplications.
-We also describe how to account for partial observation of the sequence.
+tandem duplications (ACG$\to$ACG\underline{ACG}),
+forward inverse duplications (ACG$\to$ACG\underline{CGT}),
+reverse inverse duplications (ACG$\to$\underline{CGT}ACG),
+and point substitutions (ACG$\to$A\underline{T}G).
+The duplications can be imperfect: they can include substitutions.
+We also describe how to account for partial observation of the sequence
+(at least at the level of reconstructing individual reads;
+the broader problem of reassembling a data file from fragments is not addressed here,
+beyond the general recipe for demarcating metadata with control words
+that was given in \secref{DeBruijnTransducer}, which can be used to mark up shorter blocks
+with their locations in the file).
 
 The full working is rather detailed, but the basic idea is very simple.
 We use the transducer state space to build up a context of past nucleotides
