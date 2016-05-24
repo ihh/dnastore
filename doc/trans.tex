@@ -265,7 +265,7 @@ that can be used to flag metadata, demarcate boundaries,
 or to embed biologically functional motifs.
 
 Start with $\debruijngraph(\nucalph^\kmerlen)$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
-Delete all nodes corresponding to sequences that contain substrings which are
+Delete all nodes corresponding to sequences that are (or contain substrings which are)
 direct tandem repeats of any length,
 direct inverted repeats of length $\geq 2$,
 or local inverted repeats of length $\geq \invreplen$ and separation $\geq 2$.
@@ -481,7 +481,7 @@ and future nucleotides
 (i.e. the next few nucleotides it is prepared to receive on the input, in a given state).
 The higher-order structure of the transducer is determined by how much past and future context it has built up
 (in the early stages),
-and how much future context it has yet to expunge
+and how much future context it has yet to work through
 (in the later stages).
 The local structure of the transducer involves the states it uses to generate
 deletions (with opening and extension probabilities)
@@ -918,7 +918,7 @@ will have no successful path through the transducer.
   \figlabel{PartialObservation}
   Models of error and partial observation (\secref{ErrorModel}).
   Top: Higher-order structure of the error model, showing blocks \#a through \#f.
-  The dashed lines show the extra block and transitions that would need to be added to handle
+  The dashed lines show the extra block (\#g) and transitions that would need to be added to handle
   sequences shorter than the total (past+future) context length,
   which require paths that bypass the full loading of both context queues (block \#d).
   Middle: Local neighborhood of a state in the error model for context length $\contextlen=3$.

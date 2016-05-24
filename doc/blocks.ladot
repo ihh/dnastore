@@ -1,15 +1,15 @@
 digraph G {
 	rankdir=LR;
-	a [shape=box,label="Initial state #a"];
-	b [shape=box,label="Load future context #b"];
-	c [shape=box,label="Load past context #c"];
-	d [shape=box,label="Maintain past & future context #d"];
-	e [shape=box,label="Unload future context #e"];
-	f [shape=box,label="Final state #f"];
-	g [shape=box,style=dashed,label="Short sequences #g"];
+	a [shape=box,label="...|...\nInitial state\nNo past or\nfuture context\n(#a)"];
+	b [shape=box,label="...|..A\nNo past context,\nincomplete future context\n(#b)"];
+	c [shape=box,label="..A|BCD\nComplete future context,\nincomplete past context\n(#c)"];
+	d [shape=box,label="ABC|DEF\nComplete past &\nfuture contexts\n(#d)"];
+	e [shape=box,label="CDE|F..\nComplete past context,\nincomplete future context\n(#e)"];
+	f [shape=box,label="...|...\nFinal state\nNo past or\nfuture context\n(#f)"];
+	g [shape=box,style=dashed,label=".AB|CD.\nShort sequence\nIncomplete past &\nfuture contexts\n(#g)"];
 	a -> b -> c -> d -> e -> f;
 	b -> g [style=dashed];
 	c -> g [style=dashed];
 	g -> f [style=dashed];
-	a -> f [style=dashed];
+	a -> f [style=dashed,label="Empty sequence"];
 }
