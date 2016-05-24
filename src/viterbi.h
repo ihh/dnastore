@@ -15,6 +15,7 @@ struct IncomingTransScore {
 
 struct StateScores {
   Base base;
+  vguard<Base> leftContext;
   vguard<IncomingTransScore> emit, null;
 };
 
@@ -82,7 +83,11 @@ public:
   inline const LogProb fCell const (Pos pos, Pos idx) { return cell[fCellIndex(pos,idx)]; }
 };
 
-struct ViterbiMatrix {
+struct ViterbiMatrix : MutatorMatrix {
+
+  ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const TokSeq& seq);
+
+  string traceback() const;
 };
 
 #endif /* VITERBI_INCLUDED */
