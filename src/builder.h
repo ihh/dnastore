@@ -11,6 +11,12 @@
 using namespace std;
 
 typedef unsigned char EdgeFlags;
+#define AdenineFlag     (1 << AdenineBase)
+#define CytosineFlag    (1 << CytosineBase)
+#define GuanineFlag     (1 << GuanineBase)
+#define ThymineFlag     (1 << ThymineBase)
+#define PurineFlags     (AdenineFlag | GuanineFlag)
+#define PyrimidineFlags (CytosineFlag | ThymineFlag)
 
 struct TransBuilder {
   static vguard<int> edgeFlagsToCountLookup;

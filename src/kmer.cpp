@@ -1,3 +1,3 @@
 #include "kmer.h"
 
-const char* alphabet = "AGTC";
+const char* dnaAlphabet = "ACGT";

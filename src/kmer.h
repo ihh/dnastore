@@ -21,32 +21,41 @@ struct KmerLen {
   }
 };
 
-extern const char* alphabet;  // AGTC
+extern const char* dnaAlphabet;  // ACGT
+#define AdenineBase  0
+#define CytosineBase 1
+#define GuanineBase  2
+#define ThymineBase  3
+
+#define BaseMask       3
+#define PyrimidineMask 1
+#define CarbonylMask   2
+
 inline char baseToChar (Base base) {
-  return alphabet[base & 3];
+  return dnaAlphabet[base & BaseMask];
 }
 
 inline Base charToBase (char c) {
-  const char* s = strchr (alphabet, toupper(c));
+  const char* s = strchr (dnaAlphabet, toupper(c));
   Require (s != NULL, "%c is not a nucleotide character", c);
-  return (Base) (s - alphabet);
+  return (Base) (s - dnaAlphabet);
 }
 
 inline Base getBase (Kmer kmer, Pos pos) {
-  return (kmer >> ((pos - 1) << 1)) & 3;
+  return (kmer >> ((pos - 1) << 1)) & BaseMask;
 }
 
 inline Kmer setBase (Kmer kmer, Pos pos, Base base) {
   const int shift = (pos - 1) << 1;
-  return (kmer & (((Kmer) -1) ^ (3 << shift))) | (((Kmer) base) << shift);
+  return (kmer & (((Kmer) -1) ^ (BaseMask << shift))) | (((Kmer) base) << shift);
 }
 
 inline Base complementBase (Base b) {
-  return b ^ 2;
+  return BaseMask - b;
 }
 
 inline Kmer makeTransition (Kmer kmer, Pos pos) {
-  return kmer ^ (1 << ((pos - 1) << 1));
+  return kmer ^ (CarbonylMask << ((pos - 1) << 1));
 }
 
 inline string kmerString (Kmer kmer, Pos len) {
@@ -72,11 +81,11 @@ inline Kmer stringToKmer (const char* s) {
 }
 
 inline bool isTransition (Base x, Base y) {
-  return x != y && (x & 2) == (y & 2);
+  return x != y && (x & PyrimidineMask) == (y & PyrimidineMask);
 }
 
 inline bool isTransversion (Base x, Base y) {
-  return x != y && (x & 2) != (y & 2);
+  return x != y && (x & PyrimidineMask) != (y & PyrimidineMask);
 }
 
 inline bool isComplement (Base x, Base y) {
@@ -84,7 +93,7 @@ inline bool isComplement (Base x, Base y) {
 }
 
 inline bool isGC (Base x) {
-  return (x & 1) == 1;
+  return x == GuanineBase || x == CytosineBase;
 }
 
 inline double gcContent (Kmer kmer, Pos len) {

@@ -169,10 +169,10 @@ void TransBuilder::buildEdges() {
   for (auto kmer: kmers) {
     EdgeFlags outFlags = outgoingEdgeFlags(kmer,out);
     if (edgeFlagsToCount(outFlags) > 2 && !keepDegenerates) {
-      if ((outFlags & 3) == 3)  // A,G
-	outFlags = dropWorseEdge (kmer, outFlags, out, 0, 1);
-      if ((outFlags & 12) == 12)  // C,T
-	outFlags = dropWorseEdge (kmer, outFlags, out, 2, 3);
+      if ((outFlags & PurineFlags) == PurineFlags)
+	outFlags = dropWorseEdge (kmer, outFlags, out, AdenineBase, GuanineBase);
+      if ((outFlags & PyrimidineFlags) == PyrimidineFlags)
+	outFlags = dropWorseEdge (kmer, outFlags, out, CytosineBase, ThymineBase);
     }
     kmerOutFlags[kmer] = outFlags;
   }
