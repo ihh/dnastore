@@ -79,7 +79,7 @@ or the tropical semiring
 $(\Re_{+} \cup {\infty},\min,+,\infty,0)$.
 
 A weighted finite-state transducer is defined as a tuple
-$T = (\inalph,\outalph,\states,\transitions,\initstate,\finalstate)$
+$\trt = (\inalph,\outalph,\states,\transitions,\initstate,\finalstate)$
 consisting of an input alphabet $\inalph$,
 an output alphabet $\outalph$ (both alphabets being finite sets),
 a finite set of states $\states$,
@@ -88,7 +88,7 @@ $\transitions \subseteq \states \times (\maybe{\inalph}) \times (\maybe{\outalph
 an initial state $\initstate \in \states$
 and a final state $\finalstate \in \states$.
 
-The transducer $T$ can be thought of as an edge-labelled directed graph
+The transducer $\trt$ can be thought of as an edge-labelled directed graph
 where each state is a vertex
 and each transition
 $\trans = (\src[\trans],\inlab[\trans],\outlab[\trans],\weight[\trans],\dest[\trans]) \in \transitions$
@@ -96,15 +96,8 @@ is an edge from state $\src[\trans]$ to state $\dest[\trans]$
 with input label $\inlab[\trans]$,
 output label $\outlab[\trans]$
 and weight $\weight[\trans]$.
-For the figures in this paper,
-we adopt the convention that transition labels are annotated as $\inlab{\tt /}\outlab$
-(the transition weights for the transducers in the figures are all equal to 1, and are not shown).
-\figref{HammingTransducer} shows a transducer that implements the Hamming(3,1) error-correcting code,
-\figref{NaiveDNATransducer} shows a transducer that converts a binary string into DNA,
-and
-\figref{DivisionByThree} shows a transducer that implements division by 3.
 
-A path in $T$ is a series of transitions that form a path in this graph.
+A path in $\trt$ is a series of transitions that form a path in this graph.
 The input sequence and output sequence for a path are the concatenation of (respectively)
 the input and output labels of the transitions in the path.
 The path weight is the $\srtimes$-product of the transition weights.
@@ -114,7 +107,7 @@ and output sequence $\outseq \in \outseqs$
 is the $\srplus$-sum of all successful paths
 having $\inseq$ as the input sequence
 and $\outseq$ as the output sequence.
-Thus $T$ provides a mapping
+Thus $\trt$ provides a mapping
 $\tfunc{T}:(\kleene{\inalph} \times \kleene{\outalph}) \to \srset$
 from sequence-pairs to weights.
 We call this mapping $\tfunc{T}$ the transducer function.
@@ -131,37 +124,56 @@ A state $\state \in \states$ has past input context $\seqpast$ if every path fro
 and future input context $\seqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\seqnext$.
 The past output context and future output context of a state are defined similarly.
 
+A ``wait state'' is a state whose outgoing transitions all have nonempty input labels.
+A ``waiting machine'' is a transducer where all the transitions with nonempty input labels
+originate from wait states.
+Any transducer $\trt$ with a transducer function $\tfunc{T}$
+can be transformed into an equivalent waiting machine
+that has the same transducer function $\tfunc{T}$ and
+at most $2|\states|$ states and $|\states|+|\transitions|$ transitions
+\cite{WestessonEtAlArxiv2012}.
+
+For the figures in this paper,
+we adopt the convention that transition labels are annotated as $\inlab{\tt /}\outlab$
+(the transition weights for the transducers in the figures are mostly equal to 1, and are not shown).
+\figref{HammingTransducer} shows transducers that implement the Hamming(3,1) and Hamming(7,4) error-correcting codes,
+\figref{NaiveDNATransducer} shows transducers that convert binary (radix-2) strings into quaternary (radix-4) and DNA,
+\figref{DivisionByThree} and \figref{EvenDivision} show transducers that implement long division
+(and so are useful for radix conversion),
+\figref{Converter} shows more transducers that map between sequences of differing and mixed radix,
+and \figref{DNAStore} shows repeat-avoiding transducers that encode mixed-radix sequences,
+constructed using the method of \secref{DeBruijnTransducer}.
 
 \subsection{Transducer composition}
 
 Given transducers
- $R = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
- $S = (\somealph, \outalph, \states_S, \transitions_S, \initstate_S, \finalstate_S)$
-where $R$'s output alphabet is the same as $S$'s input alphabet,
+ $\trr = (\inalph, \somealph, \states_R, \transitions_R, \initstate_R, \finalstate_R)$ and
+ $\trs = (\somealph, \outalph, \states_S, \transitions_S, \initstate_S, \finalstate_S)$
+where $\trr$'s output alphabet is the same as $\trs$'s input alphabet,
 we can readily find a composite transducer
- $T = R \transcomp S = (\inalph, \outalph, \states_T, \transitions_T, \initstate_T, \finalstate_T)$
+ $\trt = \trr \transcomp \trs = (\inalph, \outalph, \states_T, \transitions_T, \initstate_T, \finalstate_T)$
 such that, if $\tfunc{R}$, $\tfunc{S}$ and $\tfunc{T}$ are the corresponding transducer functions,
 then
 \[
 \forall \inseq \in \inseqs, \outseq \in \outseqs:
 \quad
-\tfunc{T}(\inseq,\outseq) = \srsum_{\someseq \in \someseqs} \tfunc{R}(\inseq,\someseq) \tfunc{R}(\someseq,\outseq)
+\tfunc{T}(\inseq,\outseq) = \srsum_{\someseq \in \someseqs} \tfunc{R}(\inseq,\someseq) \tfunc{S}(\someseq,\outseq)
 \]
-that is, $T$ models the feeding of $R$'s output into $S$'s input
+that is, $\trt$ models the feeding of $\trr$'s output into $\trs$'s input
 (and this intermediate sequence is then summed out---i.e. marginalized, if we are in the probabilistic semiring).
 
-Loosely speaking, we can construct $T$ using the following recipe:
+Loosely speaking, we can construct $\trt$ using the following recipe:
 \begin{itemize}
-\item Each $T$-state corresponds to a pair of $R$- and $S$-states,
+\item Each $\trt$-state corresponds to a pair of $\trr$- and $\trs$-states,
 so $\state_T = (\state_R, \state_S)$
 and $\states_T \subseteq \states_R \times \states_S$.
-\item The initial $T$-state $\initstate_T=(\initstate_R,\initstate_S)$ pairs the initial states of $R$ and $S$.
-\item The final $T$-state $\finalstate_T=(\finalstate_R,\finalstate_S)$ pairs the final states of $R$ and $S$.
-\item $T$-transitions
+\item The initial $\trt$-state $\initstate_T=(\initstate_R,\initstate_S)$ pairs the initial states of $\trr$ and $\trs$.
+\item The final $\trt$-state $\finalstate_T=(\finalstate_R,\finalstate_S)$ pairs the final states of $\trr$ and $\trs$.
+\item $\trt$-transitions
 $\trans_T = ((\src_R,\src_S),\inlab,\outlab,\weight_T,(\dest_R,\dest_S))$
-represent (summaries of sets of) synchronized pairs of $R$-transitions
+represent (summaries of sets of) synchronized pairs of $\trr$-transitions
 $\trans_R = (\src_R,\inlab,\midlab,\weight_R,\dest_R)$
-and $S$-transitions
+and $\trs$-transitions
 $\trans_S = (\src_S,\midlab,\outlab,\weight_S,\dest_S)$
 which share the same intermediate label $\midlab$.
 The composite transition weight $\weight_T$ is the product $\weight_R \srtimes \weight_S$,
@@ -172,15 +184,17 @@ consistent with a given $\trans_T$
 transitions involving empty input labels (``insertions''),
 empty output labels (``deletions''),
 or both (``null transitions'').
-For example, we can require that $S$-transitions accepting incoming symbols
-all originate from ``ready'' states which have no outgoing insertions.
-(If $S$ does not comply with this stipulation then we can easily derive a transducer
-with the same transducer function $\tfunc{S}$ that does comply.)
+For example, we can require that $\trr$ and $\trs$ are waiting machines,
+or (if they aren't) we can work with their equivalent waiting machines \cite{WestessonEtAlArxiv2012}.
 \end{itemize}
 
 This algorithm can be made precise enough to automate;
 more detailed workings are given elsewhere \cite{PereiraRiley1996,MohriPereiraRiley2000,Holmes2003,Holmes2007,WestessonEtAlArxiv2012,WestessonEtAl2012}.
-A simple example of transducer composition is shown in \figref{NaiveDNATransducer}.
+The transducers yielded by a fully automated implementation can typically be aggressively optimized by hand
+to minimize the number of transitions and/or states,
+and hence,
+the time and/or memory complexity of dynamic programming algorithms.
+A simple example of (manual) transducer composition is shown in \figref{NaiveDNATransducer}.
 
 \subsection{Transducer union and Kleene closure}
 
@@ -192,13 +206,13 @@ A simple example of transducer composition is shown in \figref{NaiveDNATransduce
 Anther operation on transducers that is useful in constructing DNA codes
 is concatenation.
 Suppose
- $A = (\inalph, \outalph, \states_A, \transitions_A, \initstate_A, \finalstate_A)$ and
- $B = (\inalph, \outalph, \states_B, \transitions_B, \initstate_B, \finalstate_B)$
+ $\tra = (\inalph, \outalph, \states_A, \transitions_A, \initstate_A, \finalstate_A)$ and
+ $\trb = (\inalph, \outalph, \states_B, \transitions_B, \initstate_B, \finalstate_B)$
 are transducers with the same input and output alphabets and disjoint state spaces.
-The concatenated transducer $T = A \transconcat B$ can be constructed by
+The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed by
 taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
 from $\finalstate_A$ to $\initstate_B$.
-This models feeding the part of a sequence through $A$ and then feeding the second part through $B$.
+This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
 Some simple examples of concatenation are shown in \figref{DivisionByThree}.
 
 \subsection{De Bruijn graphs}
@@ -231,6 +245,19 @@ of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $
 
 \subsection{A transducer for encoding signals as DNA without short repeats or reserved words}
 \seclabel{DeBruijnTransducer}
+
+In this section we contruct, in several steps, a transducer $\transcoder$
+that accepts a mixed-radix sequence on the input
+(that is, every input state either accepts binary symbols $\{ \bit{0}, \bit{1} \}$,
+trinary symbols $\{ \trit{0}, \trit{1}, \trit{2} \}$ or
+quaternary symbols $\{ \quat{0}, \quat{1}, \quat{2}, \quat{3} \}$)
+and outputs a (uniquely decodable) nucleotide sequence that is free of
+repeated nucleotides, short tandem repeats, or inverted repeats.
+The input sequence may optionally be interleaved with special control digits
+$\{ \controlsym{i}:\ 1 \leq i \leq \ncontrols \}$
+which force the machine to output predictable, recognizable nucleotide sequences
+that can be used to flag metadata, demarcate boundaries,
+or to embed biologically functional motifs.
 
 Start with $\debruijngraph(\nucalph^\kmerlen)$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
 Delete all nodes corresponding to sequences that contain substrings which are
@@ -300,12 +327,12 @@ with each transition labeled with consecutive symbols from the initial control w
 We also need to add a transition from the final control word to the final state.
 (If the start and end control words are the same, then this vertex should be duplicated to prevent cycles.)
 
-We have now constructed the graph $\controlgraph$ from which our transducer $\controlmachine$
+We have now constructed the graph $\controlgraph$ from which our transducer $\transcoder$
 is derived via the following recipe:
 \begin{itemize}
-\item Every vertex in $\controlgraph$ is a state in $\controlmachine$.
-The initial and final vertices of $\controlgraph$ are the initial and final states of $\controlmachine$.
-\item Every edge in $\controlgraph$ is a unit-weight transition in $\controlmachine$.
+\item Every vertex in $\controlgraph$ is a state in $\transcoder$.
+The initial and final vertices of $\controlgraph$ are the initial and final states of $\transcoder$.
+\item Every edge in $\controlgraph$ is a unit-weight transition in $\transcoder$.
 The output label of the transition is the label of the edge.
 \item The input label of each transition is determined as follows:
 \begin{itemize}
@@ -319,7 +346,7 @@ are input-labeled with the special control digit $\controlsym{n}$.
 \end{itemize}
 \end{itemize}
 
-Thus, the input alphabet of $\controlmachine$
+Thus, the input alphabet of $\transcoder$
 is $\{ \bit{0}, \bit{1},
        \trit{0}, \trit{1}, \trit{2},
        \quat{0}, \quat{1}, \quat{2}, \quat{3},
@@ -329,9 +356,10 @@ is $\{ \bit{0}, \bit{1},
        
 \subsection{A transducer with past and future context}
 
-By virtue of being derived from the De Bruijn graph, most of the states in the transducer of \secref{DeBruijnTransducer}
+By virtue of being derived from the De Bruijn graph,
+most of the states in the transducer $\transcoder$ of \secref{DeBruijnTransducer}
 have $\kmerlen$ nucleotides of past output context.
-We can transform this transducer into an equivalent one wherein most of the states have
+We can transform this transducer into an equivalent one $\transdelay$ wherein most of the states have
 $\kmerlen/2$ nucleotides of past output context
 and $\kmerlen/2$ nucleotides of future output context.
 
@@ -399,16 +427,16 @@ and so the $N$-digit converter has $\sim 12^N$ states,
 which is expensive.
 
 We can improve on this e.g. by using machine state to record the input sequence
-(the principle behind \figref{HammingTransducer}(b))
+(the principle behind \subfigref{HammingTransducer}{b})
 and hard-code the results of every division step.
 However it is always $\bigo(A^N)$ for some $A$, except in the special cases where the input and output radix
-are related by an integer multiplier, as in the base $2 \to 4$ conversion of \figref{NaiveDNATransducer}(a).
+are related by an integer multiplier, as in the base $2 \to 4$ conversion of \subfigref{NaiveDNATransducer}{a}.
 
 In view of this, if we do not mind a small amount of inefficiency,
 we can use a simpler mapping between a binary input and a mixed-radix output,
-such as the mapping defined in \figref{Converter}(a)...
+such as the mapping defined in \subfigref{Converter}{a}...
 
-\figref{Converter}(a)
+\subfigref{Converter}{a}
 encodes 1 bit of input per bit of output,
 2 bits of input per quat of output,
 and 1.5 bits of input per trit of output.
@@ -423,17 +451,40 @@ then the two approaches are basically indistinguishable:
 both will require 6 trits per byte, or 4 quats per byte, or 8 bits,
 or some mixture of bits, trits and quats bounded by these amounts.
 
-
-
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
 \seclabel{ErrorModel}
 
-In this section we describe a statistical error model that includes
+In this section we describe a statistical error model,
+implemented as a transducer $\transerror$,
+that includes
 tandem duplications (ACG$\to$ACGACG),
 forward inverse duplications (ACG$\to$ACGCGT),
 reverse inverse duplications (ACG$\to$CGTACG),
 and substitutions (with a transition/transversion ratio) that also apply to the duplications.
 We also describe how to account for partial observation of the sequence.
+
+The full working is rather detailed, but the basic idea is very simple.
+We use the transducer state space to build up a context of past nucleotides
+(i.e. the last few nucleotides it has most recently seen on the input)
+and future nucleotides
+(i.e. the next few nucleotides it is prepared to receive on the input, in a given state).
+The higher-order structure of the transducer is determined by how much past and future context it has built up
+(in the early stages),
+and how much future context it has yet to expunge
+(in the later stages).
+The local structure of the transducer involves the states it uses to generate
+deletions (with opening and extension probabilities)
+and insertions (which are duplications that simply copy the past or future context,
+depending on the type of duplication).
+
+The transducer as constructed can only handle sequences whose length is at least $\kmerlen$.
+Shorter sequences will have no successful path through the machine.
+This is not envisaged to be a problem for decoding DNA-stored data
+since reads of length $<\kmerlen$ will contain very little data,
+probably insufficient for assembly and lacking in metadata
+since $\kmerlen$ is the number of nucleotides required to encode a control signal.
+Nevertheless, the transducer can readily be adapted for such edge cases
+by adding extra blocks to the higher-order structure (see \subfigref{PartialObservation}{a}).
 
 The error-model transducer is defined over the probabilistic semiring,
 has input alphabet $\outalph$,
@@ -471,12 +522,13 @@ and the following state space:
   %
 \item There is a state $\symstate{f}(\emptystring,\emptystring)$ which is the final state
 \end{itemize}
-These states have the following significance (see \figref{PartialObservation}a-b):
+These states have the following significance (see \subfigref{PartialObservation}{a-b}:
 \begin{itemize}
   \item $\symstate{b}$ states load input symbols into the future context queue
   \item $\symstate{c}$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
   \item $\symstate{d}$ states have fully loaded past and future context queues. They load input symbols, shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
   \item $\symstate{e}$ states have fully loaded past context queues, but emptying future context queues. No future input symbols are loaded at this point. They shift input symbols from future to past context queues, drop input symbols off the back of the past context queue, and emit output symbols
+  \item \subfigref{PartialObservation}{a} shows an additional block of $\symstate{g}$-states that would be required for the transducer to handle sequences of length $<2\contextlen$, which never make it to block \#d since they are too short to fully load the past and future context queues. Since these sequences probably contain too little information to be useful (especially if we are using $2\contextlen$-nucleotide words to mark up metadata), we have omitted them from the formal description.
   \item $\delstate{\block}$ states are used for deletions ($\block \in \{ c, d, e \}$)
   \item $\tanstate{\block}{i}$ states are used for tandem duplications ($1 \leq i \leq \contextlen$)
   \item $\fwdstate{\block}{i}$ states are used for forward inverse duplications
@@ -595,8 +647,9 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 
 The probability parameters can be estimated directly from alignments of reads to known reference sequences using the Forward-Backward algorithm \cite{Durbin98}.
 
-The transducer described in this section models errors but still assumes observation of the full-length sequence.
-By composing it with the transducer in \figref{PartialObservation}c, we can model errors and partial observation.
+The transducer $\transerror$
+described in this section models errors but still assumes observation of the full-length sequence.
+By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
 
 \subsection{Adding error-correcting codes}
 
@@ -826,7 +879,7 @@ will have no successful path through the transducer.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
-  The leftmost machine in the top row (a) is similar to $\transbintodna$ of \figref{NaiveDNATransducer}(c),
+  The leftmost machine in the top row (a) is similar to $\transbintodna$ of \subfigref{NaiveDNATransducer}{c},
   while the leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
   Transition label annotations have been omitted from this diagram.
@@ -854,10 +907,23 @@ will have no successful path through the transducer.
   \figlabel{PartialObservation}
   Models of error and partial observation (\secref{ErrorModel}).
   Top: Higher-order structure of the error model, showing blocks \#a through \#f.
+  The dashed lines show the extra block and transitions that would need to be added to handle
+  sequences shorter than the total (past+future) context length,
+  which require paths that bypass the full loading of both context queues (block \#d).
   Middle: Local neighborhood of a state in the error model for context length $\contextlen=3$.
   For simplicity, the diagram includes only transitions within block \#d, and
   only transitions to or from states with a given context (representing the ``current'' input symbol).
-  Top: Transducer $\transpartial$ models partial observation of a sequence.
+  The $D$ states model deletions;
+  the $S$ states model substitutions;
+  $T1,T2,T3$ model tandem duplications
+  (gieven past context $ACG$, insert $ACG$, yielding the observed mutation $ACG \to ACGACG$);
+  $F1,F2,F3$ model forward inverted duplications
+  (given past context $ACG$, insert $CGT$, yielding the observed mutation $ACG \to ACGCGT$);
+  and
+  $R1,R2,R3$ model reverse inverted duplications
+  (given future context $ACG$, insert $CGT$, yielding the observed mutation $ACG \to CGTACG$).
+  The probabilities and length distributions of these various events can be modeled.
+  Bottom: Transducer $\transpartial$ models partial observation of a sequence.
   Borrowing the terminology of local vs global alignment \cite{Durbin98},
   this machine effectively converts a global model for a sequence into a local one.
 }

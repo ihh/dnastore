@@ -16,6 +16,13 @@
 \newcommand\emptystring{\epsilon}
 \newcommand\maybe[1]{#1 \cup \{ \emptystring \}}
 
+\newcommand\transducer[1]{{\cal #1}}
+\newcommand\trt{\transducer{T}}
+\newcommand\trr{\transducer{R}}
+\newcommand\trs{\transducer{S}}
+\newcommand\tra{\transducer{A}}
+\newcommand\trb{\transducer{B}}
+
 \newcommand\state{q}
 \newcommand\trans{t}
 \newcommand\src{p}
@@ -89,7 +96,9 @@
 \newcommand\initvertex[1]{u^{(#1)}_i}
 \newcommand\finalvertex[1]{v^{(#1)}_f}
 
-\newcommand\controlmachine{T_c}
+\newcommand\transcoder{\namedtrans{\mbox{\tiny code}}}
+\newcommand\transdelay{\namedtrans{\mbox{\tiny delay}}}
+\newcommand\transerror{\namedtrans{\mbox{\tiny error}}}
 
 \newcommand\bit[1]{#1_2}
 \newcommand\trit[1]{#1_3}
@@ -97,10 +106,11 @@
 \newcommand\controlsym[1]{{#1}_M}
 \newcommand\flushsym{F}
 
-\newcommand\figtrans[2]{T_{\ref{Figures.#1}#2}}
-\newcommand\solefigtrans[1]{T_{\ref{Figures.#1}}}
+\newcommand\namedtrans[1]{\trt_{#1}}
+\newcommand\figtrans[2]{\namedtrans{\ref{Figures.#1}#2}}
+\newcommand\solefigtrans[1]{\namedtrans{\ref{Figures.#1}}}
 
-\newcommand\transsingle[2]{T_{#1 \to #2}}
+\newcommand\transsingle[2]{\namedtrans{#1 \to #2}}
 \newcommand\transid[1]{\transsingle{#1}{#1}}
 \newcommand\transerase[1]{\transsingle{#1}{\epsilon}}
 
@@ -125,7 +135,7 @@
 
 \newcommand\transechodivtwo{\figtrans{EvenDivision}{a}}
 \newcommand\transechodivfour{\figtrans{EvenDivision}{b}}
-\newcommand\transechodivmixed{T_{2 \to 234}}
+\newcommand\transechodivmixed{\namedtrans{2 \to 234}}
 
 \newcommand\transpartial{\figtrans{PartialObservation}{c}}
 
