@@ -292,12 +292,6 @@ Machine TransBuilder::makeMachine() {
     }
     ms.name += "#" + to_string(s);
 
-    if (outChar.size() >= 3 && (outFlags & 3) == 3) {  // A,G
-      // ensure that first two edges are not transition degenerates
-      swap (outChar[1], outChar[2]);
-      swap (outState[1], outState[2]);
-    }
-
     if (outChar.size() == 1)
       ms.trans.push_back (MachineTransition (MachineNull, outChar[0], outState[0]));
 
