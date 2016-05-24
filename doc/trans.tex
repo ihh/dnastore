@@ -426,6 +426,7 @@ or some mixture of bits, trits and quats bounded by these amounts.
 
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
+\seclabel{ErrorModel}
 
 In this section we describe a statistical error model that includes
 tandem duplications (ACG$\to$ACGACG),
@@ -446,22 +447,31 @@ and the following state space:
   there is a state $\symstate{b}(\emptystring,\seqnext)$
   %
 \item For every $k:1 \leq k < \contextlen$, every $k$-mer $\seqpast \in \outalph^k$ and every $\contextlen$-mer $\seqnext \in \outalph^\contextlen$
-  there are two states $\{ \symstate{c}(\seqpast,\seqnext), \delstate{c}(\seqpast,\seqnext) \}$,
-  $\contextlen$ states $\{ \revstate{i}{c}(\seqpast,\seqnext,i): 1 \leq i \leq \contextlen \}$ and
-  $2k$ states $\{ \tanstate{c}{i}(\seqpast,\seqnext), \fwdstate{c}{i}(\seqpast,\seqnext): 1 \leq i \leq k \}$
+  there are
+  \begin{itemize}
+  \item two states $\{ \symstate{c}(\seqpast,\seqnext),\ \delstate{c}(\seqpast,\seqnext) \}$
+  \item $\contextlen$ states $\{ \revstate{i}{c}(\seqpast,\seqnext,i):\ 1 \leq i \leq \contextlen \}$
+  \item $2k$ states $\{ \tanstate{c}{i}(\seqpast,\seqnext),\ \fwdstate{c}{i}(\seqpast,\seqnext): 1 \leq i \leq k \}$
+  \end{itemize}
   %
 \item For every pair of $\contextlen$-mers $\seqpast, \seqnext \in \outalph^\contextlen$
-  there are two states $\{ \symstate{d}(\seqpast,\seqnext), \delstate{d}(\seqpast,\seqnext) \}$ and
-  $3\contextlen$ states $\{ \tanstate{d}{i}(\seqpast,\seqnext), \fwdstate{d}{i}(\seqpast,\seqnext), \revstate{d}{i}(\seqpast,\seqnext): 1 \leq i \leq \contextlen \}$
+  there are
+  \begin{itemize}
+  \item two states $\{ \symstate{d}(\seqpast,\seqnext),\ \delstate{d}(\seqpast,\seqnext) \}$
+  \item $3\contextlen$ states $\{ \tanstate{d}{i}(\seqpast,\seqnext),\ \fwdstate{d}{i}(\seqpast,\seqnext),\ \revstate{d}{i}(\seqpast,\seqnext):\ 1 \leq i \leq \contextlen \}$
+  \end{itemize}
   %
 \item For every $k:1 \leq k < \contextlen$, every $\contextlen$-mer $\seqpast \in \outalph^\contextlen$ and every $k$-mer $\seqnext \in \outalph^k$
-  there are two states $\{ \symstate{e}(\seqpast,\seqnext), \delstate{d}(\seqpast,\seqnext) \}$,
-  $2\contextlen$ states $\{ \tanstate{e}{i}(\seqpast,\seqnext), \fwdstate{e}{i}(\seqpast,\seqnext): 1 \leq i \leq \contextlen \}$ and 
-  $k$ states $\{ \revstate{e}{i}(\seqpast,\seqnext): 1 \leq i \leq k \}$ 
+  there are
+  \begin{itemize}
+  \item two states $\{ \symstate{e}(\seqpast,\seqnext),\ \delstate{e}(\seqpast,\seqnext) \}$
+  \item $2\contextlen$ states $\{ \tanstate{e}{i}(\seqpast,\seqnext),\ \fwdstate{e}{i}(\seqpast,\seqnext):\ 1 \leq i \leq \contextlen \}$
+  \item $k$ states $\{ \revstate{e}{i}(\seqpast,\seqnext):\ 1 \leq i \leq k \}$
+  \end{itemize}
   %
 \item There is a state $\symstate{f}(\emptystring,\emptystring)$ which is the final state
 \end{itemize}
-These states have the following significance:
+These states have the following significance (see \figref{PartialObservation}a-b):
 \begin{itemize}
   \item $\symstate{b}$ states load input symbols into the future context queue
   \item $\symstate{c}$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
@@ -586,7 +596,7 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 The probability parameters can be estimated directly from alignments of reads to known reference sequences using the Forward-Backward algorithm \cite{Durbin98}.
 
 The transducer described in this section models errors but still assumes observation of the full-length sequence.
-By composing it with the transducer in \figref{PartialObservation}, we can model errors and partial observation.
+By composing it with the transducer in \figref{PartialObservation}c, we can model errors and partial observation.
 
 \subsection{Adding error-correcting codes}
 
@@ -832,11 +842,26 @@ will have no successful path through the transducer.
 }
 \end{figure}
 
-\dotfig{partial}{width=.5\textwidth}{PartialObservation}{
-  Transducer $\transpartial$ models partial observation of a sequence.
+\begin{figure}
+\begin{tabular}{c}
+(a) \includedot{blocks}{width=.9\textwidth}
+\\
+(b) \includedot{error}{width=.9\textwidth}
+\\
+(c) \includedot{partial}{width=.9\textwidth}
+\end{tabular}
+\caption{
+  \figlabel{PartialObservation}
+  Models of error and partial observation (\secref{ErrorModel}).
+  Top: Higher-order structure of the error model, showing blocks \#a through \#f.
+  Middle: Local neighborhood of a state in the error model for context length $\contextlen=3$.
+  For simplicity, the diagram includes only transitions within block \#d, and
+  only transitions to or from states with a given context (representing the ``current'' input symbol).
+  Top: Transducer $\transpartial$ models partial observation of a sequence.
   Borrowing the terminology of local vs global alignment \cite{Durbin98},
   this machine effectively converts a global model for a sequence into a local one.
 }
+\end{figure}
 
 \newpage
 \bibliography{trans}

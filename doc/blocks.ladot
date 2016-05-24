@@ -1,0 +1,10 @@
+digraph G {
+	rankdir=LR;
+	a [shape=box,label="Initial state (a)"];
+	b [shape=box,label="Load future context (b)"];
+	c [shape=box,label="Load past context (c)"];
+	d [shape=box,label="Maintain past & future context (d)"];
+	e [shape=box,label="Unload future context (e)"];
+	f [shape=box,label="Final state (f)"];
+	a -> b -> c -> d -> e -> f;
+}
