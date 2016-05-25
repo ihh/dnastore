@@ -31,9 +31,13 @@ protected:
 
 public:
   const MutatorParams& mutatorParams;
-  const Stockholm& stock;
   const MutatorScores mutatorScores;
 
+  const Stockholm& stock;
+  const Alignment align;
+  const TokSeq inSeq, outSeq;
+  vguard<SeqIdx> col2InSeqIdx, col2OutSeqIdx;
+  
   MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock);
 
   inline const LogProb sCell const (AlignColIndex col) { return cell[sCellIndex(col)]; }
