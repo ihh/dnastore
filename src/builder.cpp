@@ -78,7 +78,10 @@ void TransBuilder::doDFS (Kmer kmer, map<Kmer,Pos>& distance) const {
       distance[kmer] = d;
       getOutgoing (kmer, nbr);
       for (auto n: nbr)
-	if (kmerValid[n] && !distance.count(n)) {
+	if (kmerValid[n]
+	    && !endsWithMotif(n,len,sourceMotif)
+	    && !droppedEdge.count (pair<Kmer,Kmer> (kmer, n))
+	    && !distance.count(n)) {
 	  kqueue.push_back (n);
 	  kdist.push_back (d + 1);
 	}
@@ -178,7 +181,7 @@ void TransBuilder::buildEdges() {
   }
   if (!keepDegenerates)
     LogThisAt(2,"Dropped " << droppedEdge.size() << " degenerate transitions" << endl);
-  pruneDeadEnds();
+  pruneUnreachable();
 }
 
 void TransBuilder::indexStates() {

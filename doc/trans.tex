@@ -892,8 +892,8 @@ will have no successful path through the transducer.
   Transducers generated using the method of \secref{DeBruijnTransducer} with $\kmerlen=2$.
   These codes are all fundamentally based on the 2-dimensional De Bruijn graph
   from which vertices are duplicated, deleted and added to arrive at a transition graph with the required properties.
-  Top row (a,b,c): codes in which dinucleotide repeats are not prohibited.
-  Bottom row (d,e,f): codes in which dinucleotide repeats are not prohibited.
+  Top row (a,b,c): codes in which dinucleotide repeats are allowed.
+  Bottom row (d,e,f): codes in which dinucleotide repeats are prohibited.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
