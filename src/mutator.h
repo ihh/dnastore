@@ -11,6 +11,8 @@ struct MutatorParams {
   vguard<double> pLen;
   bool local;
 
+  MutatorParams& initMaxLen (size_t maxLen);
+
   void writeJSON (ostream& out) const;
   void readJSON (istream& in);
   static MutatorParams fromJSON (istream& in);
@@ -37,13 +39,22 @@ struct MutatorScores {
 
 struct MutatorCounts {
   double nDelOpen, nTanDup, nNoGap;
+  double nDelExtend, nDelEnd;
   vguard<vguard<double> > nSub;
   vguard<double> nLen;
 
-  MutatorCounts& initMaxLen (size_t maxLen);
+  MutatorCounts (const MutatorParams& params);
   MutatorCounts& initLaplace (double n = 1);
 
+  MutatorCounts& operator+= (const MutatorCounts& c);
+  MutatorCounts operator+ (const MutatorCounts& c) const;
+
+  double nMatch() const;
+  double nTransition() const;
+  double nTransversion() const;
+
   MutatorParams mlParams() const;
+  MutatorParams mlParams (const MutatorCounts& prior) const;
 
   LogProb logPrior (const MutatorParams& params) const;
   LogProb logLikelihood (const MutatorParams& params) const;
