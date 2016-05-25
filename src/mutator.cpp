@@ -151,11 +151,27 @@ MutatorParams MutatorCounts::mlParams (const MutatorCounts& prior) const {
 }
 
 LogProb MutatorCounts::logPrior (const MutatorParams& params) const {
-  // WRITE ME
-  return 0;
+  const vguard<double> pGap = { params.pDelOpen, params.pTanDup, params.pNoGap() };
+  const vguard<double> nGap = { nDelOpen, nTanDup, nNoGap };
+
+  const vguard<double> pSub = { params.pTransition, params.pTransversion, params.pMatch() };
+  const vguard<double> nSub = { nTransition(), nTransversion(), nMatch() };
+
+  return logBetaPdfCounts(params.pDelExtend,nDelExtend,nDelEnd)
+    + logDirichletPdfCounts(pGap,nGap)
+    + logDirichletPdfCounts(pSub,nSub);
 }
 
 LogProb MutatorCounts::logLikelihood (const MutatorParams& params) const {
-  // WRITE ME
-  return 0;
+  Assert (nLen.size() == params.pLen.size(), "Length mismatch");
+  double ll = 0;
+  for (size_t i = 0; i < nLen.size(); ++i)
+    ll += nLen[i] * log(params.pLen[i]);
+  return nDelOpen * log(params.pDelOpen)
+    + nTanDup * log(params.pTanDup)
+    + nNoGap * log(params.pNoGap())
+    + nTransition() * log(params.pTransition)
+    + nTransversion() * log(params.pTransversion)
+    + nMatch() * log(params.pMatch())
+    + ll;
 }

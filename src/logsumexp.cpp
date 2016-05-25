@@ -48,3 +48,26 @@ double log_sum_exp_unary_slow (double x) {
 void log_accum_exp_slow (double& a, double b) {
   a = log_sum_exp_slow (a, b);
 }
+
+double logBetaPdf (double prob, double alpha, double beta) {
+  return lgamma(alpha+beta) - lgamma(alpha) - lgamma(beta) + (alpha-1)*log(prob) + (beta-1)*log(1-prob);
+}
+
+double logDirichletPdf (const vector<double>& prob, const vector<double>& alpha) {
+  Assert (prob.size() == alpha.size(), "Dimensionality of Dirichlet counts vector does not match that of probability parameter vector");
+  double ld = lgamma (accumulate (alpha.begin(), alpha.end(), 0.));
+  for (size_t n = 0; n < prob.size(); ++n)
+    ld += (alpha[n] - 1) * log(prob[n]) - lgamma(alpha[n]);
+  return ld;
+}
+
+double logBetaPdfCounts (double prob, double yesCount, double noCount) {
+  return logBetaPdf (prob, yesCount + 1, noCount + 1);
+}
+
+double logDirichletPdfCounts (const vector<double>& prob, const vector<double>& count) {
+  vector<double> countPlusOne (count);
+  for (auto& c : countPlusOne)
+    ++c;
+  return logDirichletPdfCounts (prob, countPlusOne);
+}

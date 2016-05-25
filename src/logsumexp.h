@@ -95,6 +95,12 @@ double log_sum_exp_slow (double a, double b, double c, double d);
 
 void log_accum_exp_slow (double& a, double b);
 
+double logBetaPdf (double prob, double alpha, double beta);
+double logDirichletPdf (const vector<double>& prob, const vector<double>& alpha);
+
+double logBetaPdfCounts (double prob, double yesCount, double noCount);
+double logDirichletPdfCounts (const vector<double>& prob, const vector<double>& count);
+
 typedef double LogProb;
 
 #endif /* LOGSUMEXP_INCLUDED */
