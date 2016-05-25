@@ -35,7 +35,7 @@ public:
 
   const Stockholm& stock;
   const Alignment align;
-  const TokSeq inSeq, outSeq;
+  TokSeq inSeq, outSeq;
   vguard<SeqIdx> col2InSeqIdx, col2OutSeqIdx;
   
   MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock);
