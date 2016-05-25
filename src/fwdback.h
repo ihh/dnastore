@@ -8,8 +8,8 @@ class MutatorMatrix {
 private:
   vguard<LogProb> cell;
 
-  static inline size_t nCells (const Stockholm& stock) {
-    return (maxDupLen + 2) * (stock.columns() + 1);
+  static inline size_t nCells (const MutatorParams& mutatorParams, const Stockholm& stock) {
+    return (mutatorParams.maxDupLen() + 2) * (stock.columns() + 1);
   };
 
   inline size_t sCellIndex (AlignColIndex col) const {
@@ -40,9 +40,9 @@ public:
   
   MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock);
 
-  inline const LogProb sCell const (AlignColIndex col) { return cell[sCellIndex(col)]; }
-  inline const LogProb dCell const (AlignColIndex col) { return cell[dCellIndex(col)]; }
-  inline const LogProb fCell const (AlignColIndex col, Pos idx) { return cell[fCellIndex(col,idx)]; }
+  inline LogProb sCell (AlignColIndex col) const { return cell[sCellIndex(col)]; }
+  inline LogProb dCell (AlignColIndex col) const { return cell[dCellIndex(col)]; }
+  inline LogProb fCell (AlignColIndex col, Pos idx) const { return cell[fCellIndex(col,idx)]; }
 };
 
 struct FwdBackMatrix {

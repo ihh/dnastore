@@ -41,8 +41,8 @@ MutatorParams MutatorParams::fromFile (const char* filename) {
   return fromJSON (infile);
 }
 
-MutatorParams& MutatorParams::initMaxLen (size_t maxLen) {
-  pLen = vguard<double> (maxLen, 1. / (double) maxLen);
+MutatorParams& MutatorParams::initMaxDupLen (size_t maxDupLen) {
+  pLen = vguard<double> (maxDupLen, 1. / (double) maxDupLen);
   return *this;
 }
 
@@ -53,7 +53,7 @@ MutatorScores::MutatorScores (const MutatorParams& params)
     delExtend (log (params.pDelExtend)),
     delEnd (log (params.pDelEnd())),
     sub (4, vguard<LogProb> (4)),
-    len (params.maxLen())
+    len (params.maxDupLen())
 {
   for (Base i = 0; i < 4; ++i)
     for (Base j = 0; j < 4; ++j)
@@ -62,7 +62,7 @@ MutatorScores::MutatorScores (const MutatorParams& params)
 	: (isTransition(i,j)
 	   ? log(params.pTransition)
 	   : log(params.pTransversion/2));
-  for (Pos l = 0; l < params.maxLen(); ++l)
+  for (Pos l = 0; l < params.maxDupLen(); ++l)
     len[l] = log(params.pLen[l]);
 }
 
@@ -72,7 +72,7 @@ MutatorCounts::MutatorCounts (const MutatorParams& params)
     nDelExtend(0),
     nDelEnd(0),
     nSub(4,vguard<double>(4,0)),
-    nLen(params.maxLen(),0)
+    nLen(params.maxDupLen(),0)
 { }
 
 MutatorCounts& MutatorCounts::initLaplace (double n) {
@@ -110,7 +110,7 @@ MutatorCounts MutatorCounts::operator+ (const MutatorCounts& c) const {
 
 MutatorParams MutatorCounts::mlParams() const {
   MutatorParams p;
-  p.initMaxLen (nLen.size());
+  p.initMaxDupLen (nLen.size());
   p.pDelOpen = nDelOpen / (nDelOpen + nTanDup + nNoGap);
   p.pTanDup = nTanDup / (nDelOpen + nTanDup + nNoGap);
   p.pDelExtend = nDelExtend / (nDelExtend + nDelEnd);

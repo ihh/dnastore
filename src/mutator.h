@@ -11,7 +11,7 @@ struct MutatorParams {
   vguard<double> pLen;
   bool local;
 
-  MutatorParams& initMaxLen (size_t maxLen);
+  MutatorParams& initMaxDupLen (size_t maxDupLen);
 
   void writeJSON (ostream& out) const;
   void readJSON (istream& in);
@@ -26,7 +26,7 @@ struct MutatorParams {
   inline double pRevDup() const { return 0.; }
   inline double pNoGap() const { return 1. - pDelOpen - pTanDup; }
   inline double pDelEnd() const { return 1. - pDelExtend; }
-  inline size_t maxLen() const { return pLen.size(); }
+  inline size_t maxDupLen() const { return pLen.size(); }
 };
 
 struct MutatorScores {
