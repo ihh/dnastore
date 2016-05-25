@@ -27,6 +27,7 @@ struct MachineScores {
 struct MutatorParams {
   double pDelOpen, pDelExtend, pTanDup, pTransition, pTransversion;
   Pos maxLen;
+  bool local;
   inline double pMatch() const { return 1. - pTransition - pTransversion; }
   inline double pSub (Base x, Base y) const {
     return x == y ? pMatch() : (isTransition(x,y) ? pTransition : (pTransversion/2.));
