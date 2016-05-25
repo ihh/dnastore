@@ -31,6 +31,8 @@ struct JsonMap {
   double getNumber (const string& key) const;
   string getString (const char* key) const;
   string getString (const string& key) const;
+  bool getBool (const char* key) const;
+  bool getBool (const string& key) const;
 };
 
 // wrapper for JsonValue with parent string

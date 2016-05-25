@@ -25,8 +25,6 @@ struct MutatorParams {
   inline double pNoGap() const { return 1. - pDelOpen - pTanDup; }
   inline double pDelEnd() const { return 1. - pDelExtend; }
   inline size_t maxLen() const { return pLen.size(); }
-
-  LogProb logLikelihood (const MutatorCounts& counts) const;
 };
 
 struct MutatorScores {
@@ -46,7 +44,9 @@ struct MutatorCounts {
   MutatorCounts& initLaplace (double n = 1);
 
   MutatorParams mlParams() const;
+
   LogProb logPrior (const MutatorParams& params) const;
+  LogProb logLikelihood (const MutatorParams& params) const;
 };
 
 #endif /* MUTATOR_INCLUDED */

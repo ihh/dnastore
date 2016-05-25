@@ -75,6 +75,18 @@ string JsonMap::getString (const string& key) const {
   return string (getType (key, JSON_STRING).toString());
 }
 
+bool JsonMap::getBool (const char* key) const {
+  const JsonTag tag = (*this)[key].getTag();
+  Assert (tag == JSON_TRUE || tag == JSON_FALSE, "%s is not a boolean in JSON", key);
+  return tag == JSON_TRUE;
+}
+
+bool JsonMap::getBool (const string& key) const {
+  const JsonTag tag = (*this)[key].getTag();
+  Assert (tag == JSON_TRUE || tag == JSON_FALSE, "%s is not a boolean in JSON", key.c_str());
+  return tag == JSON_TRUE;
+}
+
 ParsedJson::ParsedJson (const string& s, bool parseOrDie) {
   parse (s, parseOrDie);
 }
