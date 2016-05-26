@@ -142,12 +142,8 @@ at most $2|\states|$ states and $|\states|+|\transitions|$ transitions
 For the figures in this paper,
 we adopt the convention that transition labels are annotated as $\inlab{\tt /}\outlab$
 (the transition weights for the transducers in the figures are mostly equal to 1, and are not shown).
-\figref{HammingTransducer} shows transducers that implement the Hamming(3,1) and Hamming(7,4) error-correcting codes,
-\figref{NaiveDNATransducer} shows transducers that convert binary (radix-2) strings into quaternary (radix-4) and DNA,
-\figref{DivisionByThree} and \figref{EvenDivision} show transducers that implement long division
-(and so are useful for radix conversion),
-\figref{Converter} shows more transducers that map between sequences of differing and mixed radix,
-and \figref{DNAStore} shows repeat-avoiding transducers that encode mixed-radix sequences,
+\figref{HammingTransducer} shows transducers that implement the Hamming(3,1) and Hamming(7,4) error-correcting codes.
+\figref{DNAStore} shows repeat-avoiding transducers that encode mixed-radix sequences,
 constructed using the method of \secref{DeBruijnTransducer}.
 
 \subsection{Transducer composition}
@@ -200,12 +196,10 @@ The transducers yielded by a fully automated implementation can typically be agg
 to minimize the number of transitions and/or states,
 and hence,
 the time and/or memory complexity of dynamic programming algorithms.
-A simple example of (manual) transducer composition is shown in \figref{NaiveDNATransducer}.
 
 \subsection{Transducer union and Kleene closure}
 
 % WRITE ME
-\figref{DivisionByThree}
 
 \subsection{Transducer concatenation}
 
@@ -219,7 +213,6 @@ The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed b
 taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
 from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
 This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
-Some simple examples of concatenation are shown in \figref{DivisionByThree}.
 
 \subsection{De Bruijn graphs}
 
@@ -399,63 +392,74 @@ into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future inpu
 
 \subsection{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
 
-Not every state accepts symbols of the same radix...
+To convert a binary sequence into a mixed-radix sequence
+we construct a block code inspired by arithmetic coding \cite{Mackay2003}.
 
-We need a converter that can context-switch between binary, trinary, and quaternary...
+Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
+given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
+can be efficiently evaluated.
+It is common to include an end-of-file character `\$' in the symbol alphabet
+and require that the last message symbol is this character.
+Suppose without loss of generality that the symbol alphabet (including the end-of-file character) is the set of integers $1 \ldots K$
+and let $C_n(k) \equiv P(x_{n+1} \leq k | x_1 \ldots x_n)$ be the cumulative distributions for the predictive marginals.
+Arithmetic coding uses the following ideas:
+\begin{itemize}
+\item The probability distribution over the first character divides the interval $[0,1)$ into $K$ subintervals.
+  The $k$'th subinterval is $[C_1(k-1),C_1(k))$.
+  \item Each subinterval is then further subdivided by the second character, then the third, and so on until the end of message.
+    So, for example, the subinterval for the first character is $[C_1(x_1-1),C_1(x_1))$,
+      for the second character $[C_1(x_1-1) + Q_1(x_1) C_2(x_2-1),C_1(x_1) + Q_1(x_1) C_2(x_2))$,
+          and so on.
+        \item If the interval before encoding the $n$'th character is $[A_n,B_n)$ then
+          $[A_0,B_0) = [0,1)$,
+              $A_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1}-1)$,
+              and $B_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1})$.
+            \item Any finite-precision floating-point number also specifies a subinterval of $[0,1)$
+              containing all floating-point numbers of greater precision that would be rounded to that number.
+              For example, the decimal floating-point number $0.413$ specifies the subinterval $[0.4125,0.4135)$.
+              \item To encode the message $x_1 x_2 \ldots x_N$,
+                we simply need to transmit enough digits of a (binary) floating-point number such that its
+                rounding interval is fully contained within the interval $[A_{N+1},B_{N+1})$.
+\end{itemize}
 
-Consider first the simpler task of mapping a binary sequence to a trinary sequence...
+We take this idea and apply it to mixed-radix sequences.
+The set of input words to be encoded is the set of all length-$N$ binary strings,
+plus the set of all length-$k$ binary strings ($0 \leq k < N$) that are followed by the `\$' character.
+Thus, if $N=2$ then the input word set is $\{\$,0\$,1\$,00,01,10,11\}$.
+There are $2^{N+1}-1$ words in the input word set.
+We assume that a probability model as described above is defined over this input set;
+typically we will use a simple model that assigns a small probability $\nu$ to '\$' at any position,
+independently of previous context,
+and splits the remaining probability evenly between $0$ and $1$.
+We construct a transducer that converts an input word into a mixed-radix sequence
+with all possible combinations of binary, trinary and quaternary radix at every available position, as follows:
+\begin{itemize}
+\item First construct the prefix tree of the input words, assign a state to every node and an input-labeled transition to every correspondingly labeled edge.
+  The root of the prefix tree serves as the initial and final state.
+\item Let $S$ be the list of states corresponding to the leaves of the prefix tree.
+  For $s \in S$, let the {\em input interval} $[A(s),B(s))$ be the subinterval of $[0,1)$ required to encode the associated message.
+    \item Also for each state define the {\em output interval} $[D(s),E(s))$, the subinterval that has been encoded by output symbols so far.
+      For the states $s \in S$, define $[D(s),E(s)) = [0,1)$ since no output symbols have been emitted yet.
+        \item While $S$ is nonempty, then for the first $s \in S$:
+        \begin{itemize}
+          \item If the output interval is not fully enclosed by the input interval, that is if not ($D(s) \geq A(s)$ and $E(s) \leq B(s)$), then:
+            \begin{itemize}
+              \item Let $m = A(s) + \frac{1}{2}(B(s) - A(s))$ be the midpoint of the input interval and let $w = E(s) - D(s)$ be the width of the output interval.
+            \item For each radix $R$ from 2 to 4:
+              \begin{itemize}
+              \item Find the integer $r$ such that if $d(r)=D(s)+wr/R$ then $d(r) \leq m < d(r+1)$.
+              \item Create a new state $t$ and define $A(t)=A(s)$, $B(t)=B(s)$, $D(t)=d(r)$ and $E(t)=d(r+1)$.
+              \item Add a transition from $s$ to $t$ with output label $r_R$.
+              \item Add $t$ to $S$.
+              \end{itemize}
+            \end{itemize}
+          \item Delete $s$ from $S$.
+        \end{itemize}
+      \item Merge all states whose sets of possible output sequences are identical. These are easily identified since each state's output sequence set is generated by the subtree of states accessible from that state: there are no cycles in the transition graph.
+        A string encoding of a state's accessible subtree is sufficient to identify its output set.
+      \item Form the Kleene closure of the constructed transducer by adding a unit-weight, $\emptystring$-labeled transition from every state without outgoing transitions back to the initial state.
+\end{itemize}
 
-To do this at the Shannon limit requires an arithmetic conversion of the binary number into the trinary number
-
-As an side, somewhat reminiscent of arithmetic coding \cite{Mackay2003}
-where a probability distribution over symbols is used to compress
-a symbol stream into a floating-point binary number
-
-The arithmetic conversion requires repeated divisons by three...
-
-An automata-theoretic approach to this is illustrated in...
-\figref{DivisionByThree}...
-
-The 4-state machine $\transdivthree$ performs one division by three and outputs one trinary digit.
-By composing $N$ of these together we can convert a binary number to $N$ trinary digits.
-This takes $\sim 4^N$ states (some may be unreachable or duplicates that can be eliminated).
-
-Converting a binary sequence to a mixed-radix sequence of bits, trits and quats
-% can be done arithmetically in principle... explain the interpretation... radix at each position specified in advance
-is a matter of taking the union of the division-by-three transducer
-in \figref{DivisionByThree}
-with the division-by-two and division-by-four transducers
-in \figref{EvenDivision},
-each of which divide a binary input by the appropriate divisor (2 or 4)
-and output the modulus in the corresponding radix.
-However, the union of these transducers has 12=3+4+5 states
-and so the $N$-digit converter has $\sim 12^N$ states,
-which is expensive.
-
-We can improve on this e.g. by using machine state to record the input sequence
-(the principle behind \subfigref{HammingTransducer}{b})
-and hard-code the results of every division step.
-However it is always $\bigo(A^N)$ for some $A$, except in the special cases where the input and output radix
-are related by an integer multiplier, as in the base $2 \to 4$ conversion of \subfigref{NaiveDNATransducer}{a}.
-
-In view of this, if we do not mind a small amount of inefficiency,
-we can use a simpler mapping between a binary input and a mixed-radix output,
-such as the mapping defined in \subfigref{Converter}{a}...
-
-\subfigref{Converter}{a}
-encodes 1 bit of input per bit of output,
-2 bits of input per quat of output,
-and 1.5 bits of input per trit of output.
-For comparison,
-an exact arithmetic conversion
-encodes 1 bit of input per bit of output,
-2 bits of input per quat of output,
-and $\log_2(3) \simeq 1.58$ bits of input per trit of output.
-This difference is small, is confined to trits only.
-Indeed, if one is constrained to round up to the nearest integer number of output symbols per input byte,
-then the two approaches are basically indistinguishable:
-both will require 6 trits per byte, or 4 quats per byte, or 8 bits,
-or some mixture of bits, trits and quats bounded by these amounts.
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
 \seclabel{ErrorModel}
@@ -484,10 +488,9 @@ The higher-order structure of the transducer is determined by how much past and 
 (in the early stages),
 and how much future context it has yet to work through
 (in the later stages).
-The local structure of the transducer involves the states it uses to generate
-deletions (with opening and extension probabilities)
-and insertions (which are duplications that simply copy the past or future context,
-depending on the type of duplication).
+The local structure of the transducer involves states for
+substitutions, deletions
+and insertions (which are actually duplications that copy the local context).
 
 The transducer as constructed can only handle sequences whose length is at least $\kmerlen$.
 Shorter sequences will have no successful path through the machine.
@@ -709,171 +712,6 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 
 \newpage
 \begin{figure}
-\begin{tabular}{lll}
-(a) \includedot{binary2quaternary}{width=.3\textwidth}
-&
-(b) \includedot{quaternary2dna}{width=.3\textwidth}
-&
-(c) \includedot{binary2dna}{width=.3\textwidth}
-\end{tabular}
-\caption{
-\figlabel{NaiveDNATransducer}
-State machines implementing naive conversions of binary sequences to DNA.
-Left:
-Transducer $\transbintoquat$ converts a binary input string (presented least-significant digit first) into a quaternary input string.
-Binary input digits are written showing the radix-2 suffix ($\bit{0}$, $\bit{1}$),
-while quaternary output digits are written showing the radix-4 suffix, ($\quat{0}$, $\quat{1}$, $\quat{2}$, $\quat{3}$).
-The initial state is S and the final state is E.
-Middle:
-Transducer $\transquattodna$ converts a quaternary input string into a DNA string.
-Right:
-Transducer $\transbintodna$
-converts a binary input string to DNA.
-This machine can be regarded as a composition of the ``binary to quaternary'' transducer ($\transbintoquat$) with the ``quaternary to DNA'' transducer ($\transquattodna$),
-and so can be written $\transbintodna = \transbintoquat \transcomp \transquattodna$.
-}
-\end{figure}
-
-\newpage
-\begin{figure}
-\begin{tabular}{cc}
-\multicolumn{2}{c}{
-(a) \includedot{divisionby3}{width=\textwidth}
-}
-\\
-(b) \includedot{trinary0}{width=.2\textwidth}
-&
-(c) \includedot{trinaryunion}{width=.2\textwidth}
-\\
-(d) \includedot{trinaryid}{width=.2\textwidth}
-&
-(e) \includedot{binaryeraser}{width=.15\textwidth}
-\\
-\multicolumn{2}{c}{
-  (f) \includedot{binary2trinary}{width=\textwidth}
-  }
-\end{tabular}
-\caption{
-\figlabel{DivisionByThree}
-An automata-theoretic approach to long division by the number three,
-relevant to conversion from binary to trinary.
-Top row (a):
-Transducer $\transdivthree$ implements the operation ``division by three''.
-The machine accepts as its input sequence a binary number representing the dividend, which must be presented most significant bit first.
-It outputs the quotient (as a similar binary sequence) followed by the remainder (as a trinary digit).
-The machine's state encodes the current remainder at any stage during the division.
-Binary digits are written as $(\bit{0}, \bit{1})$
-and trinary digits as $(\trit{0}, \trit{1}, \trit{2})$.
-Second row (b,c):
-Transducers that are useful in implementing automata-theoretic division, also illustrating the operation of transducer union.
-Left of second row:
-Transducer $\transternzeroid$ echoes a single zero trit ($\trit{0}$) from input to output.
-Adopting the notation $\transsingle{\inlab}{\outlab}$ for a transducer with one transition $(S,\inlab,\outlab,1,T)$
-we can write $\transternzeroid = \transid{\trit{0}}$.
-Right of second row:
-Transducer $\transternsymid$ echoes any single trit ($\trit{0}$, $\trit{1}$ or $\trit{2}$).
-This machine may be viewed as the union of three single-transition transducers,
-$\transternsymid = (\transid{\trit{0}}) \cup (\transid{\trit{1}}) \cup (\transid{\trit{2}})$.
-Third row (d,e):
-More transducers that are useful for automata-theoretic division, also illustrating Kleene closure.
-Left of third row:
-Transducer $\transternseqid$ echoes any sequence of trits, and may be written as
-the Kleene closure $\transternseqid = \kleene{(\transternsymid)}$.
-Right of third row:
-Transducer $\transerasezerobits$ erases any sequence of binary zeroes,
-while passing through any symbols that are not binary digits.
-The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
-with $y \notin \{ \bit{0}, \bit{1} \}$
-that echo anything which is {\em not} a binary digit.
-Bottom row:
-Transducer $\transechodivthree$,
-when fed a binary sequence $X$ representing a dividend,
-followed by a trinary sequence $Y$ representing the remainders from previous divisions,
-will print out the quotient $X/3$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 3$ (in trinary).
-By composing a series of $N$ transducers of this form, along with a final step that removes the binary zeroes,
-we can convert a binary number into $N$ trinary digits \cite{MartinsFerreira2012}.
-For example, to output three trinary digits, we could use the composed transducer
-$(\transdivthree) \transcomp (\transechodivthree) \transcomp (\transechodivthree) \transcomp (\transerasezerobits)$.
-}
-\end{figure}
-
-\newpage
-\begin{figure}
-\begin{tabular}{ll}
-  (a) \includedot{divisionby2}{width=.5\textwidth}
-&
-  (b) \includedot{divisionby4}{width=.5\textwidth}
-  \end{tabular}
-\caption{
-\figlabel{EvenDivision}
-An automata-theoretic approach to long division by two (a) and by four (b),
-relevant to conversion from binary to mixed-radix sequences
-that include binary and quaternary digits.
-Left:
-Transducer $\transechodivtwo$ models a single step of long division by two.
-When fed a binary sequence $X$ representing a dividend,
-followed by a sequence $Y$ representing any remainders from previous divisions,
-will print out the quotient $X/2$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in binary).
-To distinguish quotient from remainder,
-the remainder is expressed using a different alphabet $\{ \rbit{0}, \rbit{1} \}$.
-The quotient is expressed using the same alphabet as the dividend $\{ \bit{0}, \bit{1} \}$.
-The transition labeled $!2$ is a shorthand for the set of transitions $y/y$
-with $y \notin \{ \bit{0}, \bit{1} \}$
-that echo anything which is {\em not} a binary digit;
-these will pass remainder digits through unaffected.
-Right:
-Transducer $\transechodivfour$ models a single step of long division by four.
-When fed a binary sequence $X$ representing a dividend,
-followed by a sequence $Y$ representing any remainders from previous divisions,
-it will print out the quotient $X/4$ (in binary), followed by $Y$, followed by the new remainder digit $X \mod 2$ (in quaternary).
-We can construct a single-step mixed-radix long-division transducer capable of dividing by two, three or four
-using transducer union $\transechodivmixed = (\transechodivtwo \cup \transechodivthree \cup \transechodivfour)$,
-and then construct a transducer that can encode a binary input into a sequence of up to $N$ such mixed-radix digits
-via a composition of $N$ such transducers.
-For example, to convert three mixed-radix digits:
-$(\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transechodivmixed) \transcomp (\transerasezerobits)$.
-}
-\end{figure}
-
-\newpage
-\begin{figure}
-\begin{tabular}{ll}
-  (a) \includedot{converter}{width=.5\textwidth}
-&
-  (b) \includedot{flush8}{width=.5\textwidth}
-  \end{tabular}
-\caption{
-\figlabel{Converter}
-An inefficient, but simple, approach
-to the conversion of a binary input into a mixed-radix output (binary, trinary and quaternary).
-Left:
-Transducer $\transmixed$ converts an input sequence of binary digits ($\bit{0},\bit{1}$),
-optionally interleaved with
-control symbols ($\controlsym{n}$)
-and flush symbols ($\flushsym$),
-into a mixed output of binary digits,
-trinary digits ($\trit{0},\trit{1},\trit{2}$),
-quaternary digits ($\quat{0},\quat{1},\quat{2},\quat{3}$),
-and control symbols, which are simply echoed to the output;
-the flush symbol is used to drive the machine into a state (T) where it can accept control symbols.
-The conversion is suboptimal in that trinary digits (trits) on average encode
-1.5 input bits, slightly less than the theoretical maximum of $\log_2(3) \simeq 1.58$ bits.
-State S is both the initial state and the final state.
-Right:
-Transducer $\transflush$ copies input bits to the output, sending a flush symbol after every 8-bit byte.
-Accurate decoding of the output sequence from $\transmixed$ requires that the decoder
-knows at what points in the sequence flush symbols have been encoded.
-This synchronization can be formalized by using $\transflush \transcomp \transmixed$,
-i.e. passing the input sequence through the ``flush every 8 bits'' transducer
-before feeding it to the ``convert to binary/trinary/quaternary'' transducer.
-In this model, bytes cannot be split up; a control symbol can only be sent before or after a byte,
-and an input bitstream that has a control symbol partway through an 8-bit block
-will have no successful path through the transducer.
-}
-\end{figure}
-
-\newpage
-\begin{figure}
 \begin{tabular}{ccc}
 (a) \includedot{dna2full}{width=.3\textwidth}
 &
@@ -897,8 +735,7 @@ will have no successful path through the transducer.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
-  The leftmost machine in the top row (a) is similar to $\transbintodna$ of \subfigref{NaiveDNATransducer}{c},
-  while the leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
+  The leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
   Transition label annotations have been omitted from this diagram.
   Instead, the labels may be deduced from the node and edge shapes, as follows:
