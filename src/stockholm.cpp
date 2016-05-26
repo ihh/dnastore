@@ -1,8 +1,10 @@
 #include <algorithm>
 #include <iomanip>
+#include <fstream>
 #include "stockholm.h"
 #include "regexmacros.h"
 #include "util.h"
+#include "logger.h"
 
 // POSIX basic regular expressions
 const regex nonwhite_re (RE_DOT_STAR RE_NONWHITE_CHAR_CLASS RE_DOT_STAR, regex_constants::basic);
@@ -147,4 +149,19 @@ size_t Stockholm::columns() const {
 AlignPath Stockholm::path() const {
   Alignment a (gapped);
   return a.path;
+}
+
+list<Stockholm> readStockholmDatabase (const char* filename) {
+  list<Stockholm> db;
+  LogThisAt(1,"Loading alignment(s) from " << filename << endl);
+  ifstream stockIn (filename);
+  if (!stockIn)
+    Fail ("File %s not found", filename);
+  while (stockIn && !stockIn.eof()) {
+    Stockholm stock (stockIn);
+    if (stock.rows() == 0)
+      break;
+    db.push_back (stock);
+  }
+  return db;
 }

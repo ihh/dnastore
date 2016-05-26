@@ -13,6 +13,8 @@
 #include "../src/encoder.h"
 #include "../src/decoder.h"
 #include "../src/fastseq.h"
+#include "../src/mutator.h"
+#include "../src/fwdback.h"
 
 using namespace std;
 
@@ -45,8 +47,8 @@ int main (int argc, char** argv) {
       ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
       ("elim-trans", "eliminate degenerate transitions")
       ("controls,c", po::value<int>()->default_value(4), "number of control words")
-      ("no-start,s", "do not use a control word at start of encoded sequence")
-      ("no-eof,f", "do not use a control word at end of encoded sequence")
+      ("no-start", "do not use a control word at start of encoded sequence")
+      ("no-end", "do not use a control word at end of encoded sequence")
       ("delay,y", "build delayed machine")
       ("dot", "print in Graphviz format")
       ("rate,R", "calculate compression rate")
@@ -59,6 +61,12 @@ int main (int argc, char** argv) {
       ("encode-bits,b", po::value<string>(), "encode string of bits and control symbols to FASTA on stdout")
       ("decode-bits,B", po::value<string>(), "decode DNA sequence to string of bits and control symbols on stdout")
       ("raw,r", "strip headers from FASTA output; just print raw sequence")
+      ("error-sub-prob", po::value<double>()->default_value(.1), "substitution probability for error model")
+      ("error-iv-ratio", po::value<double>()->default_value(10), "transition/transversion ratio for error model")
+      ("error-dup-prob", po::value<double>()->default_value(.01), "tandem duplication probability for error model")
+      ("error-del-open", po::value<double>()->default_value(.01), "deletion opening probability for error model")
+      ("error-del-ext", po::value<double>()->default_value(.01), "deletion extension probability for error model")
+      ("fit-error,f", po::value<string>(), "train error model on Stockholm database of pairwise alignments")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -80,7 +88,6 @@ int main (int argc, char** argv) {
     Assert (len <= 31, "Maximum context is 31 bases");
 
     TransBuilder builder (len);
-
     if (vm.count("tandem"))
       builder.maxTandemRepeatLen = vm.at("tandem").as<int>();
     builder.invertedRepeatLen = vm.at("invrep").as<int>();
@@ -96,70 +103,88 @@ int main (int argc, char** argv) {
     builder.controlWordAtEnd = !vm.count("no-eof");
     builder.buildDelayedMachine = vm.count("delay");
 
-    // build, or load, transducer
-    const Machine machine = vm.count("load-machine")
-      ? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
-      : builder.makeMachine();
-    
-    // save transducer
-    if (vm.count("save-machine")) {
-      ofstream out (vm.at("save-machine").as<string>());
-      machine.writeJSON (out);
-    }
-    
-    // encoding or decoding?
-    if (vm.count("encode-file")) {
-      const string filename = vm.at("encode-file").as<string>();
-      ifstream infile (filename, std::ios::binary);
-      if (!infile)
-	throw runtime_error ("Binary file not found");
-      FastaWriter writer (cout, vm.count("raw") ? NULL : filename.c_str());
-      Encoder<FastaWriter> encoder (machine, writer);
-      encoder.encodeStream (infile);
-	
-    } else if (vm.count("decode-file")) {
-      const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
-      BinaryWriter writer (cout);
-      Decoder<BinaryWriter> decoder (machine, writer);
-      for (auto& fs: fastSeqs)
-	decoder.decodeString (fs.seq);
-
-    } else if (vm.count("encode-string")) {
-      FastaWriter writer (cout, vm.count("raw") ? NULL : "ASCII_string");
-      Encoder<FastaWriter> encoder (machine, writer);
-      encoder.encodeString (vm.at("encode-string").as<string>());
-      
-    } else if (vm.count("decode-string")) {
-      BinaryWriter writer (cout);
-      Decoder<BinaryWriter> decoder (machine, writer);
-      decoder.decodeString (vm.at("decode-string").as<string>());
-
-    } else if (vm.count("encode-bits")) {
-      FastaWriter writer (cout, vm.count("raw") ? NULL : "bit_string");
-      Encoder<FastaWriter> encoder (machine, writer);
-      encoder.encodeSymbolString (vm.at("encode-bits").as<string>());
-      
-    } else if (vm.count("decode-bits")) {
-      Decoder<ostream> decoder (machine, cout);
-      decoder.decodeString (vm.at("decode-bits").as<string>());
-      decoder.close();
-
-      cout << endl;
-
-    } else if (vm.count("rate")) {
-      // Output statistics
-      const auto charBases = machine.expectedBasesPerInputSymbol("01!");
-      vguard<string> cbstr;
-      for (const auto& cb: charBases)
-	cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));
-      cout << "Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl;
+    MutatorParams mut;
+    mut.initMaxDupLen (len / 2);
+    mut.pTanDup = vm.at("error-dup-prob").as<double>();
+    mut.pDelOpen = vm.at("error-del-open").as<double>();
+    mut.pDelExtend = vm.at("error-del-ext").as<double>();
+    const double subProb = vm.at("error-sub-prob").as<double>();
+    const double ivRatio = vm.at("error-iv-ratio").as<double>();
+    mut.pTransition = subProb * ivRatio / (1 + ivRatio);
+    mut.pTransversion = subProb / (1 + ivRatio);
+ 
+    if (vm.count("fit-error")) {
+      const list<Stockholm> db = readStockholmDatabase (vm.at("fit-error").as<string>().c_str());
+      const MutatorCounts prior (mut);
+      const MutatorParams fitMut = baumWelchParams (mut, prior, db);
+      fitMut.writeJSON (cout);
 
     } else {
-      // Output the transducer
-      if (vm.count("dot"))
-	machine.writeDot (cout);
-      else
-	machine.write (cout);
+      // build, or load, transducer
+      const Machine machine = vm.count("load-machine")
+	? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
+	: builder.makeMachine();
+    
+      // save transducer
+      if (vm.count("save-machine")) {
+	ofstream out (vm.at("save-machine").as<string>());
+	machine.writeJSON (out);
+      }
+
+      // encoding or decoding?
+      if (vm.count("encode-file")) {
+	const string filename = vm.at("encode-file").as<string>();
+	ifstream infile (filename, std::ios::binary);
+	if (!infile)
+	  throw runtime_error ("Binary file not found");
+	FastaWriter writer (cout, vm.count("raw") ? NULL : filename.c_str());
+	Encoder<FastaWriter> encoder (machine, writer);
+	encoder.encodeStream (infile);
+	
+      } else if (vm.count("decode-file")) {
+	const vguard<FastSeq> fastSeqs = readFastSeqs (vm.at("decode-file").as<string>().c_str());
+	BinaryWriter writer (cout);
+	Decoder<BinaryWriter> decoder (machine, writer);
+	for (auto& fs: fastSeqs)
+	  decoder.decodeString (fs.seq);
+
+      } else if (vm.count("encode-string")) {
+	FastaWriter writer (cout, vm.count("raw") ? NULL : "ASCII_string");
+	Encoder<FastaWriter> encoder (machine, writer);
+	encoder.encodeString (vm.at("encode-string").as<string>());
+      
+      } else if (vm.count("decode-string")) {
+	BinaryWriter writer (cout);
+	Decoder<BinaryWriter> decoder (machine, writer);
+	decoder.decodeString (vm.at("decode-string").as<string>());
+
+      } else if (vm.count("encode-bits")) {
+	FastaWriter writer (cout, vm.count("raw") ? NULL : "bit_string");
+	Encoder<FastaWriter> encoder (machine, writer);
+	encoder.encodeSymbolString (vm.at("encode-bits").as<string>());
+      
+      } else if (vm.count("decode-bits")) {
+	Decoder<ostream> decoder (machine, cout);
+	decoder.decodeString (vm.at("decode-bits").as<string>());
+	decoder.close();
+
+	cout << endl;
+
+      } else if (vm.count("rate")) {
+	// Output statistics
+	const auto charBases = machine.expectedBasesPerInputSymbol("01!");
+	vguard<string> cbstr;
+	for (const auto& cb: charBases)
+	  cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));
+	cout << "Expected bases/symbol: { " << join(cbstr,", ") << " }" << endl;
+
+      } else {
+	// Output the transducer
+	if (vm.count("dot"))
+	  machine.writeDot (cout);
+	else
+	  machine.write (cout);
+      }
     }
 
 #ifndef DEBUG
