@@ -68,7 +68,7 @@ for my $i (@sortedLeafIndex) {
     $state[$i]->{outseq} = "";
     $pmin = $pmax;
     if ($verbose) {
-	warn "P(", $state[$i]->{word}, ")=", $state[$i]=>{p},
+	warn "P(", $state[$i]->{word}, ")=", $state[$i]->{p},
 	" [A,B)=[", $state[$i]->{A}, ",", $state[$i]->{B}, ")\n";
     }
 }
