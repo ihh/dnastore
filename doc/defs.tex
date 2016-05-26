@@ -21,6 +21,7 @@
 \newcommand{\figref}[1]{Figure~\ref{Figures.#1}}
 \newcommand{\subfigref}[2]{Figure~\ref{Figures.#1}(#2)}
 
+% \easyfig{filename.png}{width=...}{label}{caption}
 \newcommand{\easyfig}[4]{
 \begin{figure}
 \includegraphics[#2]{#1}
@@ -32,26 +33,12 @@
 \includegraphics[#2]{#1.ps}
 }
 
+% \dotfig{filenameprefix}{width=...}{label}{caption}
 \newcommand{\dotfig}[4]{
 \includedot{#1}{#2}
 \begin{figure}
 \caption{ \figlabel{#3} #4}
 \end{figure}}
-
-\newcommand{\pngfig}[2]{\easyfig{#1.png}{}{#1}{#2}}
-\newcommand{\pdffig}[2]{\easyfig{#1-fig.pdf}{}{#1}{#2}}
-
-\newcommand{\widepngfig}[2]{\easyfig{#1.png}{width=\textwidth}{#1}{#2}}
-\newcommand{\tallpngfig}[2]{\easyfig{#1.png}{height=.8\textheight}{#1}{#2}}
-\newcommand{\widepdffig}[2]{\easyfig{#1-fig.pdf}{width=\textwidth}{#1}{#2}}
-\newcommand{\tallpdffig}[2]{\easyfig{#1-fig.pdf}{height=.8\textheight}{#1}{#2}}
-
-\newcommand{\sidewayspngfig}[2]{
-\begin{sidewaysfigure}
-\includegraphics[width=\textwidth]{#1.png}
-\caption{\figlabel{#1} #2}
-\end{sidewaysfigure}
-}
 
 % ToDo
 \newcommand{\needfig}[1]{{\bf Need figure: } #1 }

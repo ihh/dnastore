@@ -14,7 +14,7 @@ ALLFIGPS := $(addsuffix .ps,$(ALLFIG))
 ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
 ALLFIGJUNK := $(ALLFIGTEX)
 
-FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps
+FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps eof2.ps
 
 # LaTeX:
 TEXINCLUDES := defs.tex notation.tex
@@ -55,6 +55,9 @@ cleanstore:
 %.ps: %.dot
 	dot -Tps $< >$@
 
+%.png: %.dot
+	dot -Tpng $< >$@
+
 # ladot
 %.tex %.ps: %.ladot ladot
 	./ladot $<
@@ -66,6 +69,14 @@ cleanstore:
 # Hamming(7,4) transducer
 hamming74.dot: hamming74.pl
 	perl $< >$@
+
+# Arithmetic code with wordlen=2
+eof2.dot: mixradar.pl Makefile
+	perl mixradar.pl 2 1/10 >$@
+
+# Arithmetic code with wordlen=3
+eof3.dot: mixradar.pl Makefile
+	perl mixradar.pl 3 1/10 >$@
 
 # DNAstore machines
 dna1full.lacirco: filter.pl Makefile

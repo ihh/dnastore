@@ -2,20 +2,19 @@
 
 \bibitem{ChurchEtAl2012}
 G.~M. Church, Y.~Gao, and S.~Kosuri.
-\newblock {{N}ext-generation digital information storage in {D}{N}{A}}.
+\newblock {{N}ext-Generation Digital Information Storage in {D}{N}{A}}.
 \newblock {\em Science}, 337(6102):1628, Sep 2012.
 
 \bibitem{GoldmanEtAl2013}
 N.~Goldman, P.~Bertone, S.~Chen, C.~Dessimoz, E.~M. LeProust, B.~Sipos, and
   E.~Birney.
-\newblock {{T}owards practical, high-capacity, low-maintenance information
-  storage in synthesized {D}{N}{A}}.
+\newblock {{T}owards Practical, High-Capacity, Low-Maintenance Information
+  Storage in Synthesized {D}{N}{A}}.
 \newblock {\em Nature}, 494(7435):77--80, Feb 2013.
 
 \bibitem{YazdiEtAl2015}
 S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
-\newblock {{A} {R}ewritable, {R}andom-{A}ccess {D}{N}{A}-{B}ased {S}torage
-  {S}ystem}.
+\newblock {{A} Rewritable, Random-Access {D}{N}{A}-Based Storage System}.
 \newblock {\em Sci Rep}, 5:14138, 2015.
 
 \bibitem{MohriPereiraRiley2000}
@@ -24,7 +23,8 @@ M.~Mohri, F.~Pereira, and M.~Riley.
 \newblock {\em Computer Speech and Language}, 16(1):69--88, 2002.
 
 \bibitem{WikipediaTransducers}
-{\em Finite-state transducer}, 2016 (accessed May 19, 2016).
+{\em Finite-State Transducer (Wikipedia article)}, 2016 (accessed May 19,
+  2016).
 \newblock
   \url{https://en.wikipedia.org/w/index.php?title=Finite_state_transducer&oldid=718569101}.
 
@@ -40,23 +40,24 @@ E.~Eskin, W.~N. Grundy, and Y.~Singer.
 \bibitem{PatenEtAl2008}
 B.~Paten, J.~Herrero, S.~Fitzgerald, K.~Beal, P.~Flicek, I.~Holmes, and
   E.~Birney.
-\newblock {{G}enome-wide nucleotide-level mammalian ancestor reconstruction}.
+\newblock {{G}enome-Wide Nucleotide-Level Mammalian Ancestor Reconstruction}.
 \newblock {\em Genome Research}, 18:1829--1843, Nov 2008.
 
 \bibitem{WestessonEtAlArxiv2012}
 Oscar Westesson, Gerton Lunter, Benedict Paten, and Ian Holmes.
-\newblock Accurate reconstruction of insertion-deletion histories by
-  statistical phylogenetics, 2012.
+\newblock Phylogenetic automata, pruning, and multiple alignment.
+\newblock arXiv, 2012.
+\newblock 1202.4026.
 
 \bibitem{WestessonEtAl2012}
 O.~Westesson, G.~Lunter, B.~Paten, and I.~Holmes.
-\newblock {{A}ccurate reconstruction of insertion-deletion histories by
-  statistical phylogenetics}.
+\newblock {{A}ccurate Reconstruction of Insertion-Deletion Histories by
+  Statistical Phylogenetics}.
 \newblock {\em PLoS ONE}, 7(4):e34572, 2012.
 
 \bibitem{SchwarzEtAl2014}
 R.~F. Schwarz, A.~Trinh, B.~Sipos, J.~D. Brenton, N.~Goldman, and F.~Markowetz.
-\newblock {{P}hylogenetic quantification of intra-tumour heterogeneity}.
+\newblock {{P}hylogenetic Quantification of Intra-Tumour Heterogeneity}.
 \newblock {\em PLoS Comput. Biol.}, 10(4):e1003535, Apr 2014.
 
 \bibitem{DeBruijn1946}
@@ -67,20 +68,30 @@ N.~G. de~Bruijn.
 
 \bibitem{PevznerEtAl2001}
 P.~A. Pevzner, H.~Tang, and M.~S. Waterman.
-\newblock {{A}n {E}ulerian path approach to {D}{N}{A} fragment assembly}.
+\newblock {{A}n {E}ulerian Path Approach to {D}{N}{A} Fragment Assembly}.
 \newblock {\em Proc. Natl. Acad. Sci. U.S.A.}, 98(17):9748--9753, Aug 2001.
 
 \bibitem{ZerbinoBirney2008}
 D.~R. Zerbino and E.~Birney.
-\newblock {{V}elvet: algorithms for de novo short read assembly using de
-  {B}ruijn graphs}.
+\newblock {{V}elvet: Algorithms for De Novo Short Read Assembly Using de
+  {B}ruijn Graphs}.
 \newblock {\em Genome Res.}, 18(5):821--829, May 2008.
 
 \bibitem{IqbalEtAl2012}
 Z.~Iqbal, M.~Caccamo, I.~Turner, P.~Flicek, and G.~McVean.
-\newblock {{D}e novo assembly and genotyping of variants using colored de
-  {B}ruijn graphs}.
+\newblock {{D}e Novo Assembly and Genotyping of Variants Using Colored De
+  {B}ruijn Graphs}.
 \newblock {\em Nat. Genet.}, 44(2):226--232, Feb 2012.
+
+\bibitem{Rissanen1976}
+J.~J. Rissanen.
+\newblock Generalized kraft inequality and arithmetic coding.
+\newblock {\em IBM J. Res. Dev.}, 20(3):198--203, May 1976.
+
+\bibitem{Mackay2003}
+D.~J.~C. Mackay.
+\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
+\newblock Cambridge University Press, 1st edition, 2003.
 
 \bibitem{Durbin98}
 R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
@@ -95,19 +106,14 @@ Fernando C.~N. Pereira and Michael Riley.
 
 \bibitem{Holmes2003}
 I.~Holmes.
-\newblock {{U}sing guide trees to construct multiple-sequence evolutionary
+\newblock {{U}sing Guide Trees to Construct Multiple-sequence Evolutionary
   {H}{M}{M}s}.
 \newblock {\em Bioinformatics}, 19 Suppl 1:i147--157, 2003.
 
 \bibitem{Holmes2007}
 I.~Holmes.
-\newblock {{P}hylocomposer and phylodirector: analysis and visualization of
-  transducer indel models}.
+\newblock {{P}hylocomposer and Phylodirector: Analysis and Visualization of
+  Transducer Indel Models}.
 \newblock {\em Bioinformatics}, 23(23):3263--3264, Dec 2007.
-
-\bibitem{Mackay2003}
-D.~J.~C. Mackay.
-\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
-\newblock Cambridge University Press, 1st edition, 2003.
 
 \end{thebibliography}

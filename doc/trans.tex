@@ -56,8 +56,9 @@ can be applied upstream of the conversion from binary to mixed-radix,
 while the readout process (errors from which may reintroduce repeats and prohibited motifs)
 can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA
 
+We employ several technologies in our modular strategy
 To combine error-correcting codes, repeat-avoidant nucleotide encoding, and a statistical error model
-in a single coherent framework,
+in a single framework,
 we represent the stages of the encoding and decoding process
 modularly as finite-state machines known as transducers \cite{MohriPereiraRiley2000,WikipediaTransducers}
 Standard algorithms for transducer combination (e.g. transducer composition)
@@ -67,10 +68,11 @@ protein classification \cite{EskinEtAl2000},
 phylogenetic indel models \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
 cancer informatics \cite{SchwarzEtAl2014}
 
-We also use
-De Bruijn graphs \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012}
-and relationship to automata with limited context e.g. order-$N$ Markov models
+To construct the non-repeating transducer
+we use De Bruijn graphs \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012}
+and their relationship to automata with limited context (``order-$N$ Markov models'').
 
+To convert a binary sequence into a mixed-radix sequence we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}
 
 \section{Methods}
 
@@ -197,13 +199,9 @@ to minimize the number of transitions and/or states,
 and hence,
 the time and/or memory complexity of dynamic programming algorithms.
 
-\subsection{Transducer union and Kleene closure}
-
-% WRITE ME
-
 \subsection{Transducer concatenation}
 
-Anther operation on transducers that is useful in constructing DNA codes
+Another operation on transducers that is useful in constructing DNA codes
 is concatenation.
 Suppose
  $\tra = (\inalph, \outalph, \tpa{\states}, \tpa{\transitions}, \tpa{\initstate}, \tpa{\finalstate})$ and
@@ -213,6 +211,18 @@ The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed b
 taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
 from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
 This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
+
+\subsection{Transducer union}
+
+The union of two transducers (whose state spaces are assumed disjoint)
+is found by taking the union of their state spaces and transition graphs
+and adding a new initial state with two unit-weight transitions, one to each of the initial states
+of the two transducers being combined.
+
+\subsection{Kleene closure}
+
+The operation analogous to Kleene closure (generating all strings over a given alphabet)
+is simply to add a unit-weight transition from the final state of the transducer back to the initial state.
 
 \subsection{De Bruijn graphs}
 
@@ -390,10 +400,11 @@ so these transitions and the corresponding states can be deleted.
 An analogous procedure can be used to transform a machine with $\kmerlen$ symbols of past input context
 into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future input context.
 
-\subsection{A transducer that converts a binary sequence into a mixture of binary, trinary and quaternary}
+\subsection{A transducer that converts a binary sequence into a mixed-radix sequence of binary, trinary and quaternary digits}
+\seclabel{Arithmetic}
 
 To convert a binary sequence into a mixed-radix sequence
-we construct a block code inspired by arithmetic coding \cite{Mackay2003}.
+we construct a block code inspired by the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
 
 Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
 given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
@@ -414,32 +425,43 @@ Arithmetic coding uses the following ideas:
           $[A_0,B_0) = [0,1)$,
               $A_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1}-1)$,
               and $B_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1})$.
+            \item The upshot of all of this is that each message is associated with a finite subinterval of $[0,1)$
+              and these subintervals are lexicographically ordered (i.e. sorted by the first symbol, then the second, then the third, and so on).
             \item Any finite-precision floating-point number also specifies a subinterval of $[0,1)$
               containing all floating-point numbers of greater precision that would be rounded to that number.
               For example, the decimal floating-point number $0.413$ specifies the subinterval $[0.4125,0.4135)$.
               \item To encode the message $x_1 x_2 \ldots x_N$,
                 we simply need to transmit enough digits of a (binary) floating-point number such that its
                 rounding interval is fully contained within the interval $[A_{N+1},B_{N+1})$.
+                  The number of floating-point binary digits this requires should not exceed the Shannon entropy of the message,
+                  $-\log_2 P(x_1 x_2 \ldots x_N)$, by more than one bit.
 \end{itemize}
 
-We take this idea and apply it to mixed-radix sequences.
+We apply these concepts to encode input words as mixed-radix floating point numbers.
 The set of input words to be encoded is the set of all length-$N$ binary strings,
 plus the set of all length-$k$ binary strings ($0 \leq k < N$) that are followed by the `\$' character.
 Thus, if $N=2$ then the input word set is $\{\$,0\$,1\$,00,01,10,11\}$.
 There are $2^{N+1}-1$ words in the input word set.
+
 We assume that a probability model as described above is defined over this input set;
 typically we will use a simple model that assigns a small probability $\nu$ to '\$' at any position,
 independently of previous context,
 and splits the remaining probability evenly between $0$ and $1$.
+Each input word $w$ is then associated with an interval $[A_w,B_w)$ of size $P(w) = B_w-A_w$.
+Since we are working with small fixed-length input codewords and finite-state machines, we will drop the lexicographical ordering of codeword intervals
+which arithmetic coding uses to implement online compression and decompression for arbitrary-length messages.
+Instead, we sort the input words $w$ by probability $P(w)$, which will tend to lead to rarer words sharing similar encoded prefixes
+(c.f. Huffmann coding).
+
 We construct a transducer that converts an input word into a mixed-radix sequence
 with all possible combinations of binary, trinary and quaternary radix at every available position, as follows:
 \begin{itemize}
 \item First construct the prefix tree of the input words, assign a state to every node and an input-labeled transition to every correspondingly labeled edge.
   The root of the prefix tree serves as the initial and final state.
 \item Let $S$ be the list of states corresponding to the leaves of the prefix tree.
-  For $s \in S$, let the {\em input interval} $[A(s),B(s))$ be the subinterval of $[0,1)$ required to encode the associated message.
-    \item Also for each state define the {\em output interval} $[D(s),E(s))$, the subinterval that has been encoded by output symbols so far.
-      For the states $s \in S$, define $[D(s),E(s)) = [0,1)$ since no output symbols have been emitted yet.
+  For $s \in S$, let the {\em input interval} $[A(s),B(s))$ be the subinterval of $[0,1)$ required to encode the associated input word.
+    \item Also for each state define the {\em output prefix}, $O(s)$, and the {\em output interval} $[D(s),E(s))$, the subinterval that has been encoded by the output prefix.
+      For the states $s \in S$, define $O(s) = \emptystring$ and $[D(s),E(s)) = [0,1)$ since no output symbols have been emitted yet.
         \item While $S$ is nonempty, then for the first $s \in S$:
         \begin{itemize}
           \item If the output interval is not fully enclosed by the input interval, that is if not ($D(s) \geq A(s)$ and $E(s) \leq B(s)$), then:
@@ -448,17 +470,21 @@ with all possible combinations of binary, trinary and quaternary radix at every 
             \item For each radix $R$ from 2 to 4:
               \begin{itemize}
               \item Find the integer $r$ such that if $d(r)=D(s)+wr/R$ then $d(r) \leq m < d(r+1)$.
-              \item Create a new state $t$ and define $A(t)=A(s)$, $B(t)=B(s)$, $D(t)=d(r)$ and $E(t)=d(r+1)$.
+              \item Create a new state $t$ and define $A(t)=A(s)$, $B(t)=B(s)$, $D(t)=d(r)$, $E(t)=d(r+1)$ and $O(t) = O(s) \cdot r_R$.
               \item Add a transition from $s$ to $t$ with output label $r_R$.
               \item Add $t$ to $S$.
               \end{itemize}
             \end{itemize}
           \item Delete $s$ from $S$.
         \end{itemize}
+      \item If any states have a unique output prefix $O(s)$, then remove all their outgoing transitions and all descendant states reachable via those transitions.
       \item Merge all states whose sets of possible output sequences are identical. These are easily identified since each state's output sequence set is generated by the subtree of states accessible from that state: there are no cycles in the transition graph.
         A string encoding of a state's accessible subtree is sufficient to identify its output set.
       \item Form the Kleene closure of the constructed transducer by adding a unit-weight, $\emptystring$-labeled transition from every state without outgoing transitions back to the initial state.
 \end{itemize}
+
+\figref{Arithmetic} shows a transducer that was designed for the example alphabet (2-digit codewords, $\nu=1/10$).
+
 
 
 \subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
@@ -709,6 +735,18 @@ Due to the large number of states, the state names have been omitted from this d
 as have the $\epsilon$ labels for empty inputs or outputs.
 }
 \end{figure}
+
+\newpage
+\easyfig{eof2.ps}{width=\textwidth}{Arithmetic}{
+  A transducer built using the method of \secref{Arithmetic}
+  that converts a binary codeword of length 0, 1 or 2 bits
+  into a mixed-radix sequence.
+  Dotted lines show transitions that input a bit or an end-of-file symbol (`\$').
+  Dashed lines show transitions that output a radix-2 digit (i.e. a bit).
+  Solid regular-weight lines show transitions that output a radix-3 digit (i.e. a trit).
+  Solid bold-weight lines show transitions that output a radix-4 digit (i.e. a quat).
+  This code was designed with the probability of an end-of-file symbol set to 1/10.
+}
 
 \newpage
 \begin{figure}
