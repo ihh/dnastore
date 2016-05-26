@@ -403,9 +403,30 @@ into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future inpu
 \subsection{A transducer that converts a binary sequence into a mixed-radix sequence of binary, trinary and quaternary digits}
 \seclabel{Arithmetic}
 
-To convert a binary sequence into a mixed-radix sequence
-we construct a block code inspired by the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
+We can always convert a binary sequence to a mixed-radix sequence trivially by encoding
+$\bit{0}$ and $\bit{1}$ as $0_R$ and $1_R$ in whatever radix $R$ is available;
+that is, we simply never use the extra symbols in our alphabet $\{ \trit{2}, \quat{2}, \quat{3} \}$.
+However, we can do better than this and pack some extra information into the additional symbols when they are available.
 
+It is tempting to try something like the machine of \figref{BinaryToTrinary},
+which maps binary $\bit{0}\bit{0}$ to trinary $\trit{0}$,
+$\bit{0}\bit{1}$ to $\trit{1}$,
+and $\bit{1}$ to $\trit{2}$;
+that is, it sometimes encodes two bits as one trit.
+In fact, it does this exactly half the time (assuming a uniform distribution over input bits)
+so there are, on average, 1.5 input bits per output trit,
+which is quite close to the theoretical optimum of $\log_2(3) \simeq 1.585$ bits per trit.
+However, we have to be a little careful with this approach:
+the machine of \figref{BinaryToTrinary} can get stuck in a state where it has queued up a zero input bit
+and is waiting for the next input bit before it outputs a trit.
+If the input ends at this point, or if the encoded signal includes a non-bit symbol
+such as one of the reserved control symbols we allowed for in \secref{DeBruijnTransducer},
+then we have to flush out that queued-up zero bit somehow.
+We can send an extra padding bit, or we can introduce a ``flush'' symbol,
+but we have to be careful that the decoder does not become unsynchronized with the encoder.
+
+As a more robust solution to the problem of efficiently converting a binary sequence into a mixed-radix sequence
+we construct a block code inspired by the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
 Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
 given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
 can be efficiently evaluated.
@@ -704,6 +725,13 @@ DNAStore
 
 \section{Discussion}
 
+We have outlined general design principles for efficient encoding signals in DNA
+
+Advantage of modular approach is that modules can be switched out independently
+e.g. more efficient machines for
+adding parity bits, converting binary to mixed-radix, generating repeat-free DNA
+or modeling errors
+
 
 We do not address the higher-level organization of DNA ``filesystem'',
 which has been addressed by others \cite{YazdiEtAl2015}
@@ -737,15 +765,28 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \end{figure}
 
 \newpage
+\dotfig{b2t}{width=\textwidth}{BinaryToTrinary}{
+  A transducer that converts binary to trinary.
+  This machine maps $\bit{0}\bit{0} \to \trit{0}$,
+  $\bit{0}\bit{1} \to \trit{1}$
+  and
+  $\bit{1} \to \trit{2}$.
+  The problem with this machine is that a dangling zero bit on the input
+  can leave it in a state (0)
+  that needs to be ``flushed'' with an extra input bit before the machine can finish.
+}
+
+\newpage
 \easyfig{eof2.ps}{width=\textwidth}{Arithmetic}{
-  A transducer built using the method of \secref{Arithmetic}
+  A transducer 
   that converts a binary codeword of length 0, 1 or 2 bits
   into a mixed-radix sequence.
   Dotted lines show transitions that input a bit or an end-of-file symbol (`\$').
   Dashed lines show transitions that output a radix-2 digit (i.e. a bit).
   Solid regular-weight lines show transitions that output a radix-3 digit (i.e. a trit).
   Solid bold-weight lines show transitions that output a radix-4 digit (i.e. a quat).
-  This code was designed with the probability of an end-of-file symbol set to 1/10.
+  This code was generated using the automated procedure of \secref{Arithmetic}
+  with parameter $\nu$ (the probability of the end-of-file symbol) equal to 1/10.
 }
 
 \newpage
