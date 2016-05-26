@@ -15,6 +15,7 @@ struct MutatorParams {
 
   void writeJSON (ostream& out) const;
   void readJSON (istream& in);
+  string asJSON() const;
   static MutatorParams fromJSON (istream& in);
   static MutatorParams fromFile (const char* filename);
 
@@ -45,6 +46,9 @@ struct MutatorCounts {
 
   MutatorCounts (const MutatorParams& params);
   MutatorCounts& initLaplace (double n = 1);
+
+  void writeJSON (ostream& out) const;
+  string asJSON() const;
 
   MutatorCounts& operator+= (const MutatorCounts& c);
   MutatorCounts operator+ (const MutatorCounts& c) const;

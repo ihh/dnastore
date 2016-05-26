@@ -69,5 +69,5 @@ double logDirichletPdfCounts (const vector<double>& prob, const vector<double>& 
   vector<double> countPlusOne (count);
   for (auto& c : countPlusOne)
     ++c;
-  return logDirichletPdfCounts (prob, countPlusOne);
+  return logDirichletPdf (prob, countPlusOne);
 }

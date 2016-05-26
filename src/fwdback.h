@@ -19,7 +19,7 @@ private:
     return (maxDupLen + 2) * col + 1;
   };
   inline size_t tCellIndex (AlignColIndex col, Pos idx) const {
-    return (maxDupLen + 2) * col + 1 + idx;
+    return (maxDupLen + 2) * col + 2 + idx;
   };
 
 protected:
@@ -44,10 +44,11 @@ public:
   inline LogProb dCell (AlignColIndex col) const { return cell[dCellIndex(col)]; }
   inline LogProb tCell (AlignColIndex col, Pos idx) const { return cell[tCellIndex(col,idx)]; }
 
-
   inline bool isSubState (AlignColIndex col) const { return inPath[col] && outPath[col]; }
   inline bool isInsState (AlignColIndex col) const { return !inPath[col] && outPath[col]; }
   inline bool isDelState (AlignColIndex col) const { return inPath[col] && !outPath[col]; }
+
+  inline Pos maxDupLenAt (AlignColIndex col) const { return min ((Pos) maxDupLen, (Pos) col2InSeqIdx[col]); }
 
   inline Base colInBase (AlignColIndex col) const { return inSeq[col2InSeqIdx[col]-1]; }
   inline Base colOutBase (AlignColIndex col) const { return outSeq[col2OutSeqIdx[col]-1]; }
@@ -60,6 +61,8 @@ public:
   inline LogProb colTanDupScore (AlignColIndex col, Pos dupIdx) const {
     return mutatorScores.sub[colTanDupBase(col,dupIdx)][colOutBase(col)];
   }
+
+  string toString() const;
 };
 
 struct ForwardMatrix : MutatorMatrix {
@@ -78,6 +81,28 @@ struct FwdBackMatrix {
   FwdBackMatrix (const MutatorParams& mutatorParams, const Stockholm& stock);
   MutatorCounts counts() const;
   LogProb loglike() const;
+  inline double pS2S (AlignColIndex destCol) const {
+    return exp (fwd.sCell(destCol-1) + fwd.mutatorScores.noGap + fwd.colSubScore(destCol-1) + back.sCell(destCol) - loglike());
+  }
+  inline double pT2T (AlignColIndex destCol, Pos destDupIdx) const {
+    return exp (fwd.tCell(destCol-1,destDupIdx+1) + fwd.colTanDupScore(destCol-1,destDupIdx+1) + back.tCell(destCol,destDupIdx) - loglike());
+  }
+  inline double pT2S (AlignColIndex destCol) const {
+    return exp (fwd.tCell(destCol-1,0) + fwd.colTanDupScore(destCol-1,0) + back.sCell(destCol) - loglike());
+  }
+  inline double pS2D (AlignColIndex destCol) const {
+    return exp (fwd.sCell(destCol-1) + fwd.mutatorScores.delOpen + back.dCell(destCol) - loglike());
+  }
+  inline double pD2D (AlignColIndex destCol) const {
+    return exp (fwd.dCell(destCol-1) + fwd.mutatorScores.delExtend + back.dCell(destCol) - loglike());
+  }
+  inline double pD2S (AlignColIndex destCol) const {
+    return exp (fwd.dCell(destCol) + fwd.mutatorScores.delEnd + back.sCell(destCol) - loglike());
+  }
+  inline double pS2T (AlignColIndex destCol, Pos destDupIdx) const {
+    return exp (fwd.sCell(destCol) + fwd.mutatorScores.tanDup + fwd.mutatorScores.len[destDupIdx] + back.tCell(destCol,destDupIdx));
+  }
+  string postProbsToString() const;
 };
 
 MutatorParams baumWelchParams (const MutatorParams& init, const MutatorCounts& prior, const list<Stockholm>& db);

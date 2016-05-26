@@ -115,7 +115,8 @@ int main (int argc, char** argv) {
  
     if (vm.count("fit-error")) {
       const list<Stockholm> db = readStockholmDatabase (vm.at("fit-error").as<string>().c_str());
-      const MutatorCounts prior (mut);
+      MutatorCounts prior(mut);
+      prior.initLaplace();
       const MutatorParams fitMut = baumWelchParams (mut, prior, db);
       fitMut.writeJSON (cout);
 
