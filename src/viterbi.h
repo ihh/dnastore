@@ -39,13 +39,13 @@ private:
   inline size_t dCellIndex (State state, Pos pos) const {
     return (maxDupLen + 2) * (pos * nStates + state) + 1;
   };
-  inline size_t fCellIndex (State state, Pos pos, Pos idx) const {
+  inline size_t tCellIndex (State state, Pos pos, Pos idx) const {
     return (maxDupLen + 2) * (pos * nStates + state) + 1 + idx;
   };
 
   inline LogProb& sCell (State state, Pos pos) { return cell[sCellIndex(state,pos)]; }
   inline LogProb& dCell (State state, Pos pos) { return cell[dCellIndex(state,pos)]; }
-  inline LogProb& fCell (State state, Pos pos, Pos idx) { return cell[fCellIndex(state,pos,idx)]; }
+  inline LogProb& tCell (State state, Pos pos, Pos idx) { return cell[tCellIndex(state,pos,idx)]; }
 
 public:
   const Machine& machine;
@@ -60,7 +60,7 @@ public:
 
   inline const LogProb sCell const (State state, Pos pos) { return cell[sCellIndex(state,pos)]; }
   inline const LogProb dCell const (State state, Pos pos) { return cell[dCellIndex(state,pos)]; }
-  inline const LogProb fCell const (State state, Pos pos, Pos idx) { return cell[fCellIndex(state,pos,idx)]; }
+  inline const LogProb tCell const (State state, Pos pos, Pos idx) { return cell[tCellIndex(state,pos,idx)]; }
 };
 
 #endif /* VITERBI_INCLUDED */

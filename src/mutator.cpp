@@ -1,6 +1,7 @@
 #include <fstream>
 #include "mutator.h"
 #include "jsonutil.h"
+#include "logger.h"
 
 void MutatorParams::writeJSON (ostream& out) const {
   out << "{\n";
@@ -26,6 +27,12 @@ void MutatorParams::readJSON (istream& in) {
   JsonValue pLenArray = pj.getType ("pLen", JSON_ARRAY);
   for (JsonIterator iter = begin(pLenArray); iter != end(pLenArray); ++iter)
     pLen.push_back (iter->value.toNumber());
+}
+
+string MutatorParams::asJSON() const {
+  ostringstream out;
+  writeJSON (out);
+  return out.str();
 }
 
 MutatorParams MutatorParams::fromJSON (istream& in) {
@@ -69,15 +76,41 @@ MutatorScores::MutatorScores (const MutatorParams& params)
 MutatorCounts::MutatorCounts (const MutatorParams& params)
   : nDelOpen(0),
     nTanDup(0),
+    nNoGap(0),
     nDelExtend(0),
     nDelEnd(0),
     nSub(4,vguard<double>(4,0)),
     nLen(params.maxDupLen(),0)
 { }
 
+void MutatorCounts::writeJSON (ostream& out) const {
+  out << "{\n";
+  out << " \"nDelOpen\": " << nDelOpen << ",\n";
+  out << " \"nTanDup\": " << nTanDup << ",\n";
+  out << " \"nNoGap\": " << nNoGap << ",\n";
+  out << " \"nDelExtend\": " << nDelExtend << ",\n";
+  out << " \"nDelEnd\": " << nDelEnd << ",\n";
+  out << " \"nLen\": [ " << to_string_join(nLen,", ") << " ],\n";
+  out << " \"nSub\": [ ";
+  for (Base i = 0; i < 4; ++i)
+    out << (i > 0 ? ", " : "") << "[" << to_string_join(nSub[i],",") << "]";
+  out << " ],\n";
+  out << " \"nMatch\": " << nMatch() << ",\n";
+  out << " \"nTransition\": " << nTransition() << ",\n";
+  out << " \"nTransversion\": " << nTransversion() << "\n";
+  out << "}\n";
+}
+
+string MutatorCounts::asJSON() const {
+  ostringstream out;
+  writeJSON (out);
+  return out.str();
+}
+
 MutatorCounts& MutatorCounts::initLaplace (double n) {
   nDelOpen = n;
   nTanDup = n;
+  nNoGap = n;
   nDelExtend = n;
   nDelEnd = n;
   for (Base i = 0; i < 4; ++i)
@@ -92,6 +125,7 @@ MutatorCounts& MutatorCounts::operator+= (const MutatorCounts& c) {
   Assert (nLen.size() == c.nLen.size(), "Length mismatch");
   nDelOpen += c.nDelOpen;
   nTanDup += c.nTanDup;
+  nNoGap += c.nNoGap;
   nDelExtend += c.nDelExtend;
   nDelEnd += c.nDelEnd;
   for (Base i = 0; i < 4; ++i)
@@ -116,7 +150,7 @@ MutatorParams MutatorCounts::mlParams() const {
   p.pDelExtend = nDelExtend / (nDelExtend + nDelEnd);
   const double ni = nTransition(), nv = nTransversion(), nm = nMatch();
   p.pTransition = ni / (ni + nv + nm);
-  p.pTransversion = ni / (ni + nv + nm);
+  p.pTransversion = nv / (ni + nv + nm);
   return p;
 }
 
@@ -147,6 +181,7 @@ double MutatorCounts::nTransversion() const {
 
 MutatorParams MutatorCounts::mlParams (const MutatorCounts& prior) const {
   const MutatorCounts c = *this + prior;
+  LogThisAt(10,"Counts + prior:\n" << c.asJSON());
   return c.mlParams();
 }
 

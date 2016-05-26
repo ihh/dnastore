@@ -2,6 +2,7 @@
 #define STOCKHOLM_INCLUDED
 
 #include <map>
+#include <list>
 #include "fastseq.h"
 #include "alignpath.h"
 
@@ -26,5 +27,7 @@ struct Stockholm {
   size_t columns() const;
   AlignPath path() const;
 };
+
+list<Stockholm> readStockholmDatabase (const char* filename);
 
 #endif /* STOCKHOLM_INCLUDED */
