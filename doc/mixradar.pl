@@ -28,6 +28,7 @@ sub getRange {
     }
     my ($pmin, $pmax) = (0, 1);
     for my $c (split(//,$seq)) {
+	die "Allowed symbols: (@c)" unless exists $weight{$c};
 	$new_pmin = $pmin + ($pmax - $pmin) * $pmin{$c};
 	$new_pmax = $pmin + ($pmax - $pmin) * $pmax{$c};
 #	warn "in=$c new_pmin=$new_pmin new_pmax=$new_pmax";
