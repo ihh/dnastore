@@ -2,22 +2,25 @@
 #define VITERBI_INCLUDED
 
 #include "mutator.h"
+#include "fastseq.h"
 
 struct InputModel {
   map<InputSymbol,double> symProb;
   InputModel (const string& inputAlphabet, double controlProb);
+  InputModel();
 };
 
 struct IncomingTransScore {
   State src;
   LogProb score;
   InputSymbol in;
+  Base base;
 };
 
 struct StateScores {
-  Base base;
   vguard<Base> leftContext;
   vguard<IncomingTransScore> emit, null;
+  inline Base base() const { return leftContext.back(); }
 };
 
 struct MachineScores {
@@ -30,8 +33,8 @@ private:
   size_t maxDupLen, nStates, seqLen;
   vguard<LogProb> cell;
 
-  static inline size_t nCells (const Machine& machine, const TokSeq& seq) {
-    return (maxDupLen + 2) * machine.nStates() * (seq.size() + 1);
+  static inline size_t nCells (const Machine& machine, const MutatorParams& params, const TokSeq& seq) {
+    return (params.maxDupLen() + 2) * machine.nStates() * (seq.size() + 1);
   };
 
   inline size_t sCellIndex (State state, Pos pos) const {
@@ -59,9 +62,9 @@ public:
   ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const TokSeq& seq);
   string traceback() const;
 
-  inline const LogProb sCell const (State state, Pos pos) { return cell[sCellIndex(state,pos)]; }
-  inline const LogProb dCell const (State state, Pos pos) { return cell[dCellIndex(state,pos)]; }
-  inline const LogProb tCell const (State state, Pos pos, Pos idx) { return cell[tCellIndex(state,pos,idx)]; }
+  inline LogProb sCell (State state, Pos pos) const { return cell[sCellIndex(state,pos)]; }
+  inline LogProb dCell (State state, Pos pos) const { return cell[dCellIndex(state,pos)]; }
+  inline LogProb tCell (State state, Pos pos, Pos idx) const { return cell[tCellIndex(state,pos,idx)]; }
 };
 
 #endif /* VITERBI_INCLUDED */

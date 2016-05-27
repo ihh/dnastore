@@ -35,6 +35,13 @@ typedef int ControlIndex;
 #define MachineControlFirst 'A'
 #define MachineControlLast  'Z'
 
+#define MachineStrictInputFlag  1
+#define MachineRelaxedInputFlag 2
+#define MachineFlushInputFlag   4
+#define MachineControlInputFlag 8
+#define MachineEOFInputFlag     16
+#define MachineDefaultInputFlags (MachineRelaxedInputFlag | MachineControlInputFlag)
+
 typedef char OutputSymbol;
 typedef char InputSymbol;
 typedef string InputToken;
@@ -85,6 +92,10 @@ struct Machine {
   static InputSymbol controlChar (ControlIndex c);
   static ControlIndex controlIndex (InputSymbol c);
 
+  static bool isControl (InputSymbol c);
+  static bool isStrict (InputSymbol c);
+  static bool isRelaxed (InputSymbol c);
+  
   static InputToken charToString (InputSymbol in);
   static InputSymbol stringToChar (const InputToken& in);
   
@@ -95,7 +106,7 @@ struct Machine {
   size_t stateNameWidth() const;
   size_t stateIndexWidth() const;
 
-  string inputAlphabet (bool includeEOF = false) const;
+  string inputAlphabet (int inputFlags = MachineDefaultInputFlags) const;
   string outputAlphabet() const;
 
   map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;

@@ -187,7 +187,21 @@ InputSymbol Machine::controlChar (ControlIndex c) {
 }
 
 ControlIndex Machine::controlIndex (InputSymbol c) {
-  return (c >= MachineControlFirst && c <= MachineControlLast) ? (c - MachineControlFirst) : -1;
+  return isControl(c) ? (c - MachineControlFirst) : -1;
+}
+
+bool Machine::isControl (InputSymbol c) {
+  return c >= MachineControlFirst && c <= MachineControlLast;
+}
+
+bool Machine::isStrict (InputSymbol c) {
+  return c == MachineStrictBit0 || c == MachineStrictBit1
+    || c == MachineStrictTrit0 || c == MachineStrictTrit1 || c == MachineStrictTrit2
+    || c == MachineStrictQuat0 || c == MachineStrictQuat1 || c == MachineStrictQuat2 || c == MachineStrictQuat3;
+}
+
+bool Machine::isRelaxed (InputSymbol c) {
+  return c == MachineBit0 || c == MachineBit1;
 }
 
 InputToken Machine::charToString (InputSymbol c) {
@@ -230,11 +244,16 @@ size_t Machine::stateIndexWidth() const {
   return w;
 }
 
-string Machine::inputAlphabet (bool includeEOF) const {
+string Machine::inputAlphabet (int inputFlags) const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (!t.inputEmpty() && (includeEOF || !t.isEOF()))
+      if (!t.inputEmpty()
+	  && ((t.isEOF() && (inputFlags & MachineEOFInputFlag))
+	      || (isControl(t.in) && (inputFlags & MachineControlInputFlag))
+	      || (t.in == MachineFlush && (inputFlags & MachineFlushInputFlag))
+	      || (isRelaxed(t.in) && (inputFlags & MachineRelaxedInputFlag))
+	      || (isStrict(t.in) && (inputFlags & MachineStrictInputFlag))))
 	alph.insert (t.in);
   return string (alph.begin(), alph.end());
 }
