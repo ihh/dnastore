@@ -1,10 +1,5 @@
 \begin{thebibliography}{10}
 
-\bibitem{ChurchEtAl2012}
-G.~M. Church, Y.~Gao, and S.~Kosuri.
-\newblock {{N}ext-Generation Digital Information Storage in {D}{N}{A}}.
-\newblock {\em Science}, 337(6102):1628, Sep 2012.
-
 \bibitem{GoldmanEtAl2013}
 N.~Goldman, P.~Bertone, S.~Chen, C.~Dessimoz, E.~M. LeProust, B.~Sipos, and
   E.~Birney.
@@ -12,10 +7,87 @@ N.~Goldman, P.~Bertone, S.~Chen, C.~Dessimoz, E.~M. LeProust, B.~Sipos, and
   Storage in Synthesized {D}{N}{A}}.
 \newblock {\em Nature}, 494(7435):77--80, Feb 2013.
 
+\bibitem{GreenEtAl2010}
+R.~E. Green, J.~Krause, A.~W. Briggs, T.~Maricic, U.~Stenzel, M.~Kircher,
+  N.~Patterson, H.~Li, W.~Zhai, M.~H. Fritz, N.~F. Hansen, E.~Y. Durand, A.~S.
+  Malaspinas, J.~D. Jensen, T.~Marques-Bonet, C.~Alkan, K.~Prufer, M.~Meyer,
+  H.~A. Burbano, J.~M. Good, R.~Schultz, A.~Aximu-Petri, A.~Butthof, B.~Hober,
+  B.~Hoffner, M.~Siegemund, A.~Weihmann, C.~Nusbaum, E.~S. Lander, C.~Russ,
+  N.~Novod, J.~Affourtit, M.~Egholm, C.~Verna, P.~Rudan, D.~Brajkovic,
+  Z.~Kucan, I.~Gusic, V.~B. Doronichev, L.~V. Golovanova, C.~Lalueza-Fox,
+  M.~de~la Rasilla, J.~Fortea, A.~Rosas, R.~W. Schmitz, P.~L. Johnson, E.~E.
+  Eichler, D.~Falush, E.~Birney, J.~C. Mullikin, M.~Slatkin, R.~Nielsen,
+  J.~Kelso, M.~Lachmann, D.~Reich, and S.~Paabo.
+\newblock {{A} Draft Sequence of the {N}eandertal Genome}.
+\newblock {\em Science}, 328(5979):710--722, May 2010.
+
+\bibitem{ChurchEtAl2012}
+G.~M. Church, Y.~Gao, and S.~Kosuri.
+\newblock {{N}ext-Generation Digital Information Storage in {D}{N}{A}}.
+\newblock {\em Science}, 337(6102):1628, Sep 2012.
+
+\bibitem{MilenkovicEtAl2005}
+Olgica Milenkovic and Navin Kashyap.
+\newblock {DNA Codes that Avoid Secondary Structures}.
+\newblock August 2005.
+
 \bibitem{YazdiEtAl2015}
 S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock {{A} Rewritable, Random-Access {D}{N}{A}-Based Storage System}.
 \newblock {\em Sci Rep}, 5:14138, 2015.
+
+\bibitem{GuptaEtAl2015}
+Vijay Dhameliya, Dixita Limbachiya, Madhav Khakhar, and Manish~K. Gupta.
+\newblock On optimal family of codes for {DNA} storage.
+\newblock {\em CoRR}, abs/1501.07133, 2015.
+
+\bibitem{MilenkovicEtAl2014}
+Han~Mao Kiah, Gregory~J. Puleo, and Olgica Milenkovic.
+\newblock Codes for {DNA} storage channels.
+\newblock {\em CoRR}, abs/1410.8837, 2014.
+
+\bibitem{MilenkovicEtAl2015}
+S.~M. Hossein~Tabatabaei Yazdi, Han~Mao Kiah, Eva~Ruiz Garcia, Jian Ma, Huimin
+  Zhao, and Olgica Milenkovic.
+\newblock Dna-based storage: Trends and methods.
+\newblock {\em CoRR}, abs/1507.01611, 2015.
+
+\bibitem{GabrysEtAl2015}
+Ryan Gabrys, Han~Mao Kiah, and Olgica Milenkovic.
+\newblock Asymmetric lee distance codes for dna-based storage.
+\newblock {\em CoRR}, abs/1506.00740, 2015.
+
+\bibitem{MilenkovicEtAl2016}
+Ryan Gabrys, Eitan Yaakobi, and Olgica Milenkovic.
+\newblock Codes in the damerau distance for {DNA} storage.
+\newblock {\em CoRR}, abs/1601.06885, 2016.
+
+\bibitem{BornholtEtAl2016}
+James Bornholt, Randolph Lopez, Douglas~M. Carmean, Luis Ceze, Georg Seelig,
+  and Karin Strauss.
+\newblock A {DNA}-based archival storage system.
+\newblock In {\em Proceedings of the Twenty-First International Conference on
+  Architectural Support for Programming Languages and Operating Systems},
+  ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
+
+\bibitem{Mackay2003}
+D.~J.~C. Mackay.
+\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
+\newblock Cambridge University Press, 1st edition, 2003.
+
+\bibitem{FreyMackay98}
+Brendan Frey and David MacKay.
+\newblock A revolution: Belief propagation in graphs with cycles.
+\newblock In {\em In Neural Information Processing Systems}, pages 479--485.
+  MIT Press, 1998.
+
+\bibitem{MurphyEtAl1999}
+Kevin~P. Murphy, Yair Weiss, and Michael~I. Jordan.
+\newblock Loopy belief propagation for approximate inference: An empirical
+  study.
+\newblock In {\em Proceedings of the Fifteenth Conference on Uncertainty in
+  Artificial Intelligence}, UAI'99, pages 467--475, San Francisco, CA, USA,
+  1999. Morgan Kaufmann Publishers Inc.
 
 \bibitem{MohriPereiraRiley2000}
 M.~Mohri, F.~Pereira, and M.~Riley.
@@ -83,15 +155,27 @@ Z.~Iqbal, M.~Caccamo, I.~Turner, P.~Flicek, and G.~McVean.
   {B}ruijn Graphs}.
 \newblock {\em Nat. Genet.}, 44(2):226--232, Feb 2012.
 
+\bibitem{BurgeKarlin1997}
+C.~Burge and S.~Karlin.
+\newblock {{P}rediction of complete gene structures in human genomic
+  {D}{N}{A}}.
+\newblock {\em J. Mol. Biol.}, 268(1):78--94, Apr 1997.
+
+\bibitem{SalzbergEtAl1999}
+S.~L. Salzberg, M.~Pertea, A.~L. Delcher, M.~J. Gardner, and H.~Tettelin.
+\newblock {{I}nterpolated {M}arkov models for eukaryotic gene finding}.
+\newblock {\em Genomics}, 59(1):24--31, Jul 1999.
+
 \bibitem{Rissanen1976}
 J.~J. Rissanen.
 \newblock Generalized kraft inequality and arithmetic coding.
 \newblock {\em IBM J. Res. Dev.}, 20(3):198--203, May 1976.
 
-\bibitem{Mackay2003}
-D.~J.~C. Mackay.
-\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
-\newblock Cambridge University Press, 1st edition, 2003.
+\bibitem{HsiYangEtAl2011}
+M.~Hsi-Yang~Fritz, R.~Leinonen, G.~Cochrane, and E.~Birney.
+\newblock {{E}fficient storage of high throughput {D}{N}{A} sequencing data
+  using reference-based compression}.
+\newblock {\em Genome Res.}, 21(5):734--740, May 2011.
 
 \bibitem{Durbin98}
 R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.

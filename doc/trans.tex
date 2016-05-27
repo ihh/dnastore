@@ -11,7 +11,7 @@ Ian Holmes$^{1,\ast}$ \\
 $\ast$ E-mail: ihh@berkeley.edu
 }
 
-\newcommand\titlestring{Transducer codes for DNA}
+\newcommand\titlestring{Transducer codes for DNA storage}
 \newcommand\shorttitlestring{Transducer codes for DNA}
 \markboth{\shorttitlestring}{\shorttitlestring}
 \begin{flushleft}
@@ -24,59 +24,88 @@ $\ast$ E-mail: ihh@berkeley.edu
 
 \section{Introduction}
 
-DNA storage \cite{ChurchEtAl2012,GoldmanEtAl2013}.
-Codes \cite{YazdiEtAl2015}
+DNA can store petabytes of information per gram \cite{GoldmanEtAl2013} and can last intact for tens of thousands of years \cite{GreenEtAl2010}.
+This makes it an appealing prospect for long-term archival storage \cite{ChurchEtAl2012}.
+However, since DNA synthesis, sequencing, and (if applicable) replication are prone to certain kinds of error,
+it is advisable to treat the storage of information in DNA like other noisy channel coding problems.
 
+Recently, several coding schemes for DNA storage have been proposed
+that address the interrelated issues of error avoidance, error correction and redundancy
+\cite{GoldmanEtAl2013,MilenkovicEtAl2005,YazdiEtAl2015,GuptaEtAl2015,MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016,BornholtEtAl2016}.
+Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a trinary (radix-3) code that avoids repeated nucleotides, synthesizing to fourfold redundancy for error correction.
+Gupta {\em et al} introduced a trinary Golay code for error correction \cite{GuptaEtAl2015}.
+Strauss {\em et al} improved on Goldman {\em et al}'s redundancy using an exclusive-or method.
+Milenkovic {\em et al} have published extensively in this area,
+considering the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
+proposing several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
+and devising a random-access rewritable filesystem \cite{YazdiEtAl2015}.
 
-\cite{GoldmanEtAl2013} use a trinary (radix-3) code that avoids repeated nucleotides in the synthesized DNA.
-Avoidance of dinucleotide repeats leaves 3 available possibilities at each position, hence the radix-3 code
-Their argument is that this protects against most common class of errors in DNA resequencing which occur at homopolymer runs
-However, this is just one point on a spectrum of possibilities
-Different applications might require different codes
-e.g. in a world where synthesis is cheap and sequencing is error-prone, then use error-tolerant codes that may add overhead, but want to keep overhead as low as possible
-Or if archiving data for retrieval in distant future, given current market where synthesis remains expensive and sequencing is becoming ever cheaper and more accurate, might be better to pack as much information into the DNA as possible ---but there may still be a need to interleave
- ``reserved words'' into the DNA sequence,
-including e.g.
-metadata (especially facilitating random access or scaffolded assembly),
-checksums,
-escape sequences,
-barcodes,
-start and end markers for files or blocks,
-or biologically relevant motifs such as restriction enzyme sites.
+The purpose of this paper is to show that several of the low-level tasks in coding information into DNA
+can be addressed systematically.
+As noted above, much recent work has used Goldman {\em et al}'s trinary code as a starting point.
+The trinary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position, hence the radix of 3.
+The rationale for this system advanced by Goldman {\em et al} is that it guards against the most common class of errors in DNA resequencing which occur at homopolymer runs.
+However, there are hidden assumptions in this reasoning, specifically that it is worth making synthesis a bit more expensive in order to improve sequencing.
+This may indeed be the case, but (for the moment at least) synthesis is vastly more expensive than sequencing,
+so we might want to pack in more information---and yet still (perhaps) avoid certain motifs in the synthesized DNA,
+such as restriction enzyme sites, or barcodes, or other sequences that have special significance in our DNA filesystem.
+Alternatively, assuming a world where synthesis is cheap and yet sequencing and bioinformatics have not solved the problem of decoding homopolymer runs
+(the assumption motivating the trinary code),
+it may then be desirable to avoid other sources of error, such as repeated dinucleotides, trinucleotides or longer repeats.
+Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate.
+We may also wish to introduce error-correcting codes analogous to Hamming codes \cite{Mackay2003}, turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Golay codes \cite{GuptaEtAl2015}.
 
-We present a modular strategy for designing codes that meet flexible needs
-including error-avoidance, error-correction, and demarcated metadata
-Core idea of our approach is to convert raw binary data (with filesystem metadata) into a mixed-radix sequence
-wherein successive digits may be binary (radix-2), trinary (radix-3) or quaternary (radix-4)
-The radix at any given position is effectively specified by the number of available nucleotides at that position
-(which may vary due to requirements of avoiding repeats or reserved motifs)
-The mixed-radix sequence can then be efficiently converted to a DNA sequence
+In short, different applications may require different codes.
+As noted above, several researchers have presented solutions to some of these problems.
+Here, we combine some of the ideas using a modular strategy for code design.
+Codes can be designed using this method to meet flexible needs
+including error-avoidance, error-correction, and demarcation of metadata.
+
+The core idea of our approach is to convert raw binary data (possibly interleaved with filesystem metadata) into a mixed-radix sequence
+wherein successive digits may be binary (radix-2), trinary (radix-3) or quaternary (radix-4).
+The radix at any given position is effectively specified by the number of nucleotides available for coding at that position
+(which may vary due to avoidance of repeats or reserved motifs).
+The mixed-radix sequence can then be efficiently converted to a DNA sequence.
 Error-correcting codes (for example, Hamming codes that introduce parity bits)
 can be applied upstream of the conversion from binary to mixed-radix,
 while the readout process (errors from which may reintroduce repeats and prohibited motifs)
-can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA
+can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA.
 
-We employ several technologies in our modular strategy
-To combine error-correcting codes, repeat-avoidant nucleotide encoding, and a statistical error model
-in a single framework,
-we represent the stages of the encoding and decoding process
-modularly as finite-state machines known as transducers \cite{MohriPereiraRiley2000,WikipediaTransducers}
+Our strategy uses several techniques familiar in bioinformatics and signal processing:
+De Bruijn graphs, finite-state transducers, and arithmetic coding.
+Transducers \cite{MohriPereiraRiley2000,WikipediaTransducers} are used as automata-theoretic models of sequence transformation
+to represent in a uniform way the various steps of error-correction (e.g. via introduction of parity bits),
+adix conversion, repeat-avoidant nucleotide encoding, and a statistical error model.
 Standard algorithms for transducer combination (e.g. transducer composition)
-and decoding (Viterbi) can then be used
-Previous uses of transducers in bioinformatics:
+and decoding (Viterbi) can then be used.
+Transducers have been previously used in bioinformatics for
 protein classification \cite{EskinEtAl2000},
 phylogenetic indel models \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
-cancer informatics \cite{SchwarzEtAl2014}
-
+and cancer informatics \cite{SchwarzEtAl2014}
 To construct the non-repeating transducer
-we use De Bruijn graphs \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012}
+we make use De Bruijn graphs
 and their relationship to automata with limited context (``order-$N$ Markov models'').
-
+Transducers are widely used for genome assembly \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012},
+while order-$N$ Markov models are often employed for gene-finding \cite{BurgeKarlin1997,SalzbergEtAl1999}.
 To convert a binary sequence into a mixed-radix sequence we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}
+and from data compression in generally; similar concepts have been used to design compression schemes for high-volume
+bioinformatics datasets \cite{HsiYangEtAl2011}.
 
 \section{Methods}
 
-\subsection{Weighted finite-state transducers}
+\secref{Preliminaries} reviews preliminary concepts such as operations on weighted finite-state transducers,
+De Bruijn graphs, and patterns in DNA.
+\secref{DeBruijnTransducer} describes the repeat-avoiding transducer that accepts a mixed-radix sequence on its input
+and generates a DNA sequence without homopolymers, short microsatellites or other local repeats.
+\secref{Arithmetic} develops a transducer motivated by the arithmetic compression algorithm
+that converts a binary input sequence into a mixed-radix sequence suitable for subsequent encoding as DNA.
+\secref{ErrorModel} describes an error-model transducer that mutates and deletes bases and reintroduces repeats.
+\secref{ErrorCorrection} shows how all these transducers can be combined, together with transducers that implement error-correcting codes.
+
+\subsection{Preliminary concepts}
+\seclabel{Preliminaries}
+
+\subsubsection{Weighted finite-state transducers}
 
 Following \cite{MohriPereiraRiley2000}:
 Assume a general semiring
@@ -148,7 +177,7 @@ we adopt the convention that transition labels are annotated as $\inlab{\tt /}\o
 \figref{DNAStore} shows repeat-avoiding transducers that encode mixed-radix sequences,
 constructed using the method of \secref{DeBruijnTransducer}.
 
-\subsection{Transducer composition}
+\subsubsection{Transducer composition}
 
 Given transducers
  $\trr = (\inalph, \somealph, \tpr{\states}, \tpr{\transitions}, \tpr{\initstate}, \tpr{\finalstate})$ and
@@ -199,7 +228,7 @@ to minimize the number of transitions and/or states,
 and hence,
 the time and/or memory complexity of dynamic programming algorithms.
 
-\subsection{Transducer concatenation}
+\subsubsection{Transducer concatenation}
 
 Another operation on transducers that is useful in constructing DNA codes
 is concatenation.
@@ -212,19 +241,19 @@ taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) uni
 from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
 This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
 
-\subsection{Transducer union}
+\subsubsection{Transducer union}
 
 The union of two transducers (whose state spaces are assumed disjoint)
 is found by taking the union of their state spaces and transition graphs
 and adding a new initial state with two unit-weight transitions, one to each of the initial states
 of the two transducers being combined.
 
-\subsection{Kleene closure}
+\subsubsection{Kleene closure}
 
 The operation analogous to Kleene closure (generating all strings over a given alphabet)
 is simply to add a unit-weight transition from the final state of the transducer back to the initial state.
 
-\subsection{De Bruijn graphs}
+\subsubsection{De Bruijn graphs}
 
 Denote by $\somealph^\kmerlen$
 the set of all possible $\kmerlen$-symbol strings
@@ -238,7 +267,7 @@ that overlap by $\kmerlen-1$ symbols; this edge is labeled with symbol $\sym_{\k
 Thus, each vertex has $|\somealph|$ incoming and $|\somealph|$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
 Denote this graph by $\debruijngraph(\somealph^\kmerlen) = (\somealph^\kmerlen,\debruijnedges(\somealph^\kmerlen))$.
 
-\subsection{DNA alphabets and repeats}
+\subsubsection{DNA alphabets and repeats}
 
 Let $\nucalph = \{ \mbox{A}, \mbox{C}, \mbox{G}, \mbox{T} \} $ be the nucleotide alphabet.
 Let $\comp{x}$ denote the complement of a nucleotide symbol $x$,
@@ -363,7 +392,7 @@ is $\{ \bit{0}, \bit{1},
 
 \figref{DNAStore} illustrates some of the code transducers that are generated by this procedure for the simplest case $\kmerlen=2$.
        
-\subsection{A transducer with past and future context}
+\subsubsection{Trading off past context for future context}
 
 By virtue of being derived from the De Bruijn graph,
 most of the states in the transducer $\transcoder$ of \secref{DeBruijnTransducer}
@@ -714,6 +743,11 @@ described in this section models errors but still assumes observation of the ful
 By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
 
 \subsection{Adding error-correcting codes}
+\seclabel{ErrorCorrection}
+
+How to combine everything together...
+
+How radix problem is addressed: conversion transducer generates all possible radix conversions, encoding transducer accepts only one
 
 Hamming codes \figref{HammingTransducer}, convolutional codes % need reference
 
