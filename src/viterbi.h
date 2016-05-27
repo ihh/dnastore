@@ -55,16 +55,22 @@ public:
   const Machine& machine;
   const InputModel& inputModel;
   const MutatorParams& mutatorParams;
-  const TokSeq& seq;
+  const FastSeq& fastSeq;
+  const TokSeq seq;
   const MachineScores machineScores;
   const MutatorScores mutatorScores;
 
-  ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const TokSeq& seq);
+  LogProb loglike;
+  
+  ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const FastSeq& fastSeq);
   string traceback() const;
 
   inline LogProb sCell (State state, Pos pos) const { return cell[sCellIndex(state,pos)]; }
   inline LogProb dCell (State state, Pos pos) const { return cell[dCellIndex(state,pos)]; }
   inline LogProb tCell (State state, Pos pos, Pos idx) const { return cell[tCellIndex(state,pos,idx)]; }
+
+  inline Pos maxDupLenAt (const StateScores& ss) const { return min ((Pos) maxDupLen, (Pos) ss.leftContext.size()); }
+  inline Base tanDupBase (const StateScores& ss, Pos dupIdx) const { return ss.leftContext[ss.leftContext.size() - 1 - dupIdx]; }
 };
 
 #endif /* VITERBI_INCLUDED */

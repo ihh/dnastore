@@ -62,13 +62,14 @@ MutatorScores::MutatorScores (const MutatorParams& params)
     sub (4, vguard<LogProb> (4)),
     len (params.maxDupLen())
 {
+  const LogProb nullScore = log(1./4.);
   for (Base i = 0; i < 4; ++i)
     for (Base j = 0; j < 4; ++j)
-      sub[i][j] = i==j
-	? log(params.pMatch())
-	: (isTransition(i,j)
-	   ? log(params.pTransition)
-	   : log(params.pTransversion/2));
+      sub[i][j] = (i==j
+		   ? log(params.pMatch())
+		   : (isTransition(i,j)
+		      ? log(params.pTransition)
+		      : log(params.pTransversion/2))) - nullScore;
   for (Pos l = 0; l < params.maxDupLen(); ++l)
     len[l] = log(params.pLen[l]);
 }

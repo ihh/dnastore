@@ -21,7 +21,8 @@ typedef unsigned int QualScore;
 
 typedef vguard<AlphTok> TokSeq;
 
-UnvalidatedAlphTok tokenize (char c, const string& alphabet);
+UnvalidatedAlphTok tokenize (char c, const string& alphabet);  // returns -1 if invalid
+bool isValidToken (char c, const string& alphabet);
 TokSeq validTokenize (const string& s, const string& alphabet, const char* seqname = NULL);
 string detokenize (const TokSeq& s, const string& alphabet);
 

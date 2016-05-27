@@ -22,6 +22,8 @@ struct KmerLen {
 };
 
 extern const char* dnaAlphabet;  // ACGT
+extern string dnaAlphabetString;
+
 #define AdenineBase  0
 #define CytosineBase 1
 #define GuanineBase  2
@@ -29,7 +31,7 @@ extern const char* dnaAlphabet;  // ACGT
 
 #define BaseMask       3
 #define PyrimidineMask 1
-#define CarbonylMask   2
+#define CarbonylMask   2  /* G,T have one more carbonyl side-group than (respectively) A,C */
 
 inline char baseToChar (Base base) {
   return dnaAlphabet[base & BaseMask];

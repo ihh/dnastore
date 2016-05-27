@@ -749,6 +749,11 @@ How to combine everything together...
 
 How radix problem is addressed: conversion transducer generates all possible radix conversions, encoding transducer accepts only one
 
+If using delayed transducer with start/end motifs,
+block structure of $\transerror$ aligns neatly with structure of $\transdelay$,
+contexts match,
+making composition straightforward
+
 Hamming codes \figref{HammingTransducer}, convolutional codes % need reference
 
 Many such codes can be conveniently represented as state machines
@@ -757,8 +762,19 @@ Many such codes can be conveniently represented as state machines
 
 dnastore
 
+Our implementation of $\transerror$
+sets $\pcont(j,k)=\pnogap$
+and $\pfwddup=\prevdup=0$
+
 mixradar.pl
 
+Our prototype codec uses the simpler conversion of
+\figref{BinaryToTrinary} and adds a zero padding bit when the machine needs to be flushed
+
+However it can accept arbitrary machine specifications in a JSON format
+so composite state machines incorporating other stages
+more sophisticated radix conversion, error correcting codes including parity bits, etc)
+can be used
 
 \section{Discussion}
 

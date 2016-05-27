@@ -14,6 +14,10 @@ UnvalidatedAlphTok tokenize (char c, const string& alphabet) {
   return ptok ? (UnvalidatedAlphTok) (ptok - alphStr) : -1;
 }
 
+bool isValidToken (char c, const string& alphabet) {
+  return tokenize(c,alphabet) >= 0;
+}
+
 const char FastSeq::minQualityChar = '!';
 const char FastSeq::maxQualityChar = '~';
 const QualScore FastSeq::qualScoreRange = 94;
