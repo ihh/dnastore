@@ -30,6 +30,7 @@ struct MachineScores {
 
 class ViterbiMatrix {
 private:
+  typedef size_t MutStateIndex;
   size_t maxDupLen, nStates, seqLen;
   vguard<LogProb> cell;
 
@@ -37,20 +38,34 @@ private:
     return (params.maxDupLen() + 2) * machine.nStates() * (seq.size() + 1);
   };
 
+  inline MutStateIndex sMutStateIndex() const { return 0; }
+  inline MutStateIndex dMutStateIndex() const { return 1; }
+  inline MutStateIndex tMutStateIndex (Pos dupIdx) const { return 2 + dupIdx; }
+
+  inline Pos tMutStateDupIdx (MutStateIndex mutStateIndex) const { return mutStateIndex - 2; }
+  inline bool isTMutStateIndex (MutStateIndex mutStateIndex) const {
+    return mutStateIndex >= tMutStateIndex(0) && mutStateIndex <= tMutStateIndex(maxDupLen-1);
+  }
+  
+  inline size_t cellIndex (State state, Pos pos, MutStateIndex mutState) const {
+    return (maxDupLen + 2) * (pos * nStates + state) + mutState;
+  };
   inline size_t sCellIndex (State state, Pos pos) const {
-    return (maxDupLen + 2) * (pos * nStates + state);
+    return cellIndex (state, pos, sMutStateIndex());
   };
   inline size_t dCellIndex (State state, Pos pos) const {
-    return (maxDupLen + 2) * (pos * nStates + state) + 1;
+    return cellIndex (state, pos, dMutStateIndex());
   };
-  inline size_t tCellIndex (State state, Pos pos, Pos idx) const {
-    return (maxDupLen + 2) * (pos * nStates + state) + 1 + idx;
+  inline size_t tCellIndex (State state, Pos pos, Pos dupIdx) const {
+    return cellIndex (state, pos, tMutStateIndex(dupIdx));
   };
 
   inline LogProb& sCell (State state, Pos pos) { return cell[sCellIndex(state,pos)]; }
   inline LogProb& dCell (State state, Pos pos) { return cell[dCellIndex(state,pos)]; }
   inline LogProb& tCell (State state, Pos pos, Pos idx) { return cell[tCellIndex(state,pos,idx)]; }
 
+  inline LogProb getCell (State state, Pos pos, MutStateIndex mutState) const { return cell[cellIndex(state,pos,mutState)]; }
+  
 public:
   const Machine& machine;
   const InputModel& inputModel;
@@ -67,7 +82,7 @@ public:
 
   inline LogProb sCell (State state, Pos pos) const { return cell[sCellIndex(state,pos)]; }
   inline LogProb dCell (State state, Pos pos) const { return cell[dCellIndex(state,pos)]; }
-  inline LogProb tCell (State state, Pos pos, Pos idx) const { return cell[tCellIndex(state,pos,idx)]; }
+  inline LogProb tCell (State state, Pos pos, Pos dupIdx) const { return cell[tCellIndex(state,pos,dupIdx)]; }
 
   inline Pos maxDupLenAt (const StateScores& ss) const { return min ((Pos) maxDupLen, (Pos) ss.leftContext.size()); }
   inline Base tanDupBase (const StateScores& ss, Pos dupIdx) const { return ss.leftContext[ss.leftContext.size() - 1 - dupIdx]; }
