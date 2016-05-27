@@ -65,7 +65,8 @@ struct Decoder {
 	for (const auto& t: ms.trans)
 	  if (isUsable(t) && !t.out) {
 	    auto nextStr = str;
-	    if (t.inputPrintable()) nextStr.push_back (t.in);
+	    if (!t.inputEmpty() && !t.isEOF())
+	      nextStr.push_back (t.in);
 	    if (next.count (t.dest))
 	      Assert (next.at(t.dest) == nextStr, "Decoder error");
 	    else {
@@ -116,7 +117,8 @@ struct Decoder {
 	if (isUsable(t) && t.out == base) {
 	  const State nextState = t.dest;
 	  auto nextStr = str;
-	  if (t.inputPrintable()) nextStr.push_back (t.in);
+	  if (!t.inputEmpty())
+	    nextStr.push_back (t.in);
 	  Assert (!next.count(nextState) || next.at(nextState) == nextStr,
 		  "Multiple outputs decode to single state");
 	  next[nextState] = nextStr;

@@ -16,7 +16,7 @@ typedef int ControlIndex;
 #define MachineBit0         '0'
 #define MachineBit1         '1'
 
-#define MachineFlush        'f'
+#define MachineFlush        '.'
 
 #define MachineStrictBit0   'i'
 #define MachineStrictBit1   'j'
@@ -30,7 +30,7 @@ typedef int ControlIndex;
 #define MachineStrictQuat2  'r'
 #define MachineStrictQuat3  's'
 
-#define MachineEOF          '!'
+#define MachineEOF          '$'
 
 #define MachineControlFirst 'A'
 #define MachineControlLast  'Z'
@@ -45,9 +45,9 @@ struct MachineTransition {
   State dest;
   MachineTransition();
   MachineTransition (InputSymbol, OutputSymbol, State);
-  bool inputPrintable() const;
-  bool outputNonempty() const;
-  bool isEof() const;
+  bool inputEmpty() const;
+  bool outputEmpty() const;
+  bool isEOF() const;
 };
 
 struct MachineState {
@@ -95,7 +95,7 @@ struct Machine {
   size_t stateNameWidth() const;
   size_t stateIndexWidth() const;
 
-  string inputAlphabet() const;
+  string inputAlphabet (bool includeEOF = false) const;
   string outputAlphabet() const;
 
   map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;

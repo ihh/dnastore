@@ -11,6 +11,7 @@ struct InputModel {
 struct IncomingTransScore {
   State src;
   LogProb score;
+  InputSymbol in;
 };
 
 struct StateScores {

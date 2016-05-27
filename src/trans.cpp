@@ -54,15 +54,15 @@ MachineTransition::MachineTransition (InputSymbol in, char out, State dest)
     dest (dest)
 { }
 
-bool MachineTransition::inputPrintable() const {
-  return in != MachineNull && in != MachineEOF;
+bool MachineTransition::inputEmpty() const {
+  return in == MachineNull;
 }
 
-bool MachineTransition::outputNonempty() const {
+bool MachineTransition::outputEmpty() const {
   return out != MachineNull;
 }
 
-bool MachineTransition::isEof() const {
+bool MachineTransition::isEOF() const {
   return in == MachineEOF;
 }
 
@@ -143,7 +143,8 @@ void Machine::writeDot (ostream& out) const {
     const MachineState& ms = state[s];
     for (const auto& t: ms.trans) {
       out << " " << s << " -> " << t.dest << " [label=\"" << charToString(t.in) << "/";
-      if (t.outputNonempty()) out << t.out;
+      if (!t.outputEmpty())
+	out << t.out;
       out << "\"];" << endl;
     }
     out << endl;
@@ -167,7 +168,8 @@ void Machine::write (ostream& out) const {
       out << " ";
       if (t.in) out << charToString (t.in);
       out << "/";
-      if (t.outputNonempty()) out << t.out;
+      if (!t.outputEmpty())
+	out << t.out;
       out << "->" << stateIndex(t.dest);
     }
     out << endl;
@@ -228,11 +230,11 @@ size_t Machine::stateIndexWidth() const {
   return w;
 }
 
-string Machine::inputAlphabet() const {
+string Machine::inputAlphabet (bool includeEOF) const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.inputPrintable())
+      if (!t.inputEmpty() && (includeEOF || !t.isEOF()))
 	alph.insert (t.in);
   return string (alph.begin(), alph.end());
 }
@@ -241,7 +243,7 @@ string Machine::outputAlphabet() const {
   set<char> alph;
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
-      if (t.outputNonempty())
+      if (!t.outputEmpty())
 	alph.insert (t.out);
   return string (alph.begin(), alph.end());
 }
