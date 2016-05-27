@@ -80,22 +80,22 @@ eof3.dot: ../bin/mixradar.pl Makefile
 
 # DNAstore machines
 dna1full.lacirco: filter.pl Makefile
-	../bin/dnastore -l1 -c0 -t0 --no-start --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l1 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
 dna2full.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c0 -t0 --no-start --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
 dna2start.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 -t0 --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 -t0 --no-end --dot | perl filter.pl >$@
 
 dna2startend.lacirco: filter.pl Makefile
 	../bin/dnastore -l2 -c1 -t0 --dot | perl filter.pl >$@
 
 dna2norep.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c0 --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c0 --no-end --dot | perl filter.pl >$@
 
 dna2startnorep.lacirco: filter.pl Makefile
-	../bin/dnastore -l2 -c1 --no-eof --dot | perl filter.pl >$@
+	../bin/dnastore -l2 -c1 --no-end --dot | perl filter.pl >$@
 
 dna2startendnorep.lacirco: filter.pl Makefile
 	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@

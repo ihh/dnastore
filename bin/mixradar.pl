@@ -3,11 +3,13 @@
 use strict;
 use Math::BigRat;
 use Getopt::Long;
+use List::Util qw(max);
 
 my $usage = "Usage: $0 <msglen> <eofprob>\n";
-my ($nomerge, $noprune, $intervals, $verbose);
+my ($nomerge, $noprune, $norescale, $intervals, $verbose);
 GetOptions ("wide" => \$nomerge,
 	    "deep" => \$noprune,
+	    "pure" => \$norescale,
 	    "intervals" => \$intervals,
 	    "verbose" => \$verbose)
     or die $usage;
@@ -20,12 +22,15 @@ my $peof = Math::BigRat->new ($peofStr);
 my $pbit = (1 - $peof) / 2;
 warn "pbit=$pbit peof=$peof" if $verbose;
 
+# some constants
 my ($epsilon, $div, $eof) = qw(e / $);
 my %cprob = ('0' => $pbit,
 	     '1' => $pbit,
 	     $eof => $peof);
 my @alph = (0, 1, $eof);
 sub printable { my $word = shift; $word =~ s/\$/x/; return $word; }
+
+my @radices = (2..4);
 
 # generate prefix tree & input words
 my @state = ( { word => '',
@@ -54,60 +59,91 @@ while (@prefixIndex) {
 }
 
 # sort by probability & find intervals
-my @sortedLeafIndex = sort { $state[$a]->{p} <=> $state[$b]->{p} } @leafIndex;
+my @sortedLeafIndex = sort { $state[$b]->{p} <=> $state[$a]->{p}
+			     || $state[$a]->{word} cmp $state[$b]->{word} } @leafIndex;
 my $norm = 0;
 for my $i (@sortedLeafIndex) { $norm += $state[$i]->{p} }
 for my $i (@sortedLeafIndex) { $state[$i]->{p} /= $norm }
-my $pmin = 0;
+my $pmin = Math::BigRat->new(0);
+my $scale = Math::BigRat->new(1);  # used to rescale probabilities after adjusting input intervals
+my @allOutIndex = @sortedLeafIndex;
+my @finalIndex;
 for my $i (@sortedLeafIndex) {
-    my $pmax = $pmin + $state[$i]->{p};
+    my $pmax = $pmin + $state[$i]->{p} * $scale;
+    my $m = ($pmin + $pmax) / 2;
+    # store
     $state[$i]->{A} = $pmin;
     $state[$i]->{B} = $pmax;
+    $state[$i]->{m} = $m;
     $state[$i]->{D} = Math::BigRat->new(0);
     $state[$i]->{E} = Math::BigRat->new(1);
     $state[$i]->{outseq} = "";
     $pmin = $pmax;
     if ($verbose) {
 	warn "P(", $state[$i]->{word}, ")=", $state[$i]->{p},
-	" [A,B)=[", $state[$i]->{A}, ",", $state[$i]->{B}, ")\n";
+	" [A,B)=[", $state[$i]->{A}, ",", $state[$i]->{B}, ") m=", $m, "\n";
+    }
+    # generate tree
+    my ($subtree, $final) = generateTree($i);
+    push @allOutIndex, @$subtree;
+    push @finalIndex, @$final;
+    # dynamically shrink input interval to just enclose all the output intervals actually used to encode it
+    unless ($norescale) {
+	my $new_pmax = max (map ($state[$_]->{E}, @$final));
+	if ($new_pmax < $pmax) {
+	    my $mul = (1 - $new_pmax) / (1 - $pmax);
+	    warn "Shrinking B from $pmax to $new_pmax, increasing available space by factor of $mul\n" if $verbose;
+	    $scale *= $mul;
+	    $pmin = $new_pmax;
+	}
     }
 }
 
+# subroutine to find a digit
+sub findDigit {
+    my ($m, $d, $e, $radix) = @_;
+    my @d = map ($d + ($e - $d) * $_ / $radix, 0..$radix);
+    my @digit = grep ($d[$_] <= $m && $d[$_+1] > $m, 0..$radix-1);
+    if (@digit != 1) {
+	warn "(D,E)=($d,$e) m=$m radix=$radix \@d=(@d)\n";
+	die "Oops: couldn't find subinterval. Something's screwed";
+    }
+    my ($digit) = @digit;
+    my ($new_d, $new_e) = @d[$digit,$digit+1];
+    return ($digit, $new_d, $new_e);
+}
 
 # generate output trees
-my @allOutIndex = @sortedLeafIndex;
-my @outputIndex = @sortedLeafIndex;
-my @finalIndex;
-while (@outputIndex) {
-    my $output = $state[shift @outputIndex];
-    my ($a, $b) = ($output->{A}, $output->{B});
-    my $m = ($a + $b) / 2;
-    for my $radix (2..4) {
-	my @d = map ($output->{D} + ($output->{E} - $output->{D}) * $_ / $radix, 0..$radix);
-	my @digit = grep ($d[$_] <= $m && $d[$_+1] > $m, 0..$radix-1);
-	if (@digit != 1) {
-	    die "Oops: couldn't find subinterval. Something's screwed";
+sub generateTree {
+    my ($rootIndex) = @_;
+    my @outputIndex = ($rootIndex);
+    my (@subtree, @final);
+    while (@outputIndex) {
+	my $output = $state[shift @outputIndex];
+	my ($a, $b, $m) = ($output->{A}, $output->{B}, $output->{m});
+	for my $radix (@radices) {
+	    my ($digit, $d, $e) = findDigit ($m, $output->{D}, $output->{E}, $radix);
+	    my $outsym = $digit."_".$radix;
+	    my $outseq = $output->{outseq} . (length($output->{outseq}) ? " " : "") . $outsym;
+	    my $childIndex = @state;
+	    my $child = { dest => {},
+			  A => $a,
+			  B => $b,
+			  D => $d,
+			  E => $e,
+			  m => $m,
+			  outseq => $outseq };
+	    $output->{dest}->{"$epsilon$div$outsym"} = $childIndex;
+	    push @state, $child;
+	    if ($d >= $a && $e <= $b) {
+		push @final, $childIndex;
+	    } else {
+		push @outputIndex, $childIndex;
+	    }
+	    push @subtree, $childIndex;
 	}
-	my ($digit) = @digit;
-	my ($d, $e) = @d[$digit,$digit+1];
-	my $outsym = $digit."_".$radix;
-	my $outseq = $output->{outseq} . (length($output->{outseq}) ? " " : "") . $outsym;
-	my $childIndex = @state;
-	my $child = { dest => {},
-		      A => $a,
-		      B => $b,
-		      D => $d,
-		      E => $e,
-		      outseq => $outseq };
-	$output->{dest}->{"$epsilon$div$outsym"} = $childIndex;
-	push @state, $child;
-	if ($d >= $a && $e <= $b) {
-	    push @finalIndex, $childIndex;
-	} else {
-	    push @outputIndex, $childIndex;
-	}
-	push @allOutIndex, $childIndex;
     }
+    return (\@subtree, \@final);
 }
 
 # if any nodes have a unique output sequence, remove all their descendants
