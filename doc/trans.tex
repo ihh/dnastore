@@ -736,7 +736,7 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 \pcont(j,k) = \pnogap + (\ptandup + \pfwddup) \sum_{i=j+1}^{\kmerlen} \lendist(i) + \prevdup \sum_{i=k+1}^{\kmerlen} \lendist(i)
 \]
 
-The probability parameters can be estimated directly from alignments of reads to known reference sequences using the Forward-Backward algorithm \cite{Durbin98}.
+The probability parameters can be estimated directly from trusted alignments using the Baum-Welch algorithm \cite{Durbin98}.
 
 The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
