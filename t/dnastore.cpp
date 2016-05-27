@@ -183,7 +183,7 @@ int main (int argc, char** argv) {
 	// Output the transducer
 	if (vm.count("dot"))
 	  machine.writeDot (cout);
-	else
+	else if (!vm.count("save-machine"))
 	  machine.write (cout);
       }
     }

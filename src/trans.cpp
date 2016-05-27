@@ -365,7 +365,7 @@ void Machine::writeJSON (ostream& out) const {
       const MachineTransition& t = ms.trans[nt];
       if (nt > 0) out << ",";
       out << "{";
-      if (t.in) out << "\"in\":\"" << charToString(t.in) << "\",";
+      if (t.in) out << "\"in\":\"" << t.in << "\",";
       if (t.out) out << "\"out\":\"" << t.out << "\",";
       out << "\"to\":" << t.dest
 	  << "}";
@@ -401,8 +401,11 @@ void Machine::readJSON (istream& in) {
       MachineTransition t;
       t.in = t.out = 0;
       t.dest = (State) jtmap.getNumber("to");
-      if (jtmap.contains("in"))
-	t.in = stringToChar (jtmap.getString("in"));
+      if (jtmap.contains("in")) {
+	const string& tin = jtmap.getString("in");
+	Assert (tin.size() == 1, "Invalid input character: %s", tin.c_str());
+	t.in = tin[0];
+      }
       if (jtmap.contains("out")) {
 	const string& tout = jtmap.getString("out");
 	Assert (tout.size() == 1, "Invalid output character: %s", tout.c_str());
