@@ -36,6 +36,8 @@ typedef int ControlIndex;
 #define MachineControlFirst 'A'
 #define MachineControlLast  'Z'
 
+#define MachineWildContext  '*'
+
 #define MachineStrictInputFlag   1
 #define MachineRelaxedInputFlag  2
 #define MachineFlushInputFlag    4
@@ -104,8 +106,8 @@ struct Machine {
   
   static string stateIndex (State s);
 
-  size_t leftContextWidth() const;
-  size_t rightContextWidth() const;
+  size_t maxLeftContext() const;
+  size_t maxRightContext() const;
   size_t stateNameWidth() const;
   size_t stateIndexWidth() const;
 

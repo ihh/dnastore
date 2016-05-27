@@ -1,5 +1,7 @@
 #include <list>
+#include <iomanip>
 #include "viterbi.h"
+#include "logger.h"
 
 InputModel::InputModel (const string& inputAlphabet, double controlProb) {
   size_t nControls = 0;
@@ -10,6 +12,15 @@ InputModel::InputModel (const string& inputAlphabet, double controlProb) {
     symProb[c] = Machine::isControl(c)
       ? (controlProb / (double) nControls)
       : ((1. - controlProb) / (double) (inputAlphabet.size() - nControls));
+}
+
+InputModel::InputModel() {
+  symProb[MachineSOF] = 1;
+  symProb[MachineEOF] = 1;
+  symProb[MachineBit0] = 1;
+  symProb[MachineBit1] = 1;
+  for (char c = MachineControlFirst; c <= MachineControlLast; ++c)
+    symProb[c] = 1;
 }
 
 MachineScores::MachineScores (const Machine& machine, const InputModel& inputModel)
@@ -24,8 +35,9 @@ MachineScores::MachineScores (const Machine& machine, const InputModel& inputMod
     const MachineState& ms = machine.state[s];
     StateScores& ss = stateScores[s];
     ss.leftContext.reserve (ms.leftContext.size());
-    for (size_t n = 0; n < ms.leftContext.size(); ++n)
-      ss.leftContext.push_back (charToBase (ms.leftContext[n]));
+    for (char lc: ms.leftContext)
+      if (lc != MachineWildContext)
+	ss.leftContext.push_back (charToBase (lc));
     for (const auto& t: ms.trans) {
       if (t.inputEmpty() || t.isEOF() || inputModel.symProb.count(t.in)) {
 	IncomingTransScore its;
@@ -45,23 +57,26 @@ MachineScores::MachineScores (const Machine& machine, const InputModel& inputMod
 }
 
 ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const FastSeq& fastSeq)
-  : maxDupLen (mutatorParams.maxDupLen()),
+  : maxDupLen (min (machine.maxLeftContext(), mutatorParams.maxDupLen())),
     nStates (machine.nStates()),
     seqLen (fastSeq.length()),
-    cell (nCells (machine, mutatorParams, seq), -numeric_limits<double>::infinity()),
+    cell (nCells (machine, mutatorParams, fastSeq), -numeric_limits<double>::infinity()),
     machine (machine),
     inputModel (inputModel),
     mutatorParams (mutatorParams),
     fastSeq (fastSeq),
     seq (fastSeq.tokens (dnaAlphabetString)),
     machineScores (machine, inputModel),
-    mutatorScores (mutatorParams),
-    loglike (-numeric_limits<double>::infinity())
+    mutatorScores (mutatorParams)
 {
-  for (State state = 0; state < machine.nStates(); ++state) {
-    sCell(state,0) = 0;
-    for (Pos pos = 1; pos <= seqLen; ++pos) {
-      const Base base = seq[pos-1];
+  if (mutatorParams.local)
+    for (State state = 0; state < machine.nStates(); ++state)
+      sCell(state,0) = 0;
+  else
+    sCell(0,0) = 0;
+
+  for (Pos pos = 0; pos <= seqLen; ++pos) {
+    for (State state = 0; state < machine.nStates(); ++state) {
       const StateScores& ss = machineScores.stateScores[state];
       const auto mdl = maxDupLenAt(ss);
 
@@ -69,8 +84,9 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 	dCell(state,pos) = max (dCell(state,pos),
 				max (dCell(its.src,pos) + its.score + mutatorScores.delExtend,
 				     sCell(its.src,pos) + its.score + mutatorScores.delOpen));
-	sCell(state,pos) = max (sCell(state,pos),
-				sCell(its.src,pos-1) + its.score + mutatorScores.noGap + mutatorScores.sub[its.base][base]);
+	if (pos > 0)
+	  sCell(state,pos) = max (sCell(state,pos),
+				  sCell(its.src,pos-1) + its.score + mutatorScores.noGap + mutatorScores.sub[its.base][seq[pos-1]]);
       }
       for (const auto& its: ss.null) {
 	dCell(state,pos) = max (dCell(state,pos),
@@ -82,29 +98,60 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 			      dCell(state,pos) + mutatorScores.delEnd);
 
       if (mdl > 0) {
-	sCell(state,pos) = max (sCell(state,pos),
-				tCell(state,pos-1,0) + mutatorScores.sub[tanDupBase(ss,0)][base]);
+	if (pos > 0) {
+	  sCell(state,pos) = max (sCell(state,pos),
+				  tCell(state,pos-1,0) + mutatorScores.sub[tanDupBase(ss,0)][seq[pos-1]]);
 
-	for (Pos dupIdx = 0; dupIdx < mdl - 1; ++dupIdx)
-	  tCell(state,pos,dupIdx) = tCell(state,pos-1,dupIdx+1) + mutatorScores.sub[tanDupBase(ss,dupIdx+1)][base];
+	  for (Pos dupIdx = 0; dupIdx < mdl - 1; ++dupIdx)
+	    tCell(state,pos,dupIdx) = tCell(state,pos-1,dupIdx+1) + mutatorScores.sub[tanDupBase(ss,dupIdx+1)][seq[pos-1]];
+	}
 
 	for (Pos dupIdx = 0; dupIdx < mdl; ++dupIdx)
-	  tCell(state,pos,dupIdx) = sCell(state,pos) + mutatorScores.tanDup + mutatorScores.len[dupIdx];
+	  tCell(state,pos,dupIdx) = max (tCell(state,pos,dupIdx),
+					 sCell(state,pos) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
       }
     }
-
-    loglike = max (loglike, sCell(state,seqLen));
   }
+
+  if (mutatorParams.local)
+    for (State state = 0; state < machine.nStates(); ++state)
+      loglike() = max (loglike(), sCell(state,seqLen));
+
+  LogThisAt(10,"Viterbi matrix:\n" << toString());
+}
+
+string ViterbiMatrix::toString() const {
+  ostringstream out;
+  const size_t sw = machine.stateNameWidth();
+  for (Pos pos = 0; pos <= seqLen; ++pos) {
+    for (State state = 0; state < machine.nStates(); ++state) {
+      out << setw(4) << pos << " "
+	  << setw(sw) << machine.state[state].name << " "
+	  << setw(10) << setprecision(6) << sCell(state,pos) << "(S) "
+	  << setw(10) << setprecision(6) << dCell(state,pos) << "(D) ";
+      for (Pos i = 0; i < maxDupLen; ++i)
+	out << setw(10) << setprecision(6) << tCell(state,pos,i) << "(T" << i+1 << ") ";
+      out << "\n";
+    }
+  }
+  return out.str();
 }
 
 string ViterbiMatrix::traceback() const {
   list<char> trace;
   
+  State state = machine.nStates() - 1, bestState;
+  Pos pos = seqLen, bestPos;
+  MutStateIndex mutState = 0, bestMutState;
   LogProb best;
-  State bestState;
-  Pos bestPos;
   InputSymbol bestInSym;
-  MutStateIndex bestMutState;
+  bool foundBest;
+  
+  auto initBest = [&]() -> void {
+    best = -numeric_limits<double>::infinity();
+    foundBest = false;
+    LogThisAt (9, "Traceback at (" << machine.state[state].name << "," << pos << "," << mutStateName(mutState) << ")" << endl);
+  };
 
   auto updateBest = [&] (State srcState, Pos srcPos, MutStateIndex srcMutState, LogProb transScore, InputSymbol inSym) -> void {
     const LogProb score = getCell(srcState,srcPos,srcMutState) + transScore;
@@ -114,49 +161,61 @@ string ViterbiMatrix::traceback() const {
       bestPos = srcPos;
       bestMutState = srcMutState;
       bestInSym = inSym;
+      foundBest = true;
     }
   };
 
   auto checkBest = [&]() -> void {
-    const LogProb expected = getCell(bestState,bestPos,bestMutState);
-    Assert (abs((best - expected) / expected) < 1e-6, "Traceback failure");
+    const LogProb expected = getCell(state,pos,mutState);
+    Assert (abs((best - expected) / (abs(expected) < 1e-6 ? 1 : expected)) < 1e-6, "Traceback failure at (%s,%d,%s): computed traceback score (%g) didn't match stored value in matrix (%g)", machine.state[state].name.c_str(), pos, mutStateName(mutState).c_str(), best, expected);
+    Assert (foundBest, "Traceback failure at (%s,%d,%s): couldn't find source state", machine.state[state].name.c_str(), pos, mutStateName(mutState).c_str());
+    state = bestState;
+    pos = bestPos;
+    mutState = bestMutState;
   };
 
-  best = -numeric_limits<double>::infinity();
-  for (State s = 0; s < machine.nStates(); ++s)
-    updateBest (s, seqLen, sMutStateIndex(), 0, MachineNull);
+  initBest();
+  if (mutatorParams.local)
+    for (State s = 0; s < machine.nStates(); ++s)
+      updateBest (s, seqLen, sMutStateIndex(), 0, MachineNull);
+  else
+    updateBest (machine.nStates() - 1, seqLen, sMutStateIndex(), 0, MachineNull);
   checkBest();
 
-  while (bestPos >= 0) {
-    const Base base = seq[bestPos-1];
-    const StateScores& ss = machineScores.stateScores[bestState];
+  while (pos >= 0 && state > 0) {
+    const StateScores& ss = machineScores.stateScores[state];
     const auto mdl = maxDupLenAt(ss);
-    if (bestMutState == sMutStateIndex()) {
+    initBest();
+    if (mutState == sMutStateIndex()) {
 
-      for (const auto& its: ss.emit)
-	updateBest (its.src, bestPos-1, sMutStateIndex(), its.score + mutatorScores.noGap + mutatorScores.sub[its.base][base], its.in);
+      if (pos > 0)
+	for (const auto& its: ss.emit)
+	  updateBest (its.src, pos-1, sMutStateIndex(), its.score + mutatorScores.noGap + mutatorScores.sub[its.base][seq[pos-1]], its.in);
       for (const auto& its: ss.null)
-	updateBest (its.src, bestPos, sMutStateIndex(), its.score, MachineNull);
-      updateBest (bestState, bestPos, dMutStateIndex(), mutatorScores.delEnd, MachineNull);
+	updateBest (its.src, pos, sMutStateIndex(), its.score, its.in);
+      updateBest (state, pos, dMutStateIndex(), mutatorScores.delEnd, MachineNull);
 
-      if (mdl > 0)
-	updateBest (bestState, bestPos-1, tMutStateIndex(0), mutatorScores.sub[tanDupBase(ss,0)][base], MachineNull);
+      if (mdl > 0 && pos > 0)
+	updateBest (state, pos-1, tMutStateIndex(0), mutatorScores.sub[tanDupBase(ss,0)][seq[pos-1]], MachineNull);
 
-    } else if (bestMutState == dMutStateIndex()) {
+      if (pos == 0 && mutatorParams.local)
+	updateBest (0, 0, sMutStateIndex(), 0, MachineNull);
+      
+    } else if (mutState == dMutStateIndex()) {
 
       for (const auto& its: ss.emit) {
-	updateBest (its.src, bestPos, dMutStateIndex(), its.score + mutatorScores.delExtend, its.in);
-	updateBest (its.src, bestPos, sMutStateIndex(), its.score + mutatorScores.delOpen, its.in);
+	updateBest (its.src, pos, dMutStateIndex(), its.score + mutatorScores.delExtend, its.in);
+	updateBest (its.src, pos, sMutStateIndex(), its.score + mutatorScores.delOpen, its.in);
       }
       for (const auto& its: ss.null)
-	updateBest (its.src, bestPos, dMutStateIndex(), its.score, MachineNull);
+	updateBest (its.src, pos, dMutStateIndex(), its.score, its.in);
 
-    } else if (isTMutStateIndex(bestMutState)) {
+    } else if (isTMutStateIndex(mutState)) {
 
-      const Pos dupIdx = tMutStateDupIdx (bestMutState);
-      if (dupIdx < mdl - 1)
-	updateBest (bestState, bestPos-1, dupIdx+1, mutatorScores.sub[tanDupBase(ss,dupIdx+1)][base], MachineNull);
-      updateBest (bestState, bestPos, sMutStateIndex(), mutatorScores.tanDup + mutatorScores.len[dupIdx], MachineNull);
+      const Pos dupIdx = tMutStateDupIdx (mutState);
+      if (dupIdx < mdl - 1 && pos > 0)
+	updateBest (state, pos-1, dupIdx+1, mutatorScores.sub[tanDupBase(ss,dupIdx+1)][seq[pos-1]], MachineNull);
+      updateBest (state, pos, sMutStateIndex(), mutatorScores.tanDup + mutatorScores.len[dupIdx], MachineNull);
 
     } else
       Abort ("Unknown traceback state");
@@ -167,4 +226,18 @@ string ViterbiMatrix::traceback() const {
   }
 
   return string (trace.begin(), trace.end());
+}
+
+vguard<FastSeq> decodeFastSeqs (const char* filename, const Machine& machine, const MutatorParams& mutatorParams) {
+  const vguard<FastSeq> outseqs = readFastSeqs (filename);
+  vguard<FastSeq> inseqs;
+  InputModel inmod;
+  for (auto& outseq: outseqs) {
+    ViterbiMatrix vit (machine, inmod, mutatorParams, outseq);
+    FastSeq inseq;
+    inseq.name = outseq.name;
+    inseq.seq = vit.traceback();
+    inseqs.push_back (inseq);
+  }
+  return inseqs;
 }

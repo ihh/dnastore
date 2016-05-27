@@ -77,7 +77,7 @@ bool MachineTransition::inputEmpty() const {
 }
 
 bool MachineTransition::outputEmpty() const {
-  return out != MachineNull;
+  return out == MachineNull;
 }
 
 bool MachineTransition::isEOF() const {
@@ -177,8 +177,8 @@ void Machine::writeDot (ostream& out) const {
 void Machine::write (ostream& out) const {
   const size_t iw = stateIndexWidth();
   const size_t nw = stateNameWidth();
-  const size_t lw = leftContextWidth();
-  const size_t rw = rightContextWidth();
+  const size_t lw = maxLeftContext();
+  const size_t rw = maxRightContext();
   for (State s = 0; s < nStates(); ++s) {
     const MachineState& ms = state[s];
     out << setw(iw+1) << left << stateIndex(s)
@@ -238,14 +238,14 @@ InputSymbol Machine::stringToChar (const InputToken& in) {
   return -1;
 }
 
-size_t Machine::leftContextWidth() const {
+size_t Machine::maxLeftContext() const {
   size_t w = 0;
   for (const auto& ms: state)
     w = max (w, ms.leftContext.size());
   return w;
 }
 
-size_t Machine::rightContextWidth() const {
+size_t Machine::maxRightContext() const {
   size_t w = 0;
   for (const auto& ms: state)
     w = max (w, ms.rightContext.size());
@@ -294,7 +294,7 @@ string Machine::inputDescriptionTable() const {
 }
 
 map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbols) const {
-  const size_t len = leftContextWidth() + rightContextWidth();
+  const size_t len = maxLeftContext() + maxRightContext();
   const size_t burnInSteps = len*4, simSteps = len*4;
   map<State,double> current;
   size_t nSources = 0;

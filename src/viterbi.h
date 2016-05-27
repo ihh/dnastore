@@ -34,8 +34,8 @@ private:
   size_t maxDupLen, nStates, seqLen;
   vguard<LogProb> cell;
 
-  static inline size_t nCells (const Machine& machine, const MutatorParams& params, const TokSeq& seq) {
-    return (params.maxDupLen() + 2) * machine.nStates() * (seq.size() + 1);
+  static inline size_t nCells (const Machine& machine, const MutatorParams& params, const FastSeq& seq) {
+    return (params.maxDupLen() + 2) * machine.nStates() * (seq.length() + 1);
   };
 
   inline MutStateIndex sMutStateIndex() const { return 0; }
@@ -45,6 +45,10 @@ private:
   inline Pos tMutStateDupIdx (MutStateIndex mutStateIndex) const { return mutStateIndex - 2; }
   inline bool isTMutStateIndex (MutStateIndex mutStateIndex) const {
     return mutStateIndex >= tMutStateIndex(0) && mutStateIndex <= tMutStateIndex(maxDupLen-1);
+  }
+
+  inline string mutStateName (MutStateIndex mutStateIndex) const {
+    return mutStateIndex==0 ? string("S") : (mutStateIndex==1 ? string("D") : (string("T") + to_string(tMutStateDupIdx(mutStateIndex)+1)));
   }
   
   inline size_t cellIndex (State state, Pos pos, MutStateIndex mutState) const {
@@ -65,6 +69,7 @@ private:
   inline LogProb& tCell (State state, Pos pos, Pos idx) { return cell[tCellIndex(state,pos,idx)]; }
 
   inline LogProb getCell (State state, Pos pos, MutStateIndex mutState) const { return cell[cellIndex(state,pos,mutState)]; }
+  inline LogProb& loglike() { return sCell (machine.nStates() - 1, seqLen); }
   
 public:
   const Machine& machine;
@@ -75,17 +80,20 @@ public:
   const MachineScores machineScores;
   const MutatorScores mutatorScores;
 
-  LogProb loglike;
-  
   ViterbiMatrix (const Machine& machine, const InputModel& inputModel, const MutatorParams& mutatorParams, const FastSeq& fastSeq);
+  string toString() const;
   string traceback() const;
 
   inline LogProb sCell (State state, Pos pos) const { return cell[sCellIndex(state,pos)]; }
   inline LogProb dCell (State state, Pos pos) const { return cell[dCellIndex(state,pos)]; }
   inline LogProb tCell (State state, Pos pos, Pos dupIdx) const { return cell[tCellIndex(state,pos,dupIdx)]; }
 
+  inline LogProb loglike() const { return sCell (machine.nStates() - 1, seqLen); }
+  
   inline Pos maxDupLenAt (const StateScores& ss) const { return min ((Pos) maxDupLen, (Pos) ss.leftContext.size()); }
   inline Base tanDupBase (const StateScores& ss, Pos dupIdx) const { return ss.leftContext[ss.leftContext.size() - 1 - dupIdx]; }
 };
+
+vguard<FastSeq> decodeFastSeqs (const char* filename, const Machine& machine, const MutatorParams& mutatorParams);
 
 #endif /* VITERBI_INCLUDED */

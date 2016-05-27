@@ -15,6 +15,7 @@
 #include "../src/fastseq.h"
 #include "../src/mutator.h"
 #include "../src/fwdback.h"
+#include "../src/viterbi.h"
 
 using namespace std;
 
@@ -61,13 +62,16 @@ int main (int argc, char** argv) {
       ("decode-string,D", po::value<string>(), "decode DNA sequence to binary on stdout")
       ("encode-bits,b", po::value<string>(), "encode string of bits and control symbols to FASTA on stdout")
       ("decode-bits,B", po::value<string>(), "decode DNA sequence to string of bits and control symbols on stdout")
+      ("decode-viterbi,V", po::value<string>(), "decode FASTA file using Viterbi algorithm")
       ("raw,r", "strip headers from FASTA output; just print raw sequence")
       ("error-sub-prob", po::value<double>()->default_value(.1), "substitution probability for error model")
       ("error-iv-ratio", po::value<double>()->default_value(10), "transition/transversion ratio for error model")
       ("error-dup-prob", po::value<double>()->default_value(.01), "tandem duplication probability for error model")
       ("error-del-open", po::value<double>()->default_value(.01), "deletion opening probability for error model")
       ("error-del-ext", po::value<double>()->default_value(.01), "deletion extension probability for error model")
-      ("fit-error,f", po::value<string>(), "train error model on Stockholm database of pairwise alignments")
+      ("error-global", "force global alignment in error model (disallow partial reads)")
+      ("error-file,F", po::value<string>(), "load error model from file")
+      ("fit-error,f", po::value<string>(), "train error model on Stockholm database of pairwise alignments and print to stdout")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -105,18 +109,23 @@ int main (int argc, char** argv) {
     builder.buildDelayedMachine = vm.count("delay");
 
     MutatorParams mut;
-    mut.initMaxDupLen (len / 2);
-    mut.pTanDup = vm.at("error-dup-prob").as<double>();
-    mut.pDelOpen = vm.at("error-del-open").as<double>();
-    mut.pDelExtend = vm.at("error-del-ext").as<double>();
-    const double subProb = vm.at("error-sub-prob").as<double>();
-    const double ivRatio = vm.at("error-iv-ratio").as<double>();
-    mut.pTransition = subProb * ivRatio / (1 + ivRatio);
-    mut.pTransversion = subProb / (1 + ivRatio);
+    if (vm.count("error-file"))
+      mut = MutatorParams::fromFile (vm.at("error-file").as<string>().c_str());
+    else {
+      mut.initMaxDupLen (len / 2);
+      mut.pTanDup = vm.at("error-dup-prob").as<double>();
+      mut.pDelOpen = vm.at("error-del-open").as<double>();
+      mut.pDelExtend = vm.at("error-del-ext").as<double>();
+      const double subProb = vm.at("error-sub-prob").as<double>();
+      const double ivRatio = vm.at("error-iv-ratio").as<double>();
+      mut.pTransition = subProb * ivRatio / (1 + ivRatio);
+      mut.pTransversion = subProb / (1 + ivRatio);
+      mut.local = vm.count("error-global") ? false : true;
+    }
  
     if (vm.count("fit-error")) {
       const list<Stockholm> db = readStockholmDatabase (vm.at("fit-error").as<string>().c_str());
-      MutatorCounts prior(mut);
+      MutatorCounts prior (mut);
       prior.initLaplace();
       const MutatorParams fitMut = baumWelchParams (mut, prior, db);
       fitMut.writeJSON (cout);
@@ -172,6 +181,10 @@ int main (int argc, char** argv) {
 
 	cout << endl;
 
+      } else if (vm.count("decode-viterbi")) {
+	const auto decoded = decodeFastSeqs (vm.at("decode-viterbi").as<string>().c_str(), machine, mut);
+	writeFastaSeqs (cout, decoded);
+	
       } else if (vm.count("rate")) {
 	// Output statistics
 	const auto charBases = machine.expectedBasesPerInputSymbol("01!");

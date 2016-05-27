@@ -249,13 +249,13 @@ Machine TransBuilder::makeMachine() {
     for (Pos p = p0; p < len; ++p) {
       const State s = p - p0;
       MachineState& ms = machine.state[s];
-      ms.leftContext = string(len-p,'*') + kmerSubstring(startControlWord(),len-p+1,p);
+      ms.leftContext = string(len-p,MachineWildContext) + kmerSubstring(startControlWord(),len-p+1,p);
       ms.name = (s == 0 ? "Start#" : "Load(Start)#") + to_string(s);
       ms.trans.push_back (MachineTransition (MachineNull, baseToChar(getBase(startControlWord(),len-p)), s+1));
     }
   } else {
     MachineState& ms = machine.state.front();
-    ms.leftContext = string(len,'*');
+    ms.leftContext = string(len,MachineWildContext);
     ms.name = "Start#1";
     ms.trans.push_back (MachineTransition (MachineNull, MachineNull, firstNonControlState));
   }
@@ -374,7 +374,7 @@ Machine TransBuilder::makeMachine() {
       }
 
       if (buildDelayedMachine)
-	ms.trans.push_back (MachineTransition (0, '*', endState - len/2));
+	ms.trans.push_back (MachineTransition (0, MachineWildContext, endState - len/2));
       else
 	ms.trans.push_back (MachineTransition (0, 0, endState));
     }
@@ -395,17 +395,17 @@ Machine TransBuilder::makeMachine() {
 
   machine.state[endState].name = "End#" + to_string(endState);
   machine.state[endState].leftContext = buildDelayedMachine
-    ? (kmerSubstring(endControlWord(),1,len/2) + string(len/2,'*'))
-    : (controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,'*'));
+    ? (kmerSubstring(endControlWord(),1,len/2) + string(len/2,MachineWildContext))
+    : (controlWordAtEnd ? kmerString(endControlWord(),len) : string(len,MachineWildContext));
   
   if (buildDelayedMachine) {
     for (Pos pos = 1; pos <= len/2; ++pos) {
       const State s = endState - 1 - len/2 + pos;
       MachineState& ms = machine.state[s];
       ms.name = string("Unload(End)#") + to_string(s);
-      ms.leftContext = kmerSubstring(endControlWord(),1,len-pos) + string(pos,'*');
+      ms.leftContext = kmerSubstring(endControlWord(),1,len-pos) + string(pos,MachineWildContext);
       if (pos < len/2)
-	ms.trans.push_back (MachineTransition (0, '*', s + 1));
+	ms.trans.push_back (MachineTransition (0, MachineWildContext, s + 1));
       else
 	ms.trans.push_back (MachineTransition (0, 0, endState));
     }

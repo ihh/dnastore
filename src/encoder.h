@@ -42,10 +42,11 @@ struct Encoder {
       Assert (machine.state[current].isDeterministic(),
 	      "Reached non-deterministic output state during encoding");
       const MachineTransition& tn = machine.state[current].next();
-      write (tn.out);
+      if (tn.out)
+	write (tn.out);
       LogThisAt(9,"Transition " << machine.state[current].name
 		<< " -> " << machine.state[tn.dest].name
-		<< ": output " << tn.out
+		<< (tn.out ? (string(": output ") + tn.out) : string())
 		<< endl);
       current = tn.dest;
     }
@@ -63,11 +64,12 @@ struct Encoder {
     const MachineTransition* t = machine.state[current].transFor (sym);
     Assert (t != NULL, "Couldn't encode symbol %s in state %s", Machine::charToString(sym).c_str(), machine.state[current].name.c_str());
     while (true) {
-      write (t->out);
+      if (t->out)
+	write (t->out);
       LogThisAt(9,"Transition " << machine.state[current].name
 		<< " -> " << machine.state[t->dest].name << ": "
-		<< (t->in ? (string("input ") + Machine::charToString(t->in) + ", ") : string())
-		<< "output " << t->out
+		<< (t->in ? (string("input ") + Machine::charToString(t->in)) : string())
+		<< (t->out ? ((t->in ? string(", ") : string()) + "output " + t->out) : string())
 		<< endl);
       current = t->dest;
       if (machine.state[current].exitsWithInput() || machine.state[current].isEnd())
