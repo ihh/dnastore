@@ -420,6 +420,9 @@ Machine TransBuilder::makeMachine() {
 	if (t.out)
 	  t.out = machine.state[t.dest].leftContext.back();
   }
+
+  Assert (machine.state[0].trans.front().inputEmpty(), "First transition shouldn't have input");
+  machine.state[0].trans.front().in = MachineSOF;
   
   return machine;
 }

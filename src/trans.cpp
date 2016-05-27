@@ -40,9 +40,10 @@ MachineTokenLookup::MachineTokenLookup() {
   add (MachineStrictQuat3, "3%4");
 
   add (MachineEOF, "EOF");
+  add (MachineSOF, "START");
 
   for (InputSymbol c = MachineControlFirst; c <= MachineControlLast; ++c)
-    add (c, (string("^") + (char) (c + 'a' - MachineControlFirst)).c_str());
+    add (c, (string("!") + (char) (c + 'a' - MachineControlFirst)).c_str());
 }
 
 MachineTransition::MachineTransition()

@@ -56,6 +56,8 @@ struct Encoder {
   }
   
   void encodeSymbol (char sym) {
+    if (current == 0 && sym != MachineSOF && canEncodeSymbol(MachineSOF))
+      encodeSymbol (MachineSOF);
     LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
     advance();
     const MachineTransition* t = machine.state[current].transFor (sym);

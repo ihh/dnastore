@@ -30,6 +30,7 @@ typedef int ControlIndex;
 #define MachineStrictQuat2  'r'
 #define MachineStrictQuat3  's'
 
+#define MachineSOF          '^'
 #define MachineEOF          '$'
 
 #define MachineControlFirst 'A'

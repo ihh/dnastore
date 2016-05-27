@@ -103,7 +103,7 @@ struct Decoder {
   }
 
   static bool isUsable (const MachineTransition& t) {
-    return t.in == MachineNull || t.in == MachineBit0 || t.in == MachineBit1 || t.in == MachineEOF;
+    return t.in == MachineNull || t.in == MachineBit0 || t.in == MachineBit1 || t.in == MachineEOF || t.in == MachineSOF;
   }
   
   void decodeBase (char base) {
