@@ -63,7 +63,7 @@ obj/%.o: t/%.cpp
 $(MAIN): bin/$(MAIN)
 
 clean:
-	rm -rf bin/* obj/*
+	rm -rf bin/$(MAIN) obj/*
 
 debug: all
 
