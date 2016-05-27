@@ -36,12 +36,13 @@ typedef int ControlIndex;
 #define MachineControlFirst 'A'
 #define MachineControlLast  'Z'
 
-#define MachineStrictInputFlag  1
-#define MachineRelaxedInputFlag 2
-#define MachineFlushInputFlag   4
-#define MachineControlInputFlag 8
-#define MachineEOFInputFlag     16
+#define MachineStrictInputFlag   1
+#define MachineRelaxedInputFlag  2
+#define MachineFlushInputFlag    4
+#define MachineControlInputFlag  8
+#define MachineEOFInputFlag      16
 #define MachineDefaultInputFlags (MachineRelaxedInputFlag | MachineControlInputFlag)
+#define MachineAllInputFlags     (MachineStrictInputFlag | MachineRelaxedInputFlag | MachineFlushInputFlag | MachineControlInputFlag |  MachineEOFInputFlag)
 
 typedef char OutputSymbol;
 typedef char InputSymbol;
@@ -55,6 +56,7 @@ struct MachineTransition {
   MachineTransition (InputSymbol, OutputSymbol, State);
   bool inputEmpty() const;
   bool outputEmpty() const;
+  bool isSOF() const;
   bool isEOF() const;
 };
 
@@ -109,6 +111,7 @@ struct Machine {
 
   string inputAlphabet (int inputFlags = MachineDefaultInputFlags) const;
   string outputAlphabet() const;
+  string inputDescriptionTable() const;
 
   map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;
 };

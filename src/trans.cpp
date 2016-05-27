@@ -7,43 +7,60 @@
 struct MachineTokenLookup {
   map<InputSymbol,InputToken> sym2tok;
   map<InputToken,InputSymbol> tok2sym;
-  void add (InputSymbol c, const char* s);
+  map<InputSymbol,string> sym2desc;
+  void add (InputSymbol c, const char* s, const char* desc);
+  string tokenDescriptionTable (const string& alphabet) const;
   MachineTokenLookup();
 };
 MachineTokenLookup machineTokenLookup;
 
-void MachineTokenLookup::add (InputSymbol c, const char* s) {
+void MachineTokenLookup::add (InputSymbol c, const char* s, const char* desc) {
   const string str (s);
   tok2sym[str] = c;
   sym2tok[c] = str;
+  sym2desc[c] = string(desc);
 }
 
 MachineTokenLookup::MachineTokenLookup() {
-  add (MachineNull, "NULL");
+  add (MachineNull, "NULL", "Null token");
   tok2sym[string()] = MachineNull;
 
-  add (MachineBit0, "0");
-  add (MachineBit1, "1");
+  add (MachineBit0, "0", "Zero input bit (works in any context)");
+  add (MachineBit1, "1", "One input bit (works in any context)");
 
-  add (MachineFlush, "FLUSH");
+  add (MachineFlush, "FLUSH", "Flush any queued input bits");
 
-  add (MachineStrictBit0, "0%2");
-  add (MachineStrictBit1, "1%2");
+  add (MachineStrictBit0, "0%2", "Strict input bit 0 (works in radix-2 context)");
+  add (MachineStrictBit1, "1%2", "Strict input bit 1 (works in radix-2 context)");
 
-  add (MachineStrictTrit0, "0%3");
-  add (MachineStrictTrit1, "1%3");
-  add (MachineStrictTrit2, "2%3");
+  add (MachineStrictTrit0, "0%3", "Strict input trit 0 (works in radix-3 context)");
+  add (MachineStrictTrit1, "1%3", "Strict input trit 1 (works in radix-3 context)");
+  add (MachineStrictTrit2, "2%3", "Strict input trit 2 (works in radix-3 context)");
 
-  add (MachineStrictQuat0, "0%4");
-  add (MachineStrictQuat1, "1%4");
-  add (MachineStrictQuat2, "2%4");
-  add (MachineStrictQuat3, "3%4");
+  add (MachineStrictQuat0, "0%4", "Strict input quat 0 (works in radix-4 context)");
+  add (MachineStrictQuat1, "1%4", "Strict input quat 1 (works in radix-4 context)");
+  add (MachineStrictQuat2, "2%4", "Strict input quat 2 (works in radix-4 context)");
+  add (MachineStrictQuat3, "3%4", "Strict input quat 3 (works in radix-4 context)");
 
-  add (MachineEOF, "EOF");
-  add (MachineSOF, "START");
+  add (MachineSOF, "START", "Start-of-file control symbol");
+  add (MachineEOF, "EOF", "End-of-file control symbol");
 
   for (InputSymbol c = MachineControlFirst; c <= MachineControlLast; ++c)
-    add (c, (string("!") + (char) (c + 'a' - MachineControlFirst)).c_str());
+    add (c, (string("!") + (char) (c + 'a' - MachineControlFirst)).c_str(), "Control symbol");
+}
+
+string MachineTokenLookup::tokenDescriptionTable (const string& alphabet) const {
+  size_t tw = 0;
+  for (char c: alphabet)
+    if (sym2tok.count(c))
+      tw = max (tw, sym2tok.at(c).size());
+  ostringstream out;
+  for (char c: alphabet)
+    if (sym2tok.count(c))
+      out << c << ' ' << setw(tw) << sym2tok.at(c) << ' ' << sym2desc.at(c) << endl;
+    else
+      out << c << ' ' << setw(tw) << "?" << ' ' << "Unknown token" << endl;
+  return out.str();
 }
 
 MachineTransition::MachineTransition()
@@ -65,6 +82,10 @@ bool MachineTransition::outputEmpty() const {
 
 bool MachineTransition::isEOF() const {
   return in == MachineEOF;
+}
+
+bool MachineTransition::isSOF() const {
+  return in == MachineSOF;
 }
 
 MachineState::MachineState()
@@ -250,7 +271,7 @@ string Machine::inputAlphabet (int inputFlags) const {
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
       if (!t.inputEmpty()
-	  && ((t.isEOF() && (inputFlags & MachineEOFInputFlag))
+	  && (((t.isEOF() || t.isSOF()) && (inputFlags & MachineEOFInputFlag))
 	      || (isControl(t.in) && (inputFlags & MachineControlInputFlag))
 	      || (t.in == MachineFlush && (inputFlags & MachineFlushInputFlag))
 	      || (isRelaxed(t.in) && (inputFlags & MachineRelaxedInputFlag))
@@ -266,6 +287,10 @@ string Machine::outputAlphabet() const {
       if (!t.outputEmpty())
 	alph.insert (t.out);
   return string (alph.begin(), alph.end());
+}
+
+string Machine::inputDescriptionTable() const {
+  return machineTokenLookup.tokenDescriptionTable (inputAlphabet (MachineAllInputFlags));
 }
 
 map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbols) const {

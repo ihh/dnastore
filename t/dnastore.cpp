@@ -50,8 +50,9 @@ int main (int argc, char** argv) {
       ("no-start", "do not use a control word at start of encoded sequence")
       ("no-end", "do not use a control word at end of encoded sequence")
       ("delay,y", "build delayed machine")
-      ("dot", "print in Graphviz format")
       ("rate,R", "calculate compression rate")
+      ("dot", "print in Graphviz format")
+      ("token-info", "print descriptions of input tokens")
       ("load-machine,L", po::value<string>(), "load machine from JSON file")
       ("save-machine,S", po::value<string>(), "save machine to JSON file")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
@@ -183,6 +184,8 @@ int main (int argc, char** argv) {
 	// Output the transducer
 	if (vm.count("dot"))
 	  machine.writeDot (cout);
+	else if (vm.count("token-info"))
+	  cout << machine.inputDescriptionTable();
 	else if (!vm.count("save-machine"))
 	  machine.write (cout);
       }
