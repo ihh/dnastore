@@ -841,6 +841,8 @@ Both programs are available at \url{https://github.com/ihh/dnastore}.
 
 Codes generated with MIXRADAR...
 
+% Block length & P(EOF) & States & Transitions & Output symbols/input bit in radix 2 & 3 & 4
+
 Near-ideal performance in converting bits to quats is pretty straightforward
 Near-ideal performance in a bit-to-trit block code requires long blocks
 Need positive integers $m,n$ for which $3^m$ is only a little bit more than $2^n$
@@ -885,14 +887,19 @@ can be used
 
 Codes generated with DNASTORE...
 
+% Word length & Reserved words & States & Transitions & Output bases/input bit
+
 Performance of DNASTORE at encoding \& decoding a large file
 
 DNASTORE's implementation of $\transerror$
 sets $\pcont(j,k)=\pnogap$
 and $\pfwddup=\prevdup=0$
 
-Viterbi decoding with simulated duplications
+Viterbi decoding with simulated errors
 
+Global or local
+
+% Plot: %ID vs # of substitutions, duplications, single-base deletions, multi-base deletions
 
 \section{Discussion}
 \seclabel{Discussion}
