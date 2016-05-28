@@ -27,7 +27,7 @@ G.~M. Church, Y.~Gao, and S.~Kosuri.
 \newblock {\em Science}, 337(6102):1628, Sep 2012.
 
 \bibitem{MilenkovicEtAl2005}
-Olgica Milenkovic and Navin Kashyap.
+O.~Milenkovic and N.~Kashyap.
 \newblock {DNA Codes that Avoid Secondary Structures}.
 \newblock August 2005.
 
@@ -37,47 +37,45 @@ S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock {\em Sci Rep}, 5:14138, 2015.
 
 \bibitem{GuptaEtAl2015}
-Vijay Dhameliya, Dixita Limbachiya, Madhav Khakhar, and Manish~K. Gupta.
+V.~Dhameliya, D.~Limbachiya, M.~Khakhar, and M.~K. Gupta.
 \newblock On optimal family of codes for {DNA} storage.
 \newblock {\em CoRR}, abs/1501.07133, 2015.
 
 \bibitem{MilenkovicEtAl2014}
-Han~Mao Kiah, Gregory~J. Puleo, and Olgica Milenkovic.
+H.~M. Kiah, G.~J. Puleo, and O.~Milenkovic.
 \newblock Codes for {DNA} storage channels.
 \newblock {\em CoRR}, abs/1410.8837, 2014.
 
 \bibitem{MilenkovicEtAl2015}
-S.~M. Hossein~Tabatabaei Yazdi, Han~Mao Kiah, Eva~Ruiz Garcia, Jian Ma, Huimin
-  Zhao, and Olgica Milenkovic.
+S.~M. Yazdi, H.~M. Kiah, E.~R. Garcia, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock Dna-based storage: Trends and methods.
 \newblock {\em CoRR}, abs/1507.01611, 2015.
 
 \bibitem{GabrysEtAl2015}
-Ryan Gabrys, Han~Mao Kiah, and Olgica Milenkovic.
+R.~Gabrys, H.~M. Kiah, and O.~Milenkovic.
 \newblock Asymmetric lee distance codes for dna-based storage.
 \newblock {\em CoRR}, abs/1506.00740, 2015.
 
 \bibitem{MilenkovicEtAl2016}
-Ryan Gabrys, Eitan Yaakobi, and Olgica Milenkovic.
+R.~Gabrys, E.~Yaakobi, and O.~Milenkovic.
 \newblock Codes in the damerau distance for {DNA} storage.
 \newblock {\em CoRR}, abs/1601.06885, 2016.
 
 \bibitem{BornholtEtAl2016}
-James Bornholt, Randolph Lopez, Douglas~M. Carmean, Luis Ceze, Georg Seelig,
-  and Karin Strauss.
+J.~Bornholt, R.~Lopez, D.~M. Carmean, L.~Ceze, G.~Seelig, and K.~Strauss.
 \newblock A {DNA}-based archival storage system.
 \newblock In {\em Proceedings of the Twenty-First International Conference on
   Architectural Support for Programming Languages and Operating Systems},
   ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
 
 \bibitem{DaveyMackay2000}
-Matthew~C. Davey and David J.~C. MacKay.
+M.~C. Davey and D.~J.~C. MacKay.
 \newblock Watermark codes: Reliable communication over insertion/deletion
   channels.
 \newblock In {\em In ISIT 2000}, pages 47--7, 2000.
 
 \bibitem{DaveyMackay2001}
-Matthew~C. Davey and David J.~C. MacKay.
+M.~C. Davey and D.~J.~C. MacKay.
 \newblock Reliable communication over channels with insertions, ddeletions, and
   substitutions.
 \newblock {\em IEEE Transactions on Information Theory}, 47(2):687--698, 2001.
@@ -88,13 +86,13 @@ D.~J.~C. Mackay.
 \newblock Cambridge University Press, 1st edition, 2003.
 
 \bibitem{FreyMackay98}
-Brendan Frey and David MacKay.
+B.~Frey and D.~MacKay.
 \newblock A revolution: Belief propagation in graphs with cycles.
 \newblock In {\em In Neural Information Processing Systems}, pages 479--485.
   MIT Press, 1998.
 
 \bibitem{MurphyEtAl1999}
-Kevin~P. Murphy, Yair Weiss, and Michael~I. Jordan.
+K.~P. Murphy, Y.~Weiss, and M.~I. Jordan.
 \newblock Loopy belief propagation for approximate inference: An empirical
   study.
 \newblock In {\em Proceedings of the Fifteenth Conference on Uncertainty in
@@ -103,7 +101,7 @@ Kevin~P. Murphy, Yair Weiss, and Michael~I. Jordan.
 
 \bibitem{Mackay1997}
 D.~J.~C. Mackay and R.~M. Neal.
-\newblock {Near Shannon limit performance of low density parity check codes}.
+\newblock {Near Shannon Limit Performance of Low Density Parity Check Codes}.
 \newblock {\em Electronics Letters}, 33(6):457--458, 1997.
 
 \bibitem{MohriPereiraRiley2000}
@@ -112,8 +110,7 @@ M.~Mohri, F.~Pereira, and M.~Riley.
 \newblock {\em Computer Speech and Language}, 16(1):69--88, 2002.
 
 \bibitem{WikipediaTransducers}
-{\em Finite-State Transducer (Wikipedia article)}, 2016 (accessed May 19,
-  2016).
+{\em Finite-State Transducer (Wikipedia article)}, Accessed May 19, 2016.
 \newblock
   \url{https://en.wikipedia.org/w/index.php?title=Finite_state_transducer&oldid=718569101}.
 
@@ -133,7 +130,7 @@ B.~Paten, J.~Herrero, S.~Fitzgerald, K.~Beal, P.~Flicek, I.~Holmes, and
 \newblock {\em Genome Research}, 18:1829--1843, Nov 2008.
 
 \bibitem{WestessonEtAlArxiv2012}
-Oscar Westesson, Gerton Lunter, Benedict Paten, and Ian Holmes.
+O.~Westesson, L.~Lunter, B.~Paten, and I.~Holmes.
 \newblock Phylogenetic automata, pruning, and multiple alignment.
 \newblock arXiv, 2012.
 \newblock 1202.4026.
@@ -174,13 +171,13 @@ Z.~Iqbal, M.~Caccamo, I.~Turner, P.~Flicek, and G.~McVean.
 
 \bibitem{BurgeKarlin1997}
 C.~Burge and S.~Karlin.
-\newblock {{P}rediction of complete gene structures in human genomic
+\newblock {{P}rediction of Complete Gene Structures in Human Genomic
   {D}{N}{A}}.
 \newblock {\em J. Mol. Biol.}, 268(1):78--94, Apr 1997.
 
 \bibitem{SalzbergEtAl1999}
 S.~L. Salzberg, M.~Pertea, A.~L. Delcher, M.~J. Gardner, and H.~Tettelin.
-\newblock {{I}nterpolated {M}arkov models for eukaryotic gene finding}.
+\newblock {{I}nterpolated {M}arkov Models for Eukaryotic Gene Finding}.
 \newblock {\em Genomics}, 59(1):24--31, Jul 1999.
 
 \bibitem{Rissanen1976}
@@ -190,8 +187,8 @@ J.~J. Rissanen.
 
 \bibitem{HsiYangEtAl2011}
 M.~Hsi-Yang~Fritz, R.~Leinonen, G.~Cochrane, and E.~Birney.
-\newblock {{E}fficient storage of high throughput {D}{N}{A} sequencing data
-  using reference-based compression}.
+\newblock {{E}fficient Storage of High Throughput {D}{N}{A} Sequencing Data
+  using Reference-Based Compression}.
 \newblock {\em Genome Res.}, 21(5):734--740, May 2011.
 
 \bibitem{Durbin98}
@@ -201,13 +198,13 @@ R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
 \newblock Cambridge University Press, Cambridge, UK, 1998.
 
 \bibitem{PereiraRiley1996}
-Fernando C.~N. Pereira and Michael Riley.
+F.~C.~N. Pereira and M.~Riley.
 \newblock Speech recognition by composition of weighted finite automata.
 \newblock {\em CoRR}, cmp-lg/9603001, 1996.
 
 \bibitem{Holmes2003}
 I.~Holmes.
-\newblock {{U}sing Guide Trees to Construct Multiple-sequence Evolutionary
+\newblock {{U}sing Guide Trees to Construct Multiple-Sequence Evolutionary
   {H}{M}{M}s}.
 \newblock {\em Bioinformatics}, 19 Suppl 1:i147--157, 2003.
 
@@ -218,13 +215,13 @@ I.~Holmes.
 \newblock {\em Bioinformatics}, 23(23):3263--3264, Dec 2007.
 
 \bibitem{ChuGill1992}
-Ke-Chiang Chu and John Gill.
+K.-C. Chu and J.~Gill.
 \newblock Computer science.
-\newblock chapter Mixed-radix Huffman Codes, pages 209--218. Plenum Press, New
+\newblock chapter Mixed-Radix Huffman Codes, pages 209--218. Plenum Press, New
   York, NY, USA, 1992.
 
 \bibitem{GolinEtAl2009}
-Mordecai Golin, Xiaoming Xu, and Jiajin Yu.
+M.~Golin, X.~Xu, and J.~Yu.
 \newblock A generic top-down dynamic-programming approach to prefix-free
   coding.
 \newblock In {\em Proceedings of the Twentieth Annual ACM-SIAM Symposium on

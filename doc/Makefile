@@ -72,11 +72,11 @@ hamming74.dot: hamming74.pl
 
 # Arithmetic code with wordlen=2
 eof2.dot: ../bin/mixradar.pl Makefile
-	perl ../bin/mixradar.pl 2 1/10 >$@
+	perl ../bin/mixradar.pl -k 2 1/100 >$@
 
 # Arithmetic code with wordlen=3
 eof3.dot: ../bin/mixradar.pl Makefile
-	perl ../bin/mixradar.pl 3 1/10 >$@
+	perl ../bin/mixradar.pl -k 3 1/100 >$@
 
 # DNAstore machines
 dna1full.lacirco: filter.pl Makefile

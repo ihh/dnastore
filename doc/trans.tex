@@ -175,13 +175,6 @@ that has the same transducer function $\tfunc{T}$ and
 at most $2|\states|$ states and $|\states|+|\transitions|$ transitions
 \cite{WestessonEtAlArxiv2012}.
 
-For the figures in this paper,
-we adopt the convention that transition labels are annotated as $\inlab{\tt /}\outlab$
-(the transition weights for the transducers in the figures are mostly equal to 1, and are not shown).
-\figref{HammingTransducer} shows transducers that implement the Hamming(3,1) and Hamming(7,4) error-correcting codes.
-\figref{DNAStore} shows repeat-avoiding transducers that encode mixed-radix sequences,
-constructed using the method of \secref{DeBruijnTransducer}.
-
 \subsubsection{Transducer composition}
 
 Given transducers
@@ -607,7 +600,7 @@ The root of the prefix tree serves as the initial and final state
 
 Algorithm~\ref{MixedRadixTransducer} generates the transducer.
 \figref{Arithmetic} shows a transducer that was built by this algorithm
-for 2-digit codewords with $\nu=1/10$.
+for 2-digit codewords with $\nu=1/100$.
 
 
 
@@ -963,8 +956,12 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   Dashed lines show transitions that output a radix-2 digit (i.e. a bit).
   Solid regular-weight lines show transitions that output a radix-3 digit (i.e. a trit).
   Solid bold-weight lines show transitions that output a radix-4 digit (i.e. a quat).
+  States are labeled with (as applicable) their input symbol,
+  the input prefix so far, and the choice of output symbols
+  (depending on whether the radix at the next position is 2, 3, or 4).
+  Thus, transitions leaving a state labeled ``out: $i$/$j$/$k$'' output symbols $i_2$, $j_3$ and $k_4$.
   This code was generated using the automated procedure of \secref{Arithmetic}
-  with parameter $\nu$ (the probability of the end-of-file symbol) equal to 1/10.
+  with parameter $\nu$ (the probability of the end-of-file symbol) equal to 1/100.
 }
 
 \newpage
@@ -996,14 +993,15 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   {\bf Key:}
   Transition label annotations have been omitted from this diagram.
   Instead, the labels may be deduced from the node and edge shapes, as follows:
-  Bold-line transitions from rectangular states encode quaternary input digits.
-  Solid-line transitions from triangular states encode trinary input digits.
+  Solid bold-weight transitions from rectangular states encode quaternary input digits.
+  Solid regular-weight transitions from triangular states encode trinary input digits.
   Dashed-line transitions from double-circle states encode binary input digits.
   Dotted-line transitions do not encode input digits;
   states that can only be exited via these transitions are shown as rectangles.
   Transitions that encode input digits have empty circles at the source end;
   transitions that encode output digits have filled arrowheads at the destination end.
-  The output label of a transition into a state $XY$ is always either $Y$ or $\epsilon$.
+  States are labeled with their past context:
+  the output label of a transition into a state $XY$ is always either $Y$ or $\epsilon$.
 }
 \end{figure}
 
@@ -1028,7 +1026,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   The $D$ states model deletions;
   the $S$ states model substitutions;
   $T1,T2,T3$ model tandem duplications
-  (gieven past context $ACG$, insert $ACG$, yielding the observed mutation $ACG \to ACGACG$);
+  (given past context $ACG$, insert $ACG$, yielding the observed mutation $ACG \to ACGACG$);
   $F1,F2,F3$ model forward inverted duplications
   (given past context $ACG$, insert $CGT$, yielding the observed mutation $ACG \to ACGCGT$);
   and

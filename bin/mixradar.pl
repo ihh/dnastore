@@ -6,21 +6,23 @@ use Getopt::Long;
 use List::Util qw(max);
 
 my $usage = "Usage: $0 <msglen> <eofprob>\n";
-my ($nomerge, $noprune, $norescale, $bigrat, $intervals, $getstats, $verbose);
-GetOptions ("wide" => \$nomerge,
-	    "deep" => \$noprune,
-	    "pure" => \$norescale,
-	    "rational" => \$bigrat,
-	    "intervals" => \$intervals,
-	    "stats" => \$getstats,
-	    "verbose" => \$verbose)
+my ($nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $verbose);
+GetOptions ("wide" => \$nomerge,  # don't merge identical states
+	    "deep" => \$noprune,  # don't prune unnecessary states
+	    "pure" => \$norescale,  # don't rescale remaining input intervals after encoding each input word
+	    "keeproots" => \$keeproots,  # don't merge input word states
+	    "rational" => \$bigrat,  # use exact rational bignum math, instead of built-in floating-point
+	    "intervals" => \$intervals,  # show input & output intervals for each state
+	    "lr" => \$lr,  # generate dotfile with rankdir=LR (left-to-right)
+	    "stats" => \$getstats,  # display statistics about the transducer
+	    "verbose" => \$verbose)  # print lots of stuff on stderr
     or die $usage;
 
 $nomerge = $nomerge || $intervals;
 
 sub newNumber {
     my ($val) = @_;
-    return $bigrat ? Math::BigRat->new($val) : $val;
+    return $bigrat ? Math::BigRat->new($val) : eval($val);
 }
 
 die $usage unless @ARGV == 2;
@@ -227,6 +229,9 @@ for my $outputIndex (reverse @validOutIndex) {
     my @destUndef = grep (!defined($destSubtree[$_]), 0..$#destIndex);
     if (@destUndef) { die "Oops. State $outputIndex child subtree(s) not defined (@destIndex[@destUndef]). Postorder?" }
     $output->{subtree} = '(' . join(',', map($destSubtree[$_].$destLabel[$_], 0..$#destLabel)) . ')';
+    if ($keeproots && $output->{input}) {
+	$output->{subtree} .= ' ' . $output->{word};
+    }
     if ($nomerge && $output->{subtree} ne '()') {
 	$output->{subtree} .= '[' . $output->{outseq} . ']';   # this will ensure uniqueness of every state
     }
@@ -282,6 +287,7 @@ if ($getstats) {
 
 # print in dot format
 print "digraph G {\n";
+print " rankdir=LR;\n" if $lr;
 for my $state (@uniqueState) {
     my ($label, $shape, $style);
     if ($state->{start}) {
@@ -289,16 +295,24 @@ for my $state (@uniqueState) {
 	$shape = "box";
 	$style = "solid";
     } elsif ($state->{prefix}) {
-	$label = $state->{word};
+	$label = "in: " . substr ($state->{word}, -1, 1) . "\\nprefix:" . $state->{word};
 	$shape = "circle";
 	$style = "solid";
     } elsif ($state->{input}) {
-	$label = $state->{word};
+	$label = "in: " . substr ($state->{word}, -1, 1) . "\\nprefix: " . $state->{word} . "\\nout: ";
+	for my $radix (@radices) {
+	    $label .= join ("", map (/(\d)_$radix/ ? $1 : "", keys %{$state->{dest}})) . "/";
+	}
+	chop $label;
 	$shape = "doublecircle";
 	$style = "solid";
     } else {
-	$label = $nomerge ? $state->{outseq} : "";
-	$shape = $nomerge ? "box" : "square";
+	$label = "out: ";
+	for my $radix (@radices) {
+	    $label .= join ("", map (/(\d)_$radix/ ? $1 : "", keys %{$state->{dest}})) . "/";
+	}
+	chop $label;
+	$shape = "box";
 	$style = "solid";
     }
     if ($intervals && exists $state->{A}) {
@@ -310,17 +324,29 @@ for my $state (@uniqueState) {
 for my $src (@uniqueState) {
     while (my ($label, $destIndex) = each %{$src->{dest}}) {
 	my $dest = $state[$destIndex];
-	my $style = $label =~ /$epsilon$/
-	    ? "dotted"
-	    : ($label =~ /4$/
-	       ? "bold"
-	       : ($label =~ /3$/
-		  ? "solid"
-		  : ($label =~ /2$/
-		     ? "dashed"
-		     : "none")));
-	my $srcStyle = $label =~ /^$epsilon/ ? "" : "dir=both;arrowtail=odot;";
-	print " ", $src->{id}, " -> ", $dest->{id}, " [style=", $style, ";", $srcStyle, "arrowhead=empty;];\n";
+	my ($style, $color, $srcAttrs);
+	if ($label =~ /$epsilon$/) {
+	    $style = "dotted";
+	    $color = "black";
+	    $srcAttrs = "dir=both;arrowtail=odot;"
+	} elsif ($label =~ /4$/) {
+	    $style = "bold";
+	    $color = "darkslategray";
+	    $srcAttrs = "";
+	} elsif ($label =~ /3$/) {
+	    $style = "solid";
+	    $color = "darkslategray";
+	    $srcAttrs = "";
+	} elsif ($label =~ /2$/) {
+	    $style = "dashed";
+	    $color = "darkslategray";
+	    $srcAttrs = "";
+	} else {
+	    $style = "none";
+	    $color = "darkslategray";
+	    $srcAttrs = "";
+	}
+	print " ", $src->{id}, " -> ", $dest->{id}, " [style=$style;color=$color;${srcAttrs}arrowhead=empty;];\n";
     }
 }
 print "}\n";
