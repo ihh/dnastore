@@ -220,9 +220,9 @@ if ($getstats) {
     for my $radixSeq (@radixSeqs) {
 	push @stats, $radixSeq, " ", $radixCount{$radixSeq}, "\n";
     }
-    push @stats, "Mean bits/base for pure-radix sequences:\n";
+    push @stats, "Mean bits/output symbol for pure-radix sequences:\n";
     for my $radix (@radices) {
-	my ($sum, $n) = (0, 0);
+	my ($sum, $n) = map (Math::BigRat->new($_), 0, 0);
 	for my $radixSeq (grep (/^$radix+$/, @radixSeqs)) {
 	    $n += $radixCount{$radixSeq};
 	    $sum += $radixCount{$radixSeq} * length($radixSeq);
