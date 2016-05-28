@@ -70,6 +70,18 @@ James Bornholt, Randolph Lopez, Douglas~M. Carmean, Luis Ceze, Georg Seelig,
   Architectural Support for Programming Languages and Operating Systems},
   ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
 
+\bibitem{DaveyMackay2000}
+Matthew~C. Davey and David J.~C. MacKay.
+\newblock Watermark codes: Reliable communication over insertion/deletion
+  channels.
+\newblock In {\em In ISIT 2000}, pages 47--7, 2000.
+
+\bibitem{DaveyMackay2001}
+Matthew~C. Davey and David J.~C. MacKay.
+\newblock Reliable communication over channels with insertions, ddeletions, and
+  substitutions.
+\newblock {\em IEEE Transactions on Information Theory}, 47(2):687--698, 2001.
+
 \bibitem{Mackay2003}
 D.~J.~C. Mackay.
 \newblock {\em {Information Theory, Inference and Learning Algorithms}}.
@@ -88,6 +100,11 @@ Kevin~P. Murphy, Yair Weiss, and Michael~I. Jordan.
 \newblock In {\em Proceedings of the Fifteenth Conference on Uncertainty in
   Artificial Intelligence}, UAI'99, pages 467--475, San Francisco, CA, USA,
   1999. Morgan Kaufmann Publishers Inc.
+
+\bibitem{Mackay1997}
+D.~J.~C. Mackay and R.~M. Neal.
+\newblock {Near Shannon limit performance of low density parity check codes}.
+\newblock {\em Electronics Letters}, 33(6):457--458, 1997.
 
 \bibitem{MohriPereiraRiley2000}
 M.~Mohri, F.~Pereira, and M.~Riley.
