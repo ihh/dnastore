@@ -25,23 +25,27 @@ $\ast$ E-mail: ihh@berkeley.edu
 \section{Introduction}
 
 DNA can store petabytes of information per gram \cite{GoldmanEtAl2013} and can last intact for tens of thousands of years \cite{GreenEtAl2010}.
-This makes it an appealing prospect for long-term archival storage \cite{ChurchEtAl2012}.
-However, since DNA synthesis, sequencing, and (if applicable) replication are prone to certain kinds of error,
-it is advisable to treat the storage of information in DNA like other noisy channel coding problems.
+This makes it an appealing prospect for long-term archival storage.
+However, DNA synthesis, sequencing, and replication are prone to errors, which may limit its potential as a storage medium \cite{ChurchEtAl2012}.
+These errors can be controlled by applying the tools of information theory,
+treating DNA storage as a noisy channel coding problem.
 
 Recently, several coding schemes for DNA storage have been proposed
 that address the interrelated issues of error avoidance, error correction and redundancy
 \cite{GoldmanEtAl2013,MilenkovicEtAl2005,YazdiEtAl2015,GuptaEtAl2015,MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016,BornholtEtAl2016}.
-Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a trinary (radix-3) code that avoids repeated nucleotides, synthesizing to fourfold redundancy for error correction.
+Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a trinary (radix-3) code that avoids repeated nucleotides
+(somewhat similarly to a technique known as ``run-length limitation'' in coding theory),
+synthesizing to fourfold redundancy for additional error correction.
 Gupta {\em et al} introduced a trinary Golay code for error correction \cite{GuptaEtAl2015}.
 Strauss {\em et al} improved on Goldman {\em et al}'s redundancy using an exclusive-or method.
 Milenkovic {\em et al} have published extensively in this area,
 considering the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
 proposing several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
 and devising a random-access rewritable filesystem \cite{YazdiEtAl2015}.
+A parallel body of work describes error-correcting codes for noisy channels that are subject to
+substitutions, insertions and deletions \cite{DaveyMackay2000,DaveyMackay2001}.
 
-The purpose of this paper is to show that several of the low-level tasks in coding information into DNA
-can be addressed systematically.
+Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s trinary code as a starting point.
 The trinary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position, hence the radix of 3.
 The rationale for this system advanced by Goldman {\em et al} is that it guards against the most common class of errors in DNA resequencing which occur at homopolymer runs.
@@ -50,10 +54,11 @@ This may indeed be the case, but (for the moment at least) synthesis is vastly m
 so we might want to pack in more information---and yet still (perhaps) avoid certain motifs in the synthesized DNA,
 such as restriction enzyme sites, or barcodes, or other sequences that have special significance in our DNA filesystem.
 Alternatively, assuming a world where synthesis is cheap and yet sequencing and bioinformatics have not solved the problem of decoding homopolymer runs
-(the assumption motivating the trinary code),
+(an assumption which might motivate the trinary code),
 it may then be desirable to avoid other sources of error, such as repeated dinucleotides, trinucleotides or longer repeats.
 Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate.
-We may also wish to introduce error-correcting codes analogous to Hamming codes \cite{Mackay2003}, turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Golay codes \cite{GuptaEtAl2015}.
+We may also wish to introduce error-correcting codes such as Hamming codes \cite{Mackay2003}, Golay codes \cite{GuptaEtAl2015},
+turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Gallager codes \cite{Mackay1997}.
 
 In short, different applications may require different codes.
 As noted above, several researchers have presented solutions to some of these problems.
@@ -843,12 +848,22 @@ e.g. more efficient machines for
 adding parity bits, converting binary to mixed-radix, generating repeat-free DNA
 or modeling errors
 
+State-of-the-art error-correcting codes generally outstrip the capabilities of state machines:
+the highest-performing codes on classical noisy channels with substitutions, such as turbo codes and low-density parity check codes (LDPC codes, a.k.a. ``Gallager codes''),
+are decoded using constructions that can be interpreted as cyclic graphical models \cite{Mackay1997,FreyMackay98}.
+In parallel work, codes that have been developed for error correction on channels with substitutions, insertions and deletions
+wrap an inner ``watermark'' code, that can achieve synchronization using a Hidden Markov model, with an outer LDPC code to correct substitutions
+\cite{DaveyMackay2000,DaveyMackay2001}.
 
 We do not address the higher-level organization of DNA ``filesystem'',
 which has been addressed by others \cite{YazdiEtAl2015}
 The code described here operates at a lower level, though our use of reserved ``control words''
-can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks
-(for example, oligonucleotide sequences)
+can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks,
+or for providing watermark-style sequences for indel-tolerant synchronization
+
+Nanotechnology, DNA computing...
+CRISPR directed substitution...
+DNA origami, programmable DNA structures, nucleic acid logic...
 
 
 \newpage
