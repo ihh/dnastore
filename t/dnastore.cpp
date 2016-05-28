@@ -48,6 +48,7 @@ int main (int argc, char** argv) {
       ("source,o", po::value<vector<string> >(), "source motif(s): machine can start in this state, but will never enter it")
       ("elim-trans", "eliminate degenerate transitions")
       ("controls,c", po::value<int>()->default_value(4), "number of control words")
+      ("print-controls", "print control words")
       ("no-start", "do not use a control word at start of encoded sequence")
       ("no-end", "do not use a control word at end of encoded sequence")
       ("delay,y", "build delayed machine")
@@ -132,10 +133,14 @@ int main (int argc, char** argv) {
 
     } else {
       // build, or load, transducer
-      const Machine machine = vm.count("load-machine")
+      const bool loadMachine = vm.count("load-machine");
+      const Machine machine = loadMachine
 	? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
 	: builder.makeMachine();
-    
+
+      if (!loadMachine)
+	cout << "Control words: " << join(builder.controlWordString) << endl;
+
       // save transducer
       if (vm.count("save-machine")) {
 	ofstream out (vm.at("save-machine").as<string>());
@@ -187,7 +192,7 @@ int main (int argc, char** argv) {
 	
       } else if (vm.count("rate")) {
 	// Output statistics
-	const auto charBases = machine.expectedBasesPerInputSymbol("01!");
+	const auto charBases = machine.expectedBasesPerInputSymbol("01$");
 	vguard<string> cbstr;
 	for (const auto& cb: charBases)
 	  cbstr.push_back (Machine::charToString(cb.first) + ": " + to_string(cb.second));

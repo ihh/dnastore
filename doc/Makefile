@@ -17,7 +17,7 @@ ALLFIGJUNK := $(ALLFIGTEX)
 FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps eof2.ps
 
 # LaTeX:
-TEXINCLUDES := defs.tex notation.tex mixradtab.tex
+TEXINCLUDES := defs.tex notation.tex mixradtab.tex dnastoretab.tex
 ALLTEX := $(filter-out $(DNASTORETEX),$(filter-out $(TEXINCLUDES),$(filter-out $(ALLFIGJUNK),$(wildcard *.tex))))
 ALLTEXPS := $(subst .tex,.ps,$(ALLTEX))
 ALLTEXJUNK := $(addsuffix .aux,$(ALLTEX)) $(addsuffix .log,$(ALLTEX))
@@ -105,6 +105,9 @@ dna3.lacirco: filter.pl Makefile
 
 # Results data tables:
 mixradtab.tex: mixradtab.pl
+	perl $< >$@
+
+dnastoretab.tex: dnastoretab.pl
 	perl $< >$@
 
 # Paper rules:
