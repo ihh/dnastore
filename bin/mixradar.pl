@@ -5,8 +5,19 @@ use Math::BigRat;
 use Getopt::Long;
 use List::Util qw(max);
 
-my $usage = "Usage: $0 <msglen> <eofprob>\n";
-my ($nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $verbose);
+my $usage = "Usage: $0 [options] <blocklen> <eofprob>\n"
+    .       "      --wide,-w Don't merge identical states\n"
+    .       "      --deep,-d Don't prune unnecessary states\n"
+    .       "      --pure,-p Don't shrink input intervals after encoding each input word\n"
+    .       " --keeproots,-k Don't merge input word states at the root of each output tree\n"
+    .       " --intervals,-i Show input & output intervals for output states\n"
+    .       "        --lr,-l Rank dotfile from left-to-right\n"
+    .       "     --stats,-s Collect & print code statistics\n"
+    .       "      --json,-j Print transducer in JSON format, not GraphViz DOT format\n"
+    .       "   --verbose,-v Print lots of stuff on stderr\n"
+    ;
+
+my ($nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $json, $verbose);
 GetOptions ("wide" => \$nomerge,  # don't merge identical states
 	    "deep" => \$noprune,  # don't prune unnecessary states
 	    "pure" => \$norescale,  # don't rescale remaining input intervals after encoding each input word
@@ -15,6 +26,7 @@ GetOptions ("wide" => \$nomerge,  # don't merge identical states
 	    "intervals" => \$intervals,  # show input & output intervals for each state
 	    "lr" => \$lr,  # generate dotfile with rankdir=LR (left-to-right)
 	    "stats" => \$getstats,  # display statistics about the transducer
+	    "json" => \$json,  # print transducer as JSON, not dotfile
 	    "verbose" => \$verbose)  # print lots of stuff on stderr
     or die $usage;
 
@@ -282,6 +294,49 @@ if ($getstats) {
     print @stats;
     print "Number of states: ", $nStates, "\n";
     print "Number of transitions: ", $nTransitions, "\n";
+    exit;
+}
+
+# print JSON
+if ($json) {
+    # map to compact numbering scheme
+    for my $n (0..$#uniqueState) {
+	$uniqueState[$n]->{n} = $n;
+    }
+    # output
+    my @out;
+    my %sym = ('0' => '0',
+	       '1' => '1',
+	       '0_2' => 'i',
+	       '1_2' => 'j',
+	       '0_3' => 'x',
+	       '1_3' => 'y',
+	       '2_3' => 'z',
+	       '0_4' => 'p',
+	       '1_4' => 'q',
+	       '2_4' => 'r',
+	       '3_4' => 's',
+	       '$' => '$',
+	       'e' => undef);
+    for my $state (@uniqueState) {
+	my @trans;
+	for my $label (sort keys %{$state->{dest}}) {
+	    if ($label =~ /^(.*)$div(.*)$/) {
+		my ($in, $out) = ($sym{$1}, $sym{$2});
+		my $dest = $state->{dest}->{$label};
+		my $trans = "";
+		if (defined $in) { $trans .= "\"in\":\"$in\"," }
+		if (defined $out) { $trans .= "\"out\":\"$out\"," }
+		$trans .= "\"to\":" . $state[$dest]->{n};
+		push @trans, "{$trans}";
+	    }
+	}
+	my @field = ("\"n\":\"" . $state->{n} . "\"",
+		     "\"id\":\"" . $state->{id} . "\"",
+		     "\"trans\":[" . join(",",@trans) . "]");
+	push @out, "{" . join(",",@field) . "}";
+    }
+    print "{\"state\": [\n ", join (",\n ", @out), "\n]}\n";
     exit;
 }
 
