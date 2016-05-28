@@ -217,4 +217,18 @@ I.~Holmes.
   Transducer Indel Models}.
 \newblock {\em Bioinformatics}, 23(23):3263--3264, Dec 2007.
 
+\bibitem{ChuGill1992}
+Ke-Chiang Chu and John Gill.
+\newblock Computer science.
+\newblock chapter Mixed-radix Huffman Codes, pages 209--218. Plenum Press, New
+  York, NY, USA, 1992.
+
+\bibitem{GolinEtAl2009}
+Mordecai Golin, Xiaoming Xu, and Jiajin Yu.
+\newblock A generic top-down dynamic-programming approach to prefix-free
+  coding.
+\newblock In {\em Proceedings of the Twentieth Annual ACM-SIAM Symposium on
+  Discrete Algorithms}, SODA '09, pages 758--767, Philadelphia, PA, USA, 2009.
+  Society for Industrial and Applied Mathematics.
+
 \end{thebibliography}

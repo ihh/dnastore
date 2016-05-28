@@ -166,9 +166,9 @@ A state $\state \in \states$ has past input context $\seqpast$ if every path fro
 and future input context $\seqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\seqnext$.
 The past output context and future output context of a state are defined similarly.
 
-A ``wait state'' is a state whose outgoing transitions all have nonempty input labels.
+A ``waiting state'' is a state whose outgoing transitions all have nonempty input labels.
 A ``waiting machine'' is a transducer where all the transitions with nonempty input labels
-originate from wait states.
+originate from waiting states.
 Any transducer $\trt$ with a transducer function $\tfunc{T}$
 can be transformed into an equivalent waiting machine
 that has the same transducer function $\tfunc{T}$ and
@@ -449,23 +449,34 @@ and $\bit{1}$ to $\trit{2}$;
 that is, it sometimes encodes two bits as one trit.
 In fact, it does this exactly half the time (assuming a uniform distribution over input bits)
 so there are, on average, 1.5 input bits per output trit,
-which is quite close to the theoretical optimum of $\log_2(3) \simeq 1.585$ bits per trit.
+which is quite close to the theoretical maximum of $\log_2(3) \simeq 1.585$ bits per trit.
 However, we have to be a little careful with this approach:
 the machine of \figref{BinaryToTrinary} can get stuck in a state where it has queued up a zero input bit
 and is waiting for the next input bit before it outputs a trit.
 If the input ends at this point, or if the encoded signal includes a non-bit symbol
 such as one of the reserved control symbols we allowed for in \secref{DeBruijnTransducer},
 then we have to flush out that queued-up zero bit somehow.
-We can send an extra padding bit, or we can introduce a ``flush'' symbol,
-but we have to be careful that the decoder does not become unsynchronized with the encoder.
 
-As a more robust solution to the problem of efficiently converting a binary sequence into a mixed-radix sequence
-we construct a block code inspired by the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
+A fragile workaround to this problem is to send an extra padding bit in such cases;
+more robustly, we can introduce an end-of-file symbol `\$',
+perhaps as part of a block code.
+Of course, once we start adding additional symbols like end-of-file, the number of input bits we can encode per output trit (or output bit, or quat) has to fall,
+but this effect 
+since we have to reserve some codewords for transmitting these symbols.
+
+The Huffman block code for binary encoding is well known, and generalizes easily to trinary.
+For mixed-radix output, when the radices at each position are fully specified,
+the relevant code is the mixed-radix Huffman code, for which optimal dynamic programming strategies have been presented \cite{ChuGill1992,GolinEtAl2009}.
+Here, we present a strategy for developing compact automata (transducers) that convert short binary codewords into any mixed-radix encoding.
+The code is not optimal, although it would become optimal at long block lengths,
+since it is based on arithmetic coding, which asymptotically approaches the Shannon limit for long sequences.
+Unfortunately, the number of states used by the machine grows exponentially with the sequence length, so this asymptotic limit is hard to realize.
+Nevertheless, the codes generated are not totally awful, and approach the asymptotic limit reasonably fast,
+as shown in \secref{Results}.
+
 Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
 given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
 can be efficiently evaluated.
-It is common to include an end-of-file character `\$' in the symbol alphabet
-and require that the last message symbol is this character.
 Suppose without loss of generality that the symbol alphabet (including the end-of-file character) is the set of integers $1 \ldots K$
 and let $C_n(k) \equiv P(x_{n+1} \leq k | x_1 \ldots x_n)$ be the cumulative distributions for the predictive marginals.
 Arithmetic coding uses the following ideas:
@@ -822,6 +833,7 @@ Hamming codes \figref{HammingTransducer}, convolutional codes % need reference
 Many such codes can be conveniently represented as state machines
 
 \section{Results}
+\seclabel{Results}
 
 dnastore
 
@@ -838,6 +850,40 @@ However it can accept arbitrary machine specifications in a JSON format
 so composite state machines incorporating other stages
 more sophisticated radix conversion, error correcting codes including parity bits, etc)
 can be used
+
+Codes generated with dnastore...
+
+Codes generated with mixradar...
+
+Near-ideal performance in converting bits to quats is pretty straightforward
+Near-ideal performance in a bit-to-trit block code is hard
+Need positive integers $m,n$ for which $3^m$ is only a little bit more than $2^n$
+The number of bits/trit is then $n/m$
+These do not occur until values of $m,n$ that are large enough to require unmanageably many states in the state machine
+e.g. $3^7 \simeq 2^{11} \times 1.07$, $3^{12} \simeq 2^{19} \times 1.01$
+These give bits/trit of $11/7 \simeq 1.571$ and $19/12 \simeq 1.583$, respectively
+(compared to the theoretical maximum $\log_2(3) \simeq 1.585$ bits/trit).
+However, 11-bit codewords would require millions of states to encode all the possible mixed-radix outputs
+Best we can achieve at lower codeword-lengths is $3^4 \simeq 2^6 \times 1.27$
+This gives a performance that is near-ideal for radix-2 output (1 bit/base) and radix-4 output (2 bits/base)
+and decent for radix-3 output (1.5 bits/base)
+at only 2125 states and 6375 transitions
+
+% ../bin/mixradar.pl 6 .001 -s -v
+%
+% Mean bits/base for pure-radix sequences:
+% 2 0.997402597402597
+% 3 1.5
+% 4 1.98963730569948
+% Number of states: 2125
+% Number of transitions: 6375
+
+% perl -e 'for$i(1..100){print $i," ",$i*log(2)/log(3),"\n"}' | less
+
+Performance of dnastore at encoding \& decoding a large file
+
+Viterbi decoding with simulated duplications
+
 
 \section{Discussion}
 
@@ -907,7 +953,8 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   A transducer 
   that converts a binary codeword of length 0, 1 or 2 bits
   into a mixed-radix sequence.
-  Dotted lines show transitions that input a bit or an end-of-file symbol (`\$').
+  Dotted lines with circles at the source end
+  show transitions that input a bit or an end-of-file symbol (`\$').
   Dashed lines show transitions that output a radix-2 digit (i.e. a bit).
   Solid regular-weight lines show transitions that output a radix-3 digit (i.e. a trit).
   Solid bold-weight lines show transitions that output a radix-4 digit (i.e. a quat).

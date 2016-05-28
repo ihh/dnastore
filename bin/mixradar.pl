@@ -6,12 +6,13 @@ use Getopt::Long;
 use List::Util qw(max);
 
 my $usage = "Usage: $0 <msglen> <eofprob>\n";
-my ($nomerge, $noprune, $norescale, $nobigrat, $intervals, $verbose);
+my ($nomerge, $noprune, $norescale, $bigrat, $intervals, $getstats, $verbose);
 GetOptions ("wide" => \$nomerge,
 	    "deep" => \$noprune,
 	    "pure" => \$norescale,
-	    "float" => \$nobigrat,
+	    "rational" => \$bigrat,
 	    "intervals" => \$intervals,
+	    "stats" => \$getstats,
 	    "verbose" => \$verbose)
     or die $usage;
 
@@ -19,7 +20,7 @@ $nomerge = $nomerge || $intervals;
 
 sub newNumber {
     my ($val) = @_;
-    return $nobigrat ? $val : Math::BigRat->new($val);
+    return $bigrat ? Math::BigRat->new($val) : $val;
 }
 
 die $usage unless @ARGV == 2;
@@ -44,7 +45,7 @@ my @state = ( { word => '',
 		p => 1,
 		start => 1 } );
 my @prefixIndex = (0);
-my @leafIndex;
+my @wordIndex;
 while (@prefixIndex) {
     my $prefix = $state[shift @prefixIndex];
     for my $c (@alph) {
@@ -56,7 +57,7 @@ while (@prefixIndex) {
 	push @state, $child;
 	if ($c eq $eof || length($child->{word}) >= $msglen) {
 	    $child->{input} = 1;
-	    push @leafIndex, $childIndex;
+	    push @wordIndex, $childIndex;
 	} else {
 	    $child->{prefix} = 1;
 	    push @prefixIndex, $childIndex;
@@ -65,16 +66,16 @@ while (@prefixIndex) {
 }
 
 # sort by probability & find intervals
-my @sortedLeafIndex = sort { $state[$b]->{p} <=> $state[$a]->{p}
-			     || $state[$a]->{word} cmp $state[$b]->{word} } @leafIndex;
+my @sortedWordIndex = sort { $state[$b]->{p} <=> $state[$a]->{p}
+			     || $state[$a]->{word} cmp $state[$b]->{word} } @wordIndex;
 my $norm = 0;
-for my $i (@sortedLeafIndex) { $norm += $state[$i]->{p} }
-for my $i (@sortedLeafIndex) { $state[$i]->{p} /= $norm }
+for my $i (@sortedWordIndex) { $norm += $state[$i]->{p} }
+for my $i (@sortedWordIndex) { $state[$i]->{p} /= $norm }
 my $pmin = newNumber(0);
 my $scale = newNumber(1);  # used to rescale probabilities after adjusting input intervals
-my @allOutIndex = @sortedLeafIndex;
+my @allOutIndex = @sortedWordIndex;
 my @finalIndex;
-for my $i (@sortedLeafIndex) {
+for my $i (@sortedWordIndex) {
     my $pmax = $pmin + $state[$i]->{p} * $scale;
     my $m = ($pmin + $pmax) / 2;
     # store
@@ -178,6 +179,44 @@ for my $i (@allOutIndex) {
     }
 }
 
+# do some analysis on the code
+# find leaves for each codeword, collect statistics on number of digits per full codeword...
+sub getLeaves {
+    my ($idx) = @_;
+    my $state = $state[$idx];
+    my @kids = values %{$state->{dest}};
+    return @kids ? map(getLeaves($_),@kids) : ($idx);
+}
+my @stats;
+if ($getstats) {
+    my %radixCount;
+    for my $i (@sortedWordIndex) {
+	my $word = $state[$i]->{word};
+	my @outseqs = map ($state[$_]->{outseq}, getLeaves($i));
+	grep (s/\d_//g, @outseqs);
+	grep (s/ //g, @outseqs);
+	@outseqs = sort { $a cmp $b } @outseqs;
+	warn "Radices for ", $word, ": @outseqs\n" if $verbose;
+	unless ($word =~ /\$/) {
+	    for my $outseq (@outseqs) { ++$radixCount{$outseq} }
+	}
+    }
+    my @radixSeqs = sort keys %radixCount;
+    push @stats, "Frequencies of radix sequences for non-EOF codewords:\n";
+    for my $radixSeq (@radixSeqs) {
+	push @stats, $radixSeq, " ", $radixCount{$radixSeq}, "\n";
+    }
+    push @stats, "Mean bits/base for pure-radix sequences:\n";
+    for my $radix (@radices) {
+	my ($sum, $n) = (0, 0);
+	for my $radixSeq (grep (/^$radix+$/, @radixSeqs)) {
+	    $n += $radixCount{$radixSeq};
+	    $sum += $radixCount{$radixSeq} * length($radixSeq);
+	}
+	push @stats, $radix, " ", $msglen/($sum/$n), "\n";
+    }
+}
+
 # find output tree for each node, merge equivalence sets, assign IDs
 my %equivIndex = ("()" => [0]);  # this takes care of the self-loop back to start
 for my $outputIndex (reverse @validOutIndex) {
@@ -212,11 +251,13 @@ for my $state (@state) {
 }
 
 my (%id, @uniqueState);
-my $n = 0;
+my ($nCodeStates, $nStates, $nTransitions) = (0, 0, 0);
 for my $i (@equivIndex) {
     my $s = $state[$i];
     if (!$s->{removed}) {
 	if (!exists $s->{id}) {
+	    ++$nStates;
+	    $nTransitions += keys(%{$s->{dest}});
 	    if ($s->{start}) {
 		$s->{id} = "S";
 	    } elsif ($s->{prefix}) {
@@ -224,11 +265,19 @@ for my $i (@equivIndex) {
 	    } elsif ($s->{input}) {
 		$s->{id} = "W" . printable($s->{word});
 	    } else {
-		$s->{id} = 'C' . (++$n);
+		$s->{id} = 'C' . (++$nCodeStates);
 	    }
 	    push @uniqueState, $s;
 	}
     }
+}
+
+# print stats
+if ($getstats) {
+    print @stats;
+    print "Number of states: ", $nStates, "\n";
+    print "Number of transitions: ", $nTransitions, "\n";
+    exit;
 }
 
 # print in dot format
