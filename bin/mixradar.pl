@@ -6,19 +6,25 @@ use Getopt::Long;
 use List::Util qw(max);
 
 my $usage = "Usage: $0 <msglen> <eofprob>\n";
-my ($nomerge, $noprune, $norescale, $intervals, $verbose);
+my ($nomerge, $noprune, $norescale, $nobigrat, $intervals, $verbose);
 GetOptions ("wide" => \$nomerge,
 	    "deep" => \$noprune,
 	    "pure" => \$norescale,
+	    "float" => \$nobigrat,
 	    "intervals" => \$intervals,
 	    "verbose" => \$verbose)
     or die $usage;
 
 $nomerge = $nomerge || $intervals;
 
+sub newNumber {
+    my ($val) = @_;
+    return $nobigrat ? $val : Math::BigRat->new($val);
+}
+
 die $usage unless @ARGV == 2;
 my ($msglen, $peofStr) = @ARGV;
-my $peof = Math::BigRat->new ($peofStr);
+my $peof = newNumber($peofStr);
 my $pbit = (1 - $peof) / 2;
 warn "pbit=$pbit peof=$peof" if $verbose;
 
@@ -64,8 +70,8 @@ my @sortedLeafIndex = sort { $state[$b]->{p} <=> $state[$a]->{p}
 my $norm = 0;
 for my $i (@sortedLeafIndex) { $norm += $state[$i]->{p} }
 for my $i (@sortedLeafIndex) { $state[$i]->{p} /= $norm }
-my $pmin = Math::BigRat->new(0);
-my $scale = Math::BigRat->new(1);  # used to rescale probabilities after adjusting input intervals
+my $pmin = newNumber(0);
+my $scale = newNumber(1);  # used to rescale probabilities after adjusting input intervals
 my @allOutIndex = @sortedLeafIndex;
 my @finalIndex;
 for my $i (@sortedLeafIndex) {
@@ -75,8 +81,8 @@ for my $i (@sortedLeafIndex) {
     $state[$i]->{A} = $pmin;
     $state[$i]->{B} = $pmax;
     $state[$i]->{m} = $m;
-    $state[$i]->{D} = Math::BigRat->new(0);
-    $state[$i]->{E} = Math::BigRat->new(1);
+    $state[$i]->{D} = newNumber(0);
+    $state[$i]->{E} = newNumber(1);
     $state[$i]->{outseq} = "";
     $pmin = $pmax;
     if ($verbose) {
@@ -87,6 +93,7 @@ for my $i (@sortedLeafIndex) {
     my ($subtree, $final) = generateTree($i);
     push @allOutIndex, @$subtree;
     push @finalIndex, @$final;
+    warn "Created ", @$final+0, " states to encode ", $state[$i]->{word}, "\n" if $verbose;
     # dynamically shrink input interval to just enclose all the output intervals actually used to encode it
     unless ($norescale) {
 	my $new_pmax = max (map ($state[$_]->{E}, @$final));
