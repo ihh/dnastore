@@ -856,14 +856,17 @@ Codes generated with dnastore...
 Codes generated with mixradar...
 
 Near-ideal performance in converting bits to quats is pretty straightforward
-Near-ideal performance in a bit-to-trit block code is hard
+Near-ideal performance in a bit-to-trit block code requires long blocks
 Need positive integers $m,n$ for which $3^m$ is only a little bit more than $2^n$
 The number of bits/trit is then $n/m$
+% Maybe show graph of $n/ceil(n*log(2)/log(3))$ vs $n$ ?
+% Or $m=ceil(n*log(2)/log(3))$ vs $n$
 These do not occur until values of $m,n$ that are large enough to require unmanageably many states in the state machine
 e.g. $3^7 \simeq 2^{11} \times 1.07$, $3^{12} \simeq 2^{19} \times 1.01$
 These give bits/trit of $11/7 \simeq 1.571$ and $19/12 \simeq 1.583$, respectively
 (compared to the theoretical maximum $\log_2(3) \simeq 1.585$ bits/trit).
 However, 11-bit codewords would require millions of states to encode all the possible mixed-radix outputs
+% Test this?
 Best we can achieve at lower codeword-lengths is $3^4 \simeq 2^6 \times 1.27$
 This gives a performance that is near-ideal for radix-2 output (1 bit/base) and radix-4 output (2 bits/base)
 and decent for radix-3 output (1.5 bits/base)
@@ -879,6 +882,8 @@ at only 2125 states and 6375 transitions
 % Number of transitions: 6375
 
 % perl -e 'for$i(1..100){print $i," ",$i*log(2)/log(3),"\n"}' | less
+
+% perl -e 'use POSIX;for$bits(1..100){print $bits," ",$bits/ceil($bits*log(2)/log(3)),"\n"}'
 
 Performance of dnastore at encoding \& decoding a large file
 
