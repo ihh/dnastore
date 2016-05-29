@@ -6,13 +6,25 @@ use List::Util qw(sum);
 
 my $dnastore = "../bin/dnastore";
 
-my @params = ({ l=>2, c=>0, repeats=>1 },
-	      { l=>2, c=>0 },
-	      { l=>2, c=>1 },
+my @noStart = ('-no-start' => '');
+my @noEnd = ('-no-end' => '');
+my @yesRepeats = ('repeats' => 1);
+sub figref { my ($fig) = @_; return ('note' => '\subfigref{DNAStore}{' . $fig . '}') }
+my @params = ({ l=>2, c=>0, @yesRepeats, @noStart, @noEnd, figref('a') },
+	      { l=>2, c=>1, @yesRepeats, @noEnd, figref('b') },
+	      { l=>2, c=>1, @yesRepeats, figref('c') },
+	      { l=>2, c=>0, @noStart, @noEnd, figref('d') },
+	      { l=>2, c=>1, @noEnd, figref('e') },
+	      { l=>2, c=>1, figref('f') },
+	      { l=>4, c=>0, @noStart, @noEnd },
 	      { l=>4, c=>2 },
+	      { l=>6, c=>0, @noStart, @noEnd },
 	      { l=>6, c=>4 },
+	      { l=>8, c=>0, @noStart, @noEnd },
 	      { l=>8, c=>4 },
+	      { l=>10, c=>0, @noStart, @noEnd },
 	      { l=>10, c=>4 },
+	      { l=>12, c=>0, @noStart, @noEnd },
 	      { l=>12, c=>4 });
 
 my %ignore = map (($_=>1), qw(note repeats));
@@ -21,6 +33,7 @@ for my $param (@params) {
     my $l = $param->{l};
     my $c = $param->{c};
     my $repeats = $param->{repeats} ? 'yes' : 'no';
+    my $invreplen = $l >= 10 ? '4' : '';
     my $reparg = $param->{repeats} ? '-t 0' : '';
     my $note = $param->{note} || "";
     
@@ -63,5 +76,28 @@ for my $param (@params) {
 	}
     }
 
-    print join (" & ", $l, $c, $repeats, $nStates, $nTrans, sprintf("%.4g",$rate), join (", ", map ("{\\tt $_}", @controls)), $note), " \\\\\n";
+    my @ttcontrols = map ("{\\tt $_}", @controls);
+    if (@ttcontrols >= 2) {
+	$ttcontrols[0] .= ' (start)';
+	$ttcontrols[1] .= ' (end)';
+    } elsif (@ttcontrols) {
+	if (exists $param->{'-no-end'}) {
+	    $ttcontrols[0] .= ' (start)';
+	} else {
+	    $ttcontrols[0] .= ' (start, end)';
+	}
+    }
+
+    my @cols = ($l, $invreplen, $c, $repeats, $nStates, $nTrans, sprintf("%.4g",$rate));
+    if (@controls <= 2) {
+	print join (" & ", @cols, join(", ",@ttcontrols), $note), " \\\\\n";
+    } else {
+	for my $n (0..$#controls) {
+	    print join (" & ",
+			map ($n == 0 ? $_ : (" " x length($_)), @cols),
+			$ttcontrols[$n] . ($n < $#controls ? ',' : ' '),
+			$n == 0 ? $note : ''),
+	    " \\\\\n";
+	}
+    }
 }

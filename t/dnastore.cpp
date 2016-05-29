@@ -106,7 +106,7 @@ int main (int argc, char** argv) {
 
     builder.nControlWords = vm.at("controls").as<int>();
     builder.controlWordAtStart = !vm.count("no-start");
-    builder.controlWordAtEnd = !vm.count("no-eof");
+    builder.controlWordAtEnd = !vm.count("no-end");
     builder.buildDelayedMachine = vm.count("delay");
 
     MutatorParams mut;

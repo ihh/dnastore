@@ -18,7 +18,10 @@ $\ast$ E-mail: ihh@berkeley.edu
 {\Large \textbf{\titlestring} } \\
 \authorstring
 \end{flushleft}
+
 %\section{Abstract}
+% Algorithms, implementations, empirical results
+
 %\paragraph{Keywords:}
 %\tableofcontents
 
@@ -857,7 +860,7 @@ $N$ & $\nu$ & States & Transitions & Radix 2 & Radix 3 & Radix 4 \\
 \multicolumn{4}{r}{Theoretical minima:} & $\log_2(2) = 1$ & $\log_3(2) \simeq 0.631$ & $\log_4(2) = 0.5$
 \end{tabular}
 \caption{
-  \tablabel{MixradarCodes}
+  \tablabel{MIXRADAR.codes}
   Statistics for several code transducers generated using MIXRADAR (\secref{MIXRADAR}).
 $N$ is the block length in bits; $\nu$ is the probability of the end-of-block symbol
 (signifying premature termination of the codeword) appearing at any position.
@@ -908,7 +911,24 @@ so composite state machines incorporating other stages
 more sophisticated radix conversion, error correcting codes including parity bits, etc)
 can be used
 
-Codes generated with DNASTORE...
+\begin{table}
+  \begin{tabular}{rrrrrrrll}
+    $\kmerlen$ & $\invreplen$ & $\ncontrols$ & Repeats? & States & Transitions & Bases/bit & Control words & Notes \\
+    \hline
+\input{dnastoretab.tex}
+\end{tabular}
+\caption{
+  \tablabel{DNASTORE.codes}
+  Statistics for several code transducers generated using DNASTORE (\secref{DNASTORE}).
+  $\kmerlen$ is the codeword length,
+  $\invreplen$ is the minimum length for excluding nonlocal exact inverted repeats
+  (which must be separated by at least 2 nucleotides),
+  and $\ncontrols$ is the number of control words.
+  The first six rows correspond to the transducers shown in \figref{DNAStore}.
+  In general the expected bases/bit rise with the codeword length $\kmerlen$,
+  since more repeats are excluded from the De Bruijn graph.
+}
+\end{table}
 
 % Word length & Reserved words & States & Transitions & Output nucleotides/input bit
 

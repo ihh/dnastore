@@ -8,7 +8,7 @@ while (<>) {
 	# add these wrapper lines back later
     } elsif (/(\S+) \-> (\S+)/) {
 	my ($src, $dest) = ($1, $2);
-	if (/\%/ || /EOF/ || /NULL/) {
+	if (/\%/ || /EOF/ || /START/ || /NULL/) {
 
 	    if (/\%4/) { s/\[/\[style=bold;dir=both;arrowtail=odot;color=black;/; $node{$src} = 'shape=rect' }
 	    elsif (/\%3/) { s/\[/\[style=solid;dir=both;arrowtail=odot;color=darkslategrey;/; $node{$src} = 'shape=triangle'  }
@@ -23,6 +23,7 @@ while (<>) {
 	    s/\%/_/g;
 	    s/([ACGT])/\\mbox\{$1\}/;
 	    s/EOF/\\epsilon/g;
+	    s/START/\\epsilon/g;
 	    s/NULL/\\epsilon/g;
 
 	    s/label=\$.*\$//;  # just remove the label altogether, too cluttered
