@@ -139,7 +139,7 @@ for my $subrate (split /,/, $subrates) {
 		
 		my $dist = editDistance ($bitseq, $decoded, $band);
 		warn "Edit distance: $dist\n" if $verbose;
-		push @dist, $dist;
+		push @dist, $dist/$bitseqlen;
 	    }
 	    my $distmean = sum(@dist) / @dist;
 	    my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
