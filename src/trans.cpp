@@ -102,6 +102,13 @@ bool MachineState::isEnd() const {
   return trans.empty();
 }
 
+bool MachineState::exitsWithInput (const char* symbols) const {
+  for (const auto& t: trans)
+    if (t.in && strchr (symbols, t.in) != NULL)
+      return true;
+  return false;
+}
+
 bool MachineState::exitsWithInput() const {
   for (const auto& t: trans)
     if (t.in)
@@ -299,7 +306,7 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
   map<State,double> current;
   size_t nSources = 0;
   for (State s = 0; s < nStates(); ++s)
-    if (state[s].exitsWithInput()) {
+    if (state[s].exitsWithInput (symbols)) {
       current[s] = 1;
       ++nSources;
     }
@@ -308,7 +315,18 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
     ps.second /= (double) nSources;
   const string alph (symbols);
   map<char,vguard<double> > eb;
+
+  auto logCurrent = [&](int logLevel) -> void {
+    double pTot = 0;
+    for (auto& ps: current) {
+      LogThisAt(logLevel,"P(" << state[ps.first].name << ") = " << ps.second << endl);
+      pTot += ps.second;
+    }
+    LogThisAt(logLevel+1,"Total probability is " << pTot << endl);
+  };
+  
   auto evolve = [&]() -> void {
+    logCurrent(5);
     map<State,double> next;
     map<char,double> bases;
     for (const auto& ps: current) {
@@ -326,6 +344,7 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
 	}
       }
 
+      double ptot = 0;
       for (const auto& ct: transFor) {
 	const char c = ct.first;
 	auto t = ct.second;
@@ -343,14 +362,19 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
 	  Assert (state[s].isDeterministic(), "Non-deterministic state without inputs: %s", state[s].name.c_str());
 	  t = &state[s].next();
 	}
-	if (c != MachineEOF)
+	if (c != MachineEOF) {
+	  LogThisAt(7,"P(" << ms.name << "->" << state[s].name << ")=" << (p/nt) << endl);
 	  next[s] += p / nt;
+	  ptot += p / nt;
+	}
       }
+      LogThisAt(8,"Total outgoing transition probability from state " << ms.name << " is " << ptot << "; state probability is " << p << endl);
     }
     for (char c: alph)
       eb[c].push_back (bases[c]);
     current.swap (next);
   };
+
   ProgressLog (plogSim, 1);
   plogSim.initProgress ("Estimating compression rate");
   for (size_t step = 0; step < burnInSteps; ++step) {
@@ -362,12 +386,9 @@ map<InputSymbol,double> Machine::expectedBasesPerInputSymbol (const char* symbol
     plogSim.logProgress ((step + burnInSteps) / (double) (burnInSteps + simSteps), "step %u/%u", step + burnInSteps, simSteps + burnInSteps);
     evolve();
   }
-  double pTot = 0;
-  for (auto& ps: current) {
-    LogThisAt(3,"P(" << state[ps.first].name << ") = " << ps.second << endl);
-    pTot += ps.second;
-  }
-  LogThisAt(4,"Total probability is " << pTot << endl);
+
+  logCurrent(3);
+
   map<char,double> bps;
   for (char c: alph)
     bps[c] = accumulate (eb[c].begin(), eb[c].end(), 0.) / (double) eb[c].size();
