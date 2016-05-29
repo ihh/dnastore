@@ -68,7 +68,7 @@ ForwardMatrix::ForwardMatrix (const MutatorParams& mutatorParams, const Stockhol
     for (Pos dupIdx = 0; dupIdx < maxDupLenAt(col-1); ++dupIdx)
       log_accum_exp (tCell(col,dupIdx), sCell(col) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
   }
-  LogThisAt(6,"Forward log-likelihood: " << loglike() << endl);
+  LogThisAt(6,"Forward log-odds ratio: " << loglike() << endl);
 }
 
 BackwardMatrix::BackwardMatrix (const MutatorParams& mutatorParams, const Stockholm& stock)
@@ -92,7 +92,7 @@ BackwardMatrix::BackwardMatrix (const MutatorParams& mutatorParams, const Stockh
       log_accum_exp (sCell(col), tCell(col,dupIdx) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
     log_accum_exp (dCell(col), sCell(col) + mutatorScores.delEnd);
   }
-  LogThisAt(6,"Backward log-likelihood: " << loglike() << endl);
+  LogThisAt(6,"Backward log-odds ratio: " << loglike() << endl);
 }
 
 FwdBackMatrix::FwdBackMatrix (const MutatorParams& mutatorParams, const Stockholm& stock)
@@ -174,7 +174,7 @@ MutatorParams baumWelchParams (const MutatorParams& init, const MutatorCounts& p
       const auto stockCounts = fb.counts();
       const auto stockLoglike = fb.loglike();
       LogThisAt(5,"Counts for alignment #" << nAlign+1 << ":\n" << stockCounts.asJSON());
-      LogThisAt(4,"Log-likelihood for alignment #" << nAlign+1 << ": " << stockLoglike << endl);
+      LogThisAt(4,"Log-odds ratio for alignment #" << nAlign+1 << ": " << stockLoglike << endl);
       counts += stockCounts;
       ll += stockLoglike;
       ++nAlign;
@@ -182,7 +182,7 @@ MutatorParams baumWelchParams (const MutatorParams& init, const MutatorCounts& p
     const LogProb lp = prior.logPrior (current);
     ll += lp;
     LogThisAt(6,"Log-prior: " << lp << endl);
-    LogThisAt(2,"Iteration #" << iter+1 << ": log(likelihood*prior) = " << ll << endl);
+    LogThisAt(2,"Iteration #" << iter+1 << ": log(oddsRatio*prior) = " << ll << endl);
     if ((ll - best) / abs(best) < BaumWelchMinFracInc)
       break;
     best = ll;

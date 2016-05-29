@@ -100,7 +100,7 @@ struct FwdBackMatrix {
     return exp (fwd.dCell(destCol) + fwd.mutatorScores.delEnd + back.sCell(destCol) - loglike());
   }
   inline double pS2T (AlignColIndex destCol, Pos destDupIdx) const {
-    return exp (fwd.sCell(destCol) + fwd.mutatorScores.tanDup + fwd.mutatorScores.len[destDupIdx] + back.tCell(destCol,destDupIdx));
+    return exp (fwd.sCell(destCol) + fwd.mutatorScores.tanDup + fwd.mutatorScores.len[destDupIdx] + back.tCell(destCol,destDupIdx) - loglike());
   }
   string postProbsToString() const;
 };

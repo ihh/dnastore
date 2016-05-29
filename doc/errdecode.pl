@@ -13,10 +13,11 @@ my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
 my ($delrates, $maxdelsize) = (0, 10);
 my ($subrates, $ivratio) = (0, 10);
 my $band = 100;
-my $reps = 1;
+my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
-my ($keeptmp, $help);
+my ($exacterrs, $keeptmp, $help);
 my ($verbose, $dnastore_verbose) = (2, 2);
+my ($colwidth, $cmdwidth) = (80, 120);
 
 my $usage = "Usage: $0 [options]\n"
     . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
@@ -30,6 +31,8 @@ my $usage = "Usage: $0 [options]\n"
     . " -ivratio,-i <n>      transition/transversion ratio (default $ivratio)\n"
     . " -width,-w <n>        width of DP band for edit distance calculations (default $band)\n"
     . " -reps,-r <n>         number of repeat simulations at each (subrate,duprate,delrate) setting\n"
+    . " -trainalign,-t <n>   number of pairwise alignments in training set for error model (default $trainalign)\n"
+    . " -exacterrs,-x        don't train error model on data; cheat by giving it simulation arguments\n"
     . " -seed <n>            seed random number generator (default $rndseed)\n"
     . " -keeptmp,-k          keep temporary files\n"
     . " -verbose,-v          print log messages on stderr\n"
@@ -39,15 +42,17 @@ my $usage = "Usage: $0 [options]\n"
 
 GetOptions ("bits=i" => \$bitseqlen,
 	    "codelen=i" => \$codelen,
-	    "duprate|d=f" => \$duprates,
+	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|m=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
-	    "delrate|e=f" => \$delrates,
+	    "delrate|e=s" => \$delrates,
 	    "maxdelsize|n=f" => \$maxdelsize,
-	    "subrate|s=f" => \$subrates,
+	    "subrate|s=s" => \$subrates,
 	    "ivratio=f" => \$ivratio,
 	    "width=i" => \$band,
 	    "reps=i" => \$reps,
+	    "exacterrs|x" => \$exacterrs,
+	    "trainalign=i" => \$trainalign,
 	    "seed=i" => \$rndseed,
 	    "keeptmp" => \$keeptmp,
 	    "verbose=i" => \$verbose,
@@ -62,21 +67,47 @@ my %transversion = (A=>[qw(C T)],C=>[qw(A G)],G=>[qw(C T)],T=>[qw(A G)]);
 my $nDupOverlap;
 
 my $delext = 2 / $maxdelsize;  # hack
-
 srand ($rndseed);
+sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp") }
+
+my $machine = tempfile();
+my $cmdstub = "$dnastore --verbose $dnastore_verbose";
+syswarn ("$cmdstub --length $codelen --save-machine $machine");
+my $cmd = "$cmdstub --load-machine $machine";
 
 for my $subrate (split /,/, $subrates) {
     for my $duprate (split /,/, $duprates) {
 	for my $delrate (split /,/, $delrates) {
 	    warn "subrate=$subrate duprate=$duprate delrate=$delrate\n" if $verbose;
+
+	    my $errmodfh = tempfile();
+	    unless ($exacterrs) {
+		my $trainfh = tempfile();
+		my $trainlen = 8*$bitseqlen;  # crude way to match training seq len to simulated seqs
+		for my $n (1..$trainalign) {
+		    warn "Generating training sequence #$n (length $trainlen)\n" if $verbose;
+		    my $orig = randseq ([qw(A C G T)], $trainlen);
+		    my @origpos = (0..length($orig)-1);
+		    my $seq = lc $orig;
+		    $seq = evolve (\@origpos, $seq, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
+		    $seq = evolve (\@origpos, $seq, $subrate, 1, 1, \&subst, "substitution", 1);
+		    $seq = evolve (\@origpos, $seq, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
+		    my $trainstock = stockholm($orig,$seq,\@origpos);
+		    print $trainfh $trainstock;
+		    warn $trainstock if $verbose >= 3;
+		}
+	    
+		my $errmod = syswarn ("$cmd --fit-error $trainfh");
+		print $errmodfh $errmod;
+		warn "Estimated error model:\n", $errmod if $verbose >= 2;
+	    }
+
 	    my @dist;
 	    for my $rep (1..$reps) {
-		my $bitseq = join ("", map (rand() < .5 ? '1' : '0', 1..$bitseqlen));
+		warn "Starting repetition $rep of $reps\n" if $verbose;
+		my $bitseq = randseq ([0,1], $bitseqlen);
 		warn $bitseq, "\n" if $verbose >= 5;
-		my $cmd = "$dnastore -l $codelen -v $dnastore_verbose";
-		my $encodeCmd = "$cmd -r -b $bitseq";
-		warn "$cmd -r -b ...", "\n" if $verbose >= 2;
-		my $origdna = `$encodeCmd`;
+		my $origdna = syswarn ("$cmd --raw --encode-bits $bitseq");
 		chomp $origdna;
 
 		my @origpos = (0..length($origdna)-1);
@@ -94,13 +125,11 @@ for my $subrate (split /,/, $subrates) {
 		warn $dna, "\n" if $verbose >= 5;
 		$dna = uc($dna);
 
-		my $fh = File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp");
-		my $filename = $fh->filename;
-
-		print $fh ">seq\n$dna\n";
-		my $decodeCmd = "$cmd -r -V $filename --error-global --error-sub-prob $subrate --error-dup-prob $duprate --error-del-open $delrate --error-del-ext $delext";
-		warn $decodeCmd, "\n" if $verbose >= 2;
-		my $decoded = `$decodeCmd`;
+		my $seqfh = tempfile();
+		print $seqfh ">seq\n$dna\n";
+		my $exactArgs =  "--error-global --error-sub-prob $subrate --error-dup-prob $duprate --error-del-open $delrate --error-del-ext $delext";
+		my $errArgs = $exacterrs ? $exactArgs : "--error-file $errmodfh";
+		my $decoded = syswarn ("$cmd --raw --decode-viterbi $seqfh $errArgs");
 		chomp $decoded;
 		$decoded =~ s/[\^\$]//g;
 
@@ -122,26 +151,34 @@ for my $subrate (split /,/, $subrates) {
 sub evolve {
     my ($origpos, $seq, $rate, $minsize, $maxsize, $func, $desc, $allowoverlaps) = @_;
     my $nChanges = round ($rate * length($seq));
-    warn "Introducing ", $nChanges, " ", $desc, ($nChanges == 1 ? "" : "s"), "\n" if $verbose >= 2;
+    my ($nActual, $nOverlaps) = (0, 0);
     for (my $n = 0; $n < $nChanges; ++$n) {
-	my ($pos, $size) = randcoords ($seq, $minsize, $maxsize, $allowoverlaps);
-	warn "Mutating at (", $pos, "..", $pos+$size-1, ")\n" if $verbose >= 3;
+	my ($pos, $size) = randcoords ($seq, $minsize, $maxsize);
+	if (substr ($seq, $pos, $size) =~ /[A-Z]/) {
+	    ++$nOverlaps;
+	    next unless $allowoverlaps;
+	}
+	warn "Mutating at (", $pos, "..", $pos+$size-1, ")\n" if $verbose >= 5;
 	my ($newsub, $newpos) = &$func (substr ($seq, $pos, $size));
 	die "Oops" unless @$newpos == length($newsub);
 	substr ($seq, $pos, $size) = $newsub;
 	splice (@{$origpos}, $pos, $size, map (defined($_) ? $origpos->[$pos+$_] : undef, @$newpos));
+	++$nActual;
     }
+    warn
+	"Introduced ", $nActual, " ", $desc, ($nActual == 1 ? "" : "s"),
+	($allowoverlaps
+	 ? " ($nOverlaps with overlap)"
+	 : (" (rejected $nOverlaps due to overlap)")),
+	"\n" if $verbose >= 2;
     return $seq;
 }
 
 sub randcoords {
-    my ($seq, $minsize, $maxsize, $allowoverlaps) = @_;
+    my ($seq, $minsize, $maxsize) = @_;
     my $len = length ($seq);
-    my ($size, $pos);
-    do {
-	$size = int (rand() * ($maxsize + 1 - $minsize)) + $minsize;
-	$pos = int (rand() * ($len + 1 - $size));
-    } while (substr ($seq, $pos, $size) =~ /[A-Z]/ && !$allowoverlaps);
+    my $size = int (rand() * ($maxsize + 1 - $minsize)) + $minsize;
+    my $pos = int (rand() * ($len + 1 - $size));
     return ($pos, $size);
 }
 
@@ -194,14 +231,30 @@ sub stockholm {
 	$origrow .= substr ($orig, $origpos, 1);
 	$newrow .= "-";
     }
-    my $width = 80;
-    for (my $col = 0; $col < length($origrow); $col += $width) {
+    for (my $col = 0; $col < length($origrow); $col += $colwidth) {
 	$stock .= "\n" if $col > 0;
-	$stock .= "old " . substr($origrow,$col,$width) . "\n";
-	$stock .= "new " . substr($newrow,$col,$width) . "\n";
+	$stock .= "old " . substr($origrow,$col,$colwidth) . "\n";
+	$stock .= "new " . substr($newrow,$col,$colwidth) . "\n";
     }
     $stock .= "//\n";
     return $stock;
+}
+
+sub randseq {
+    my ($alph, $len) = @_;
+    return join ("", map ($alph->[rand() * @$alph], 1..$len));
+}
+
+sub syswarn {
+    my ($syscmd) = @_;
+    if ($verbose) {
+	my $cmdwarn = $syscmd;
+	if (length $cmdwarn > $cmdwidth) {
+	    $cmdwarn = substr ($cmdwarn, 0, $cmdwidth) . "...";
+	}
+	warn $cmdwarn, "\n" if $verbose;
+    }
+    return `$syscmd`;
 }
 
 # Calculate Levenshtein edit distance
