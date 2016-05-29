@@ -96,7 +96,7 @@ for my $subrate (split /,/, $subrates) {
 		    warn $trainstock if $verbose >= 3;
 		}
 	    
-		my $errmod = syswarn ("$cmd --fit-error $trainfh");
+		my $errmod = syswarn ("$cmd --fit-error $trainfh --error-global");
 		print $errmodfh $errmod;
 		warn "Estimated error model:\n", $errmod if $verbose >= 2;
 	    }
