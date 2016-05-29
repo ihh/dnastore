@@ -808,10 +808,10 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 
 The probability parameters can be estimated directly from trusted alignments using the Baum-Welch algorithm \cite{Durbin98}.
 
+To keep our implementation simple we used a basic error model.
 It would be straightforward to give the substitution matrix a richer parameterization
 and to have it depend on the surrounding context,
 which would make the error model more realistic.
-To keep our implementation simple we used a simplified error model.
 
 The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
@@ -958,6 +958,9 @@ Advantage of modular approach is that modules can be switched out independently
 e.g. more efficient machines for
 adding parity bits, converting binary to mixed-radix, generating repeat-free DNA
 or modeling errors
+
+NB an error-avoiding code, not an error-correcting code!
+Necessary to add error-correcting features if noise from DNA degradation/sequencing is unavoidable
 
 State-of-the-art error-correcting codes generally outstrip the capabilities of state machines:
 the highest-performing codes on classical noisy channels with substitutions, such as turbo codes and low-density parity check codes (LDPC codes, a.k.a. ``Gallager codes''),

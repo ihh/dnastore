@@ -165,7 +165,11 @@ MutatorParams baumWelchParams (const MutatorParams& init, const MutatorCounts& p
     MutatorCounts counts (current);
     LogProb ll = 0;
     size_t nAlign = 0;
+    const size_t nTotal = db.size();
+    ProgressLog (plog, 2);
+    plog.initProgress ("Getting Baum-Welch counts (%u alignments)", nTotal);
     for (const auto& stock: db) {
+      plog.logProgress (nAlign / (double) nTotal, "sequence %u/%u", nAlign+1, nTotal);
       FwdBackMatrix fb (current, stock);
       const auto stockCounts = fb.counts();
       const auto stockLoglike = fb.loglike();

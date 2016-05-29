@@ -122,8 +122,11 @@ int main (int argc, char** argv) {
       mut.pTransition = subProb * ivRatio / (1 + ivRatio);
       mut.pTransversion = subProb / (1 + ivRatio);
       mut.local = vm.count("error-global") ? false : true;
+      LogThisAt(6,"Mutator params:\n" << mut.asJSON());
     }
- 
+
+    const bool rawSeqOutput = vm.count("raw");
+    
     if (vm.count("fit-error")) {
       const list<Stockholm> db = readStockholmDatabase (vm.at("fit-error").as<string>().c_str());
       MutatorCounts prior (mut);
@@ -138,7 +141,7 @@ int main (int argc, char** argv) {
 	? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
 	: builder.makeMachine();
 
-      if (!loadMachine)
+      if (!loadMachine && vm.count("print-controls"))
 	cout << "Control words: " << join(builder.controlWordString) << endl;
 
       // save transducer
@@ -153,7 +156,7 @@ int main (int argc, char** argv) {
 	ifstream infile (filename, std::ios::binary);
 	if (!infile)
 	  throw runtime_error ("Binary file not found");
-	FastaWriter writer (cout, vm.count("raw") ? NULL : filename.c_str());
+	FastaWriter writer (cout, rawSeqOutput ? NULL : filename.c_str());
 	Encoder<FastaWriter> encoder (machine, writer);
 	encoder.encodeStream (infile);
 	
@@ -165,7 +168,7 @@ int main (int argc, char** argv) {
 	  decoder.decodeString (fs.seq);
 
       } else if (vm.count("encode-string")) {
-	FastaWriter writer (cout, vm.count("raw") ? NULL : "ASCII_string");
+	FastaWriter writer (cout, rawSeqOutput ? NULL : "ASCII_string");
 	Encoder<FastaWriter> encoder (machine, writer);
 	encoder.encodeString (vm.at("encode-string").as<string>());
       
@@ -175,7 +178,7 @@ int main (int argc, char** argv) {
 	decoder.decodeString (vm.at("decode-string").as<string>());
 
       } else if (vm.count("encode-bits")) {
-	FastaWriter writer (cout, vm.count("raw") ? NULL : "bit_string");
+	FastaWriter writer (cout, rawSeqOutput ? NULL : "bit_string");
 	Encoder<FastaWriter> encoder (machine, writer);
 	encoder.encodeSymbolString (vm.at("encode-bits").as<string>());
       
@@ -188,7 +191,11 @@ int main (int argc, char** argv) {
 
       } else if (vm.count("decode-viterbi")) {
 	const auto decoded = decodeFastSeqs (vm.at("decode-viterbi").as<string>().c_str(), machine, mut);
-	writeFastaSeqs (cout, decoded);
+	if (rawSeqOutput)
+	  for (const auto& fs: decoded)
+	    cout << fs.seq << endl;
+	else
+	  writeFastaSeqs (cout, decoded);
 	
       } else if (vm.count("rate")) {
 	// Output statistics
