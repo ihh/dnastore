@@ -57,8 +57,8 @@ struct MutatorCounts {
   double nTransition() const;
   double nTransversion() const;
 
-  MutatorParams mlParams() const;
-  MutatorParams mlParams (const MutatorCounts& prior) const;
+  MutatorParams mlParams() const;  // will set local to true
+  MutatorParams mlParams (const MutatorCounts& prior) const;  // will set local to true
 
   LogProb logPrior (const MutatorParams& params) const;
   LogProb logLikelihood (const MutatorParams& params) const;

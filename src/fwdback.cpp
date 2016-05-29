@@ -188,6 +188,7 @@ MutatorParams baumWelchParams (const MutatorParams& init, const MutatorCounts& p
     best = ll;
     LogThisAt(3,"Counts for iteration #" << iter+1 << ":\n" << counts.asJSON());
     current = counts.mlParams (prior);
+    current.local = init.local;
     LogThisAt(5,"Parameters after iteration #" << iter+1 << ":\n" << current.asJSON());
   }
   return current;

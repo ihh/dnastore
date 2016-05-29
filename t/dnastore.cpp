@@ -110,9 +110,10 @@ int main (int argc, char** argv) {
     builder.buildDelayedMachine = vm.count("delay");
 
     MutatorParams mut;
-    if (vm.count("error-file"))
+    if (vm.count("error-file")) {
       mut = MutatorParams::fromFile (vm.at("error-file").as<string>().c_str());
-    else {
+      LogThisAt(6,"Loaded error model:\n" << mut.asJSON());
+    } else {
       mut.initMaxDupLen (len / 2);
       mut.pTanDup = vm.at("error-dup-prob").as<double>();
       mut.pDelOpen = vm.at("error-del-open").as<double>();
@@ -122,7 +123,7 @@ int main (int argc, char** argv) {
       mut.pTransition = subProb * ivRatio / (1 + ivRatio);
       mut.pTransversion = subProb / (1 + ivRatio);
       mut.local = vm.count("error-global") ? false : true;
-      LogThisAt(6,"Mutator params:\n" << mut.asJSON());
+      LogThisAt(6,"Command line-specified error model:\n" << mut.asJSON());
     }
 
     const bool rawSeqOutput = vm.count("raw");
