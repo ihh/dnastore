@@ -64,7 +64,6 @@ die $usage if $help;
 
 my %transition = (A=>'G',C=>'T',G=>'A',T=>'C');
 my %transversion = (A=>[qw(C T)],C=>[qw(A G)],G=>[qw(C T)],T=>[qw(A G)]);
-my $nDupOverlap;
 
 my $delext = 2 / $maxdelsize;  # hack
 srand ($rndseed);
@@ -113,10 +112,7 @@ for my $subrate (split /,/, $subrates) {
 		my @origpos = (0..length($origdna)-1);
 		my $dna = lc($origdna);
 
-		$nDupOverlap = 0;
 		$dna = evolve (\@origpos, $dna, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
-		warn $nDupOverlap, " overlapping duplications\n" if $verbose >= 2;
-		
 		$dna = evolve (\@origpos, $dna, $subrate, 1, 1, \&subst, "substitution", 1);
 		$dna = evolve (\@origpos, $dna, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
 
@@ -185,7 +181,6 @@ sub randcoords {
 sub dup {
     my ($seq) = @_;
     warn "Duplicating $seq\n" if $verbose >= 4;
-    ++$nDupOverlap if $seq =~ /[ACGT]/;
     return ($seq . uc($seq), [0..length($seq)-1,map(undef,1..length($seq))]);
 }
 
