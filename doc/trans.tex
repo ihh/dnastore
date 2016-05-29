@@ -808,6 +808,11 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 
 The probability parameters can be estimated directly from trusted alignments using the Baum-Welch algorithm \cite{Durbin98}.
 
+It would be straightforward to give the substitution matrix a richer parameterization
+and to have it depend on the surrounding context,
+which would make the error model more realistic.
+To keep our implementation simple we used a simplified error model.
+
 The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
 By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
@@ -870,7 +875,7 @@ $N$ is the block length in bits; $\nu$ is the probability of the end-of-block sy
 
 Near-ideal performance in converting bits to quats is pretty straightforward
 Near-ideal performance in a bit-to-trit block code requires long blocks
-Need positive integers $m,n$ for which $3^m$ is only a little bit more than $2^n$
+Need positive integers $m,n$ for which $3^m$ is only a little more than $2^n$
 The number of bits/trit is then $n/m$
 % Maybe show graph of $n/ceil(n*log(2)/log(3))$ vs $n$ ?
 % Or $m=ceil(n*log(2)/log(3))$ vs $n$
