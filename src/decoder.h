@@ -216,7 +216,7 @@ struct BinaryWriter {
 	else if (c == MachineSOF)
 	  LogThisAt(2,"Ignoring start-of-file character '" << c << "' in decoder" << endl);
 	else if (c == MachineEOF)
-	  LogThisAt(2,"Ignoring start-of-file character '" << c << "' in decoder" << endl);
+	  LogThisAt(2,"Ignoring end-of-file character '" << c << "' in decoder" << endl);
 	else
 	  Warn("Ignoring unknown character '%c' (\\x%.2x) in decoder",c,c);
       }

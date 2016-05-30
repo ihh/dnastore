@@ -24,7 +24,7 @@ struct Encoder {
   void close() {
     if (!machine.state[current].isEnd()) {
       advance();
-      while (!canEncodeSymbol (MachineEOF)) {
+      if (!canEncodeSymbol (MachineEOF)) {
 	Warn ("Sending FLUSH. This may add padding bits at end of message");
 	encodeSymbol (MachineFlush);
       }
@@ -59,6 +59,10 @@ struct Encoder {
   void encodeSymbol (char sym) {
     if (current == 0 && sym != MachineSOF && canEncodeSymbol(MachineSOF))
       encodeSymbol (MachineSOF);
+    if (!canEncodeSymbol (sym)) {
+	Warn ("Sending FLUSH. Depending on the code, this may insert extra bits!");
+	encodeSymbol (MachineFlush);
+    }
     LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
     advance();
     const MachineTransition* t = machine.state[current].transFor (sym);
