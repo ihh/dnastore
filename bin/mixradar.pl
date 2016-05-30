@@ -6,7 +6,7 @@ use Getopt::Long;
 use List::Util qw(max);
 
 my ($flush, $nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $json, $verbose);
-my $echo = '^$ABCD';
+my $echo = 'ABCD';
 my $usage = "Usage: $0 [options] <blocklen> <eofprob>\n"
     .       "       --flush,-f  Flush mode: treat premature block terminator as flush (.), not EOF (\$)\n"
     .       "--echo,-e <chars>  Symbols to echo (flush+JSON mode only; default \"$echo\")\n"
@@ -49,7 +49,7 @@ my $pbit = (1 - $peof) / 2;
 warn "pbit=$pbit peof=$peof" if $verbose;
 
 # some constants
-my ($epsilon, $div, $eofsym, $flushsym) = qw(e / $ .);
+my ($epsilon, $div, $sofsym, $eofsym, $flushsym) = qw(e / ^ $ .);
 my $eob = $flush ? $flushsym : $eofsym;
 my %cprob = ('0' => $pbit,
 	     '1' => $pbit,
@@ -60,11 +60,16 @@ sub printable { my $word = shift; $word =~ s/@{["\\$eob"]}/x/; return $word; }
 my @radices = (2..4);
 
 # generate prefix tree & input words
-my @state = ( { word => '',
-		dest => {},
-		p => 1,
-		start => 1 } );
-my @prefixIndex = (0);
+my @state;
+if ($flush && $json) {
+    push @state, { dest => { },
+		   begin => 1 };
+}
+push @state, { word => '',
+	       dest => {},
+	       p => 1,
+	       start => 1 };
+my @prefixIndex = ($#state);
 my @wordIndex;
 while (@prefixIndex) {
     my $prefix = $state[shift @prefixIndex];
@@ -239,7 +244,7 @@ if ($getstats) {
     }
 }
 
-# find output tree for each node, merge equivalence sets, assign IDs
+# find output tree for each node, merge equivalence sets
 my %equivIndex = ("()" => [0]);  # this takes care of the self-loop back to start
 for my $outputIndex (reverse @validOutIndex) {
     my $output = $state[$outputIndex];
@@ -275,6 +280,22 @@ for my $state (@state) {
     }
 }
 
+# Add self-loops from START to erase FLUSH and echo any specified chars
+# Also transition from START to END
+if ($flush) {
+    $state[1]->{dest}->{"$flushsym$div$epsilon"} = 1;
+    if ($json) {
+	for my $sym (split //, $echo) {
+	    $state[1]->{dest}->{"$sym$div$sym"} = 1;
+	}
+	push @state, { end => 1, dest => { } };
+	$state[0]->{dest}->{"$sofsym$div$sofsym"} = 1;
+	$state[1]->{dest}->{"$eofsym$div$eofsym"} = $#state;
+	push @equivIndex, $#state;
+    }
+}
+
+# Assign IDs
 my (%id, @uniqueState);
 my ($nCodeStates, $nStates, $nTransitions) = (0, 0, 0);
 for my $i (@equivIndex) {
@@ -283,8 +304,12 @@ for my $i (@equivIndex) {
 	if (!exists $s->{id}) {
 	    ++$nStates;
 	    $nTransitions += keys(%{$s->{dest}});
-	    if ($s->{start}) {
+	    if ($s->{begin}) {
+		$s->{id} = "B";
+	    } elsif ($s->{start}) {
 		$s->{id} = "S";
+	    } elsif ($s->{end}) {
+		$s->{id} = "E";
 	    } elsif ($s->{prefix}) {
 		$s->{id} = "P" . $s->{word};
 	    } elsif ($s->{input}) {
@@ -293,16 +318,6 @@ for my $i (@equivIndex) {
 		$s->{id} = 'C' . (++$nCodeStates);
 	    }
 	    push @uniqueState, $s;
-	}
-    }
-}
-
-# Add self-loops from START to erase FLUSH and echo any specified chars
-if ($flush) {
-    $state[0]->{dest}->{"$flushsym$div$epsilon"} = 0;
-    if ($json) {
-	for my $sym (split //, $echo) {
-	    $state[0]->{dest}->{"$sym$div$sym"} = 0;
 	}
     }
 }

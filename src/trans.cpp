@@ -80,6 +80,10 @@ bool MachineTransition::outputEmpty() const {
   return out == MachineNull;
 }
 
+bool MachineTransition::isNull() const {
+  return in == MachineNull && out == MachineNull;
+}
+
 bool MachineTransition::isEOF() const {
   return in == MachineEOF;
 }
@@ -501,6 +505,8 @@ bool Machine::isWaitingMachine() const {
 
 Machine Machine::compose (const Machine& first, const Machine& second) {
   LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << second.nStates() << "-state transducer" << endl);
+  Assert (first.isWaitingMachine(), "Attempt to compose transducers A*B where A is not a waiting machine");
+  Assert (second.isWaitingMachine(), "Attempt to compose transducers A*B where B is not a waiting machine");
   vguard<MachineState> comp (first.nStates() * second.nStates());
   auto compState = [&](State i,State j) -> State {
     return i * second.nStates() + j;
@@ -511,15 +517,27 @@ Machine Machine::compose (const Machine& first, const Machine& second) {
   for (State i = 0; i < first.nStates(); ++i)
     for (State j = 0; j < second.nStates(); ++j) {
       MachineState& ms = comp[compState(i,j)];
+      const MachineState& msi = first.state[i];
+      const MachineState& msj = second.state[j];
       ms.name = compStateName(i,j);
-      ms.leftContext = second.state[j].leftContext;
-      ms.rightContext = second.state[j].rightContext;
-      for (const auto& it: first.state[i].trans)
-	for (const auto& jt: second.state[j].trans)
-	  if (it.out == jt.in) {
-	    ms.trans.push_back (MachineTransition (it.in, jt.out, compState(it.dest,jt.dest)));
-	    LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(it.dest,jt.dest) << endl);
-	  }
+      ms.leftContext = msj.leftContext;
+      ms.rightContext = msj.rightContext;
+      if (msj.isWait()) {
+	for (const auto& it: msi.trans)
+	  if (it.out == MachineNull) {
+	    ms.trans.push_back (MachineTransition (it.in, MachineNull, compState(it.dest,j)));
+	    LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(it.dest,j) << endl);
+	  } else
+	    for (const auto& jt: msj.trans)
+	      if (it.out == jt.in) {
+		ms.trans.push_back (MachineTransition (it.in, jt.out, compState(it.dest,jt.dest)));
+		LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(it.dest,jt.dest) << endl);
+	      }
+      } else
+	for (const auto& jt: msj.trans) {
+	  ms.trans.push_back (MachineTransition (MachineNull, jt.out, compState(i,jt.dest)));
+	  LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(i,jt.dest) << endl);
+	}
     }
   vguard<bool> seen (comp.size(), false);
   deque<State> queue;
@@ -532,11 +550,23 @@ Machine Machine::compose (const Machine& first, const Machine& second) {
       if (!seen[t.dest])
 	queue.push_back (t.dest);
   }
+  map<State,State> nullEquiv;
+  for (State s = 0; s < comp.size(); ++s)
+    if (seen[s]) {
+      State d = s;
+      while (comp[d].trans.size() == 1 && comp[d].trans.front().isNull())
+	d = comp[d].trans.front().dest;
+      if (d != s)
+	nullEquiv[s] = d;
+    }
   vguard<State> old2new (comp.size());
   State nStates = 0;
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx])
+    if (seen[oldIdx] && !nullEquiv.count(oldIdx))
       old2new[oldIdx] = nStates++;
+  for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
+    if (seen[oldIdx] && nullEquiv.count(oldIdx))
+      old2new[oldIdx] = old2new[nullEquiv.at(oldIdx)];
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
     if (seen[oldIdx])
       for (auto& t: comp[oldIdx].trans)
@@ -545,7 +575,7 @@ Machine Machine::compose (const Machine& first, const Machine& second) {
   Machine compMachine;
   compMachine.state.reserve (nStates);
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx])
+    if (seen[oldIdx] && !nullEquiv.count(oldIdx))
       compMachine.state.push_back (comp[oldIdx]);
   return compMachine;
 }

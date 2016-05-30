@@ -5,8 +5,12 @@ use Getopt::Long;
 use List::Util qw(min max sum);
 use Math::Round qw(:all);
 use File::Temp;
+use File::Basename;
+use Cwd qw(abs_path);
 
-my $dnastore = "../bin/dnastore";
+my $root = abs_path (dirname("$0") . "/..");
+my $dnastore = "$root/bin/dnastore";
+my $h74path = "$root/data/hamming74.json";
 
 my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
@@ -15,13 +19,14 @@ my ($subrates, $ivratio) = (0, 10);
 my $band = 100;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
-my ($exacterrs, $keeptmp, $help);
+my ($hamming, $exacterrs, $keeptmp, $help);
 my ($verbose, $dnastore_verbose) = (2, 2);
 my ($colwidth, $cmdwidth) = (80, 120);
 
 my $usage = "Usage: $0 [options]\n"
     . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
     . " -codelen,-c <n>      codeword length in nucleotides (default $codelen)\n"
+    . " -hamming,-g          precompose transducer with Hamming(7,4) error-correcting code\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -42,6 +47,7 @@ my $usage = "Usage: $0 [options]\n"
 
 GetOptions ("bits=i" => \$bitseqlen,
 	    "codelen=i" => \$codelen,
+	    "hamming|g" => \$hamming,
 	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|m=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
@@ -71,7 +77,8 @@ sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp"
 
 my $machine = tempfile();
 my $cmdstub = "$dnastore --verbose $dnastore_verbose";
-syswarn ("$cmdstub --length $codelen --save-machine $machine");
+my $hamargs = $hamming ? " --compose-machine $h74path" : "";
+syswarn ("$cmdstub --length $codelen --save-machine $machine $hamargs");
 my $cmd = "$cmdstub --load-machine $machine";
 
 for my $subrate (split /,/, $subrates) {

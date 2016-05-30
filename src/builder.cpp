@@ -368,6 +368,9 @@ Machine TransBuilder::makeMachine() {
     if (controlWordAtEnd && kmer == endControlWord()) {
 
       if (isStartControlIndex(0) && isEndControlIndex(0)) {
+	for (auto& t: ms.trans)
+	  if (t.dest == s)
+	    t.dest = s - 1;   // handle the self-looping MachineFlush transition
 	swap (ms.trans, machine.state[s-1].trans);  // give the Start copy all the outgoing transitions
 	machine.state[s-1].leftContext = ms.leftContext;
 	machine.state[s-1].name = string("Control(Start)") + "#" + to_string(s-1);

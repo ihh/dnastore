@@ -58,6 +58,7 @@ struct MachineTransition {
   MachineTransition (InputSymbol, OutputSymbol, State);
   bool inputEmpty() const;
   bool outputEmpty() const;
+  bool isNull() const;
   bool isSOF() const;
   bool isEOF() const;
 };

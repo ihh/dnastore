@@ -4,7 +4,7 @@ use strict;
 use Getopt::Long;
 
 my ($json, $tex, $help);
-my $echo = '^.ABCD';
+my $echo = '.ABCD';
 my $usage = "Usage: $0 [options]\n"
     .       "          --tex,-t  Add LaTex transition labels to DOT output\n"
     .       "         --json,-j  Print transducer in JSON format, not GraphViz DOT\n"
@@ -25,6 +25,7 @@ my (%trans, %stateIndex, @stateName);
 header();
 
 if ($json) {
+    trans ("B", "S", '^', '^');
     for my $sym (split //, $echo) {
 	trans ("S", "S", $sym, $sym);
     }
@@ -70,6 +71,10 @@ for (my $n = 0; $n < 4; ++$n) {
 
 for (my $n = 0; $n < 2; ++$n) {
     trans ("d3_".bin($n,1), "S", undef, bit($n,4));
+}
+
+if ($json) {
+    state("B");
 }
 
 state("S","S");

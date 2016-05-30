@@ -48,14 +48,16 @@ struct Decoder {
   }
   
   void expand() {
-    StateString next;
+    StateString next, seen;
     bool foundNew;
     do {
       foundNew = false;
       for (const auto& ss: current) {
+	seen.insert (ss);
 	const State state = ss.first;
 	const auto& str = ss.second;
 	const MachineState& ms = machine.state[state];
+	LogThisAt(10,"Input queue for " << ms.name << " is " << string(str.begin(),str.end()) << endl);
 	if (ms.isEnd() || ms.emitsOutput())
 	  next[state] = str;
       }
@@ -68,8 +70,8 @@ struct Decoder {
 	    auto nextStr = str;
 	    if (!t.inputEmpty())
 	      nextStr.push_back (t.in);
-	    if (next.count (t.dest))
-	      Assert (next.at(t.dest) == nextStr, "Decoder error");
+	    if (seen.count (t.dest))
+	      Assert (seen.at(t.dest) == nextStr, "Decoder error");
 	    else {
 	      next[t.dest] = nextStr;
 	      LogThisAt(9,"Transition " << ms.name

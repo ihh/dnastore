@@ -169,7 +169,7 @@ A state $\state \in \states$ has past input context $\seqpast$ if every path fro
 and future input context $\seqnext$ if every path from $\state$ to $\finalstate$ has an input sequence with prefix $\seqnext$.
 The past output context and future output context of a state are defined similarly.
 
-A ``waiting state'' is a state whose outgoing transitions all have nonempty input labels.
+A ``waiting state'' is a state that has no outgoing transitions with empty input labels.
 A ``waiting machine'' is a transducer where all the transitions with nonempty input labels
 originate from waiting states.
 Any transducer $\trt$ with a transducer function $\tfunc{T}$
@@ -219,8 +219,8 @@ consistent with a given $\tpt{\trans}$
 transitions involving empty input labels (``insertions''),
 empty output labels (``deletions''),
 or both (``null transitions'').
-For example, we can require that $\trr$ and $\trs$ are waiting machines,
-or (if they aren't) we can work with their equivalent waiting machines \cite{WestessonEtAlArxiv2012}.
+For example, we can require that $\trr$ and $\trs$ be waiting machines,
+and that $\trr$ can only change state when $\trs$ is in a waiting state \cite{WestessonEtAlArxiv2012}.
 \end{itemize}
 
 This algorithm can be made precise enough to automate;

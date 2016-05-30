@@ -71,6 +71,9 @@ debug: all
 data/hamming74.json: bin/hamming74.pl
 	perl $< --json >$@
 
+data/mixradar2.json: bin/mixradar.pl
+	perl $< --flush --json --verbose 2 .001 >$@
+
 data/mixradar6.json: bin/mixradar.pl
 	perl $< --flush --json --verbose 6 .001 >$@
 
