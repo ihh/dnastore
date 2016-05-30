@@ -245,7 +245,7 @@ if ($getstats) {
 }
 
 # find output tree for each node, merge equivalence sets
-my %equivIndex = ("()" => [0]);  # this takes care of the self-loop back to start
+my %equivIndex = ("()" => [$flush ? 1 : 0]);  # this takes care of the self-loop back to start
 for my $outputIndex (reverse @validOutIndex) {
     my $output = $state[$outputIndex];
     my @destLabel = sort keys %{$output->{dest}};
@@ -270,10 +270,11 @@ for my $subtree (keys %equivIndex) {
     }
 }
 for my $e (@{$equivIndex{"()"}}) {
-    die $e if $e > 0 && keys(%{$state[$e]->{dest}});
+    die $e if $e > ($flush ? 1 : 0) && keys(%{$state[$e]->{dest}});
 }
 
 my @equivIndex = map (exists($state[$_]->{subtree}) ? $equivIndex{$state[$_]->{subtree}}->[0] : $_, 0..$#state);
+$equivIndex[0] = 0;  # hack, to handle flush mode
 for my $state (@state) {
     for my $label (keys %{$state->{dest}}) {
 	$state->{dest}->{$label} = $equivIndex[$state->{dest}->{$label}];
@@ -367,7 +368,7 @@ if ($json) {
 		push @trans, "{$trans}";
 	    }
 	}
-	my @field = ("\"n\":\"" . $state->{n} . "\"",
+	my @field = ("\"n\":" . $state->{n} . "",
 		     "\"id\":\"" . $state->{id} . "\"",
 		     "\"trans\":[" . join(",",@trans) . "]");
 	push @out, "{" . join(",",@field) . "}";
