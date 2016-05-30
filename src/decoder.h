@@ -2,6 +2,7 @@
 #define DECODER_INCLUDED
 
 #include "trans.h"
+#include "logger.h"
 
 template<class Writer>
 struct Decoder {
@@ -34,13 +35,13 @@ struct Decoder {
       if (ssIter.size() == 1)
 	flush (ssIter.front());
       else if (ssIter.size() > 1) {
-	Warn ("Decoder unresolved: %u possible end state(s)", ssIter.size());
+	Warn ("Decoder unresolved: %u possible end states", ssIter.size());
 	for (auto ss: ssIter)
-	  Warn ("State %s: input queue %s", machine.state[ss->first].name.c_str(), to_string_join(ss->second,"").c_str());
+	  Warn ("State %s: input queue %s", machine.state[ss->first].name.c_str(), ss->second.empty() ? "empty" : to_string_join(ss->second,"").c_str());
       } else if (current.size() > 1) {
-	Warn ("Decoder unresolved: %u possible state(s)", ssIter.size());
+	Warn ("Decoder unresolved: %u possible states", current.size());
 	for (const auto& ss: current)
-	  Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), to_string_join(ss.second,"").c_str());
+	  Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), ss.second.empty() ? "empty" : to_string_join(ss.second,"").c_str());
       }
       current.clear();
     }
@@ -65,7 +66,7 @@ struct Decoder {
 	for (const auto& t: ms.trans)
 	  if (isUsable(t) && !t.out) {
 	    auto nextStr = str;
-	    if (!t.inputEmpty() && !t.isEOF())
+	    if (!t.inputEmpty())
 	      nextStr.push_back (t.in);
 	    if (next.count (t.dest))
 	      Assert (next.at(t.dest) == nextStr, "Decoder error");
@@ -210,11 +211,14 @@ struct BinaryWriter {
 	if (outbuf.size() == 8)
 	  flush();
       } else {
-	const ControlIndex idx = Machine::controlIndex(c);
-	if (idx >= 0)
-	  Warn("Ignoring control character #%d (%c)",idx,c);
+	if (Machine::isControl(c))
+	  Warn("Ignoring control character #%d ('%c') in decoder",Machine::controlIndex(c),c);
+	else if (c == MachineSOF)
+	  LogThisAt(2,"Ignoring start-of-file character '" << c << "' in decoder" << endl);
+	else if (c == MachineEOF)
+	  LogThisAt(2,"Ignoring start-of-file character '" << c << "' in decoder" << endl);
 	else
-	  Warn("Ignoring unknown character '%c' (\\x%.2x)",c,c);
+	  Warn("Ignoring unknown character '%c' (\\x%.2x) in decoder",c,c);
       }
     }
   }

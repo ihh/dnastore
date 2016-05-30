@@ -498,3 +498,54 @@ bool Machine::isWaitingMachine() const {
       return false;
   return true;
 }
+
+Machine Machine::compose (const Machine& first, const Machine& second) {
+  LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << second.nStates() << "-state transducer" << endl);
+  vguard<MachineState> comp (first.nStates() * second.nStates());
+  auto compState = [&](State i,State j) -> State {
+    return i * second.nStates() + j;
+  };
+  auto compStateName = [&](State i,State j) -> string {
+    return string("(") + first.state[i].name + "," + second.state[j].name + ")";
+  };
+  for (State i = 0; i < first.nStates(); ++i)
+    for (State j = 0; j < second.nStates(); ++j) {
+      MachineState& ms = comp[compState(i,j)];
+      ms.name = compStateName(i,j);
+      ms.leftContext = second.state[j].leftContext;
+      ms.rightContext = second.state[j].rightContext;
+      for (const auto& it: first.state[i].trans)
+	for (const auto& jt: second.state[j].trans)
+	  if (it.out == jt.in) {
+	    ms.trans.push_back (MachineTransition (it.in, jt.out, compState(it.dest,jt.dest)));
+	    LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(it.dest,jt.dest) << endl);
+	  }
+    }
+  vguard<bool> seen (comp.size(), false);
+  deque<State> queue;
+  queue.push_back (compState(first.startState(),second.startState()));
+  while (queue.size()) {
+    const State c = queue.front();
+    queue.pop_front();
+    seen[c] = true;
+    for (const auto& t: comp[c].trans)
+      if (!seen[t.dest])
+	queue.push_back (t.dest);
+  }
+  vguard<State> old2new (comp.size());
+  State nStates = 0;
+  for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
+    if (seen[oldIdx])
+      old2new[oldIdx] = nStates++;
+  for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
+    if (seen[oldIdx])
+      for (auto& t: comp[oldIdx].trans)
+	t.dest = old2new[t.dest];
+  LogThisAt(3,"Transducer composition yielded " << nStates << "-state machine; " << plural (comp.size() - nStates, "more state was", "more states were") << " unreachable" << endl);
+  Machine compMachine;
+  compMachine.state.reserve (nStates);
+  for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
+    if (seen[oldIdx])
+      compMachine.state.push_back (comp[oldIdx]);
+  return compMachine;
+}

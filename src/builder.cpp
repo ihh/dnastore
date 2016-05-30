@@ -636,5 +636,6 @@ void TransBuilder::getControlWords() {
       totalInter += nInter;
     }
   }
-  LogThisAt(2,"Control words (" << join(controlWordString) << ") require " << totalInter << " bridge states" << endl);
+  if (nControlWords)
+    LogThisAt(2,"Control words (" << join(controlWordString) << ") require " << totalInter << " bridge states" << endl);
 }

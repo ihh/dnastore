@@ -88,6 +88,8 @@ struct Machine {
   void verifyContexts() const;
   bool isWaitingMachine() const;
 
+  static Machine compose (const Machine& first, const Machine& second);
+  
   void write (ostream& out) const;
   void writeDot (ostream& out) const;
   void writeJSON (ostream& out) const;

@@ -25,8 +25,8 @@ struct Encoder {
     if (!machine.state[current].isEnd()) {
       advance();
       while (!canEncodeSymbol (MachineEOF)) {
-	Warn ("Adding zero padding bit at end of message");
-	encodeSymbol (MachineBit0);
+	Warn ("Sending FLUSH. This may add padding bits at end of message");
+	encodeSymbol (MachineFlush);
       }
       encodeSymbol (MachineEOF);
     }

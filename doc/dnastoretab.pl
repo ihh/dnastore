@@ -27,7 +27,7 @@ my @params = ({ l=>2, c=>0, @yesRepeats, @noStart, @noEnd, figref('a') },
 	      { l=>12, c=>0, @noStart, @noEnd },
 	      { l=>12, c=>4 });
 
-my %ignore = map (($_=>1), qw(note repeats));
+my %ignore = map (($_=>1), qw(note repeats l c));
 
 for my $param (@params) {
     my $l = $param->{l};
@@ -41,7 +41,7 @@ for my $param (@params) {
     my $filename = $fh->filename;
 
     my $args = join(" ",map("-$_ $param->{$_}",grep (!$ignore{$_}, keys %$param)));
-    my $command = "$dnastore --save-machine $filename --rate --print-controls $reparg $args";
+    my $command = "$dnastore --length $l --controls $c --save-machine $filename --rate --print-controls $reparg $args";
     warn $command, "\n";
     my @line = `$command`;
 

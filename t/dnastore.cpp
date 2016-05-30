@@ -57,6 +57,7 @@ int main (int argc, char** argv) {
       ("token-info", "print descriptions of input tokens")
       ("load-machine,L", po::value<string>(), "load machine from JSON file")
       ("save-machine,S", po::value<string>(), "save machine to JSON file")
+      ("compose-machine,C", po::value<vector<string> >(), "load machine from JSON file and compose in front of primary machine")
       ("encode-file,e", po::value<string>(), "encode binary file to FASTA on stdout")
       ("decode-file,d", po::value<string>(), "decode FASTA file to binary on stdout")
       ("encode-string,E", po::value<string>(), "encode ASCII string to FASTA on stdout")
@@ -138,12 +139,19 @@ int main (int argc, char** argv) {
     } else {
       // build, or load, transducer
       const bool loadMachine = vm.count("load-machine");
-      const Machine machine = loadMachine
+      Machine machine = loadMachine
 	? Machine::fromFile(vm.at("load-machine").as<string>().c_str())
 	: builder.makeMachine();
 
       if (!loadMachine && vm.count("print-controls"))
 	cout << "Control words: " << join(builder.controlWordString) << endl;
+
+      // pre-compose transducers
+      if (vm.count("compose-machine")) {
+	const vector<string> comps = vm.at("compose-machine").as<vector<string> >();
+	for (auto iter = comps.rbegin(); iter != comps.rend(); ++iter)
+	  machine = Machine::compose (Machine::fromFile((*iter).c_str()), machine);
+      }
 
       // save transducer
       if (vm.count("save-machine")) {
