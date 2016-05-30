@@ -179,6 +179,7 @@ at most $2|\states|$ states and $|\states|+|\transitions|$ transitions
 \cite{WestessonEtAlArxiv2012}.
 
 \subsubsection{Transducer composition}
+\seclabel{TransducerComposition}
 
 Given transducers
  $\trr = (\inalph, \somealph, \tpr{\states}, \tpr{\transitions}, \tpr{\initstate}, \tpr{\finalstate})$ and
@@ -809,9 +810,9 @@ The context-adjusted probability of not opening a gap at a site with $j$ nucleot
 The probability parameters can be estimated directly from trusted alignments using the Baum-Welch algorithm \cite{Durbin98}.
 
 To keep our implementation simple we used a basic error model.
-It would be straightforward to give the substitution matrix a richer parameterization
-and to have it depend on the surrounding context,
-which would make the error model more realistic.
+It would be straightforward to give the error model a richer parameterization;
+for example, allowing more free paramters in the substitution matrix,
+or allowing the mutation parameters to depend on the adjacent context.
 
 The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
@@ -840,8 +841,10 @@ a point further discussed in \secref{Discussion}
 
 We have developed two open-source computer programs implementing the algorithms in this paper.
 MIXRADAR implements the MIXed-RADix ARithmetic code of \secref{Arithmetic}.
-DNASTORE implements the non-repeating DNA code of \secref{DeBruijnTransducer}
-and (a subset of) the error-correcting code of \secref{ErrorCorrection}.
+DNASTORE implements the non-repeating DNA code of \secref{DeBruijnTransducer},
+a subset of the error-correcting code of \secref{ErrorCorrection},
+and the transducer composition algorithm from \secref{TransducerComposition}.
+
 Both programs are available at \url{https://github.com/ihh/dnastore}.
 
 \subsection{MIXRADAR}
