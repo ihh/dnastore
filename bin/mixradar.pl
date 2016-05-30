@@ -5,20 +5,25 @@ use Math::BigRat;
 use Getopt::Long;
 use List::Util qw(max);
 
+my ($flush, $nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $json, $verbose);
+my $echo = '^$ABCD';
 my $usage = "Usage: $0 [options] <blocklen> <eofprob>\n"
-    .       "      --wide,-w Don't merge identical states\n"
-    .       "      --deep,-d Don't prune unnecessary states\n"
-    .       "      --pure,-p Don't shrink input intervals after encoding each input word\n"
-    .       " --keeproots,-k Don't merge input word states at the root of each output tree\n"
-    .       " --intervals,-i Show input & output intervals for output states\n"
-    .       "        --lr,-l Rank dotfile from left-to-right\n"
-    .       "     --stats,-s Collect & print code statistics\n"
-    .       "      --json,-j Print transducer in JSON format, not GraphViz DOT format\n"
-    .       "   --verbose,-v Print lots of stuff on stderr\n"
+    .       "       --flush,-f  Flush mode: treat premature block terminator as flush (.), not EOF (\$)\n"
+    .       "--echo,-e <chars>  Symbols to echo (flush+JSON mode only; default \"$echo\")\n"
+    .       "        --wide,-w  Don't merge identical states\n"
+    .       "        --deep,-d  Don't prune unnecessary states\n"
+    .       "        --pure,-p  Don't shrink input intervals after encoding each input word\n"
+    .       "   --keeproots,-k  Don't merge input word states at the root of each output tree\n"
+    .       "   --intervals,-i  Show input & output intervals for output states\n"
+    .       "          --lr,-l  Rank dotfile from left-to-right\n"
+    .       "       --stats,-s  Collect & print code statistics\n"
+    .       "        --json,-j  Print transducer in JSON format, not GraphViz DOT format\n"
+    .       "     --verbose,-v  Print lots of stuff on stderr\n"
     ;
 
-my ($nomerge, $noprune, $norescale, $keeproots, $bigrat, $intervals, $lr, $getstats, $json, $verbose);
-GetOptions ("wide" => \$nomerge,  # don't merge identical states
+GetOptions ("flush" => \$flush,  # FLUSH mode
+	    "echo=s" => \$echo,  # symbols to echo (FLUSH mode only)
+	    "wide" => \$nomerge,  # don't merge identical states
 	    "deep" => \$noprune,  # don't prune unnecessary states
 	    "pure" => \$norescale,  # don't rescale remaining input intervals after encoding each input word
 	    "keeproots" => \$keeproots,  # don't merge input word states
@@ -44,12 +49,13 @@ my $pbit = (1 - $peof) / 2;
 warn "pbit=$pbit peof=$peof" if $verbose;
 
 # some constants
-my ($epsilon, $div, $eof) = qw(e / $);
+my ($epsilon, $div, $eofsym, $flushsym) = qw(e / $ .);
+my $eob = $flush ? $flushsym : $eofsym;
 my %cprob = ('0' => $pbit,
 	     '1' => $pbit,
-	     $eof => $peof);
-my @alph = (0, 1, $eof);
-sub printable { my $word = shift; $word =~ s/\$/x/; return $word; }
+	     $eob => $peof);
+my @alph = (0, 1, $eob);
+sub printable { my $word = shift; $word =~ s/@{["\\$eob"]}/x/; return $word; }
 
 my @radices = (2..4);
 
@@ -62,14 +68,16 @@ my @prefixIndex = (0);
 my @wordIndex;
 while (@prefixIndex) {
     my $prefix = $state[shift @prefixIndex];
+    my $pword = $prefix->{word};
     for my $c (@alph) {
+	next if $c eq $eob && $pword eq '' && $flush;   # no need to explicitly encode empty block if $ is FLUSH
 	my $childIndex = @state;
-	my $child = { word => $prefix->{word} . $c,
+	my $child = { word => $pword . $c,
 		      dest => {},
 		      p => $prefix->{p} * $cprob{$c} };
 	$prefix->{dest}->{"$c$div$epsilon"} = $childIndex;
 	push @state, $child;
-	if ($c eq $eof || length($child->{word}) >= $msglen) {
+	if ($c eq $eob || length($child->{word}) >= $msglen) {
 	    $child->{input} = 1;
 	    push @wordIndex, $childIndex;
 	} else {
@@ -211,7 +219,7 @@ if ($getstats) {
 	grep (s/ //g, @outseqs);
 	@outseqs = sort { $a cmp $b } @outseqs;
 	warn "Radices for ", $word, ": @outseqs\n" if $verbose;
-	unless ($word =~ /\$/) {
+	unless ($word =~ /@{["\\$eob"]}/) {
 	    for my $outseq (@outseqs) { ++$radixCount{$outseq} }
 	}
     }
@@ -289,6 +297,16 @@ for my $i (@equivIndex) {
     }
 }
 
+# Add self-loops from START to erase FLUSH and echo any specified chars
+if ($flush) {
+    $state[0]->{dest}->{"$flushsym$div$epsilon"} = 0;
+    if ($json) {
+	for my $sym (split //, $echo) {
+	    $state[0]->{dest}->{"$sym$div$sym"} = 0;
+	}
+    }
+}
+
 # print stats
 if ($getstats) {
     print @stats;
@@ -316,8 +334,11 @@ if ($json) {
 	       '1_4' => 'q',
 	       '2_4' => 'r',
 	       '3_4' => 's',
+	       '^' => '^',
 	       '$' => '$',
+	       '.' => '.',
 	       'e' => undef);
+    for my $c (ord('A')..ord('Z')) { $sym{chr$c} = chr$c }
     for my $state (@uniqueState) {
 	my @trans;
 	for my $label (sort keys %{$state->{dest}}) {

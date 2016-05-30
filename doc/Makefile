@@ -67,7 +67,7 @@ cleanstore:
 	./lacirco $<
 
 # Hamming(7,4) transducer
-hamming74.dot: hamming74.pl
+hamming74.dot: ../bin/hamming74.pl
 	perl $< >$@
 
 # Arithmetic code with wordlen=2

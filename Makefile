@@ -67,6 +67,13 @@ clean:
 
 debug: all
 
+# Codes
+data/hamming74.json: bin/hamming74.pl
+	perl $< --json >$@
+
+data/mixradar6.json: bin/mixradar.pl
+	perl $< --flush --json --verbose 6 .001 >$@
+
 # Tests
 
 test: testpattern

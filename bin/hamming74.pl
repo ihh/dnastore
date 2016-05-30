@@ -3,19 +3,34 @@
 use strict;
 use Getopt::Long;
 
+my ($json, $tex, $help);
+my $echo = '^.ABCD';
 my $usage = "Usage: $0 [options]\n"
-    .       "--dot,-d Print GraphViz (DOT) format, not dnastore JSON\n"
-    .       "--tex,-t Print GraphViz labels using LaTeX\n"
+    .       "          --tex,-t  Add LaTex transition labels to DOT output\n"
+    .       "         --json,-j  Print transducer in JSON format, not GraphViz DOT\n"
+    .       "--echo,-e <string>  Symbols to echo (JSON only; default \"$echo\")\n"
+    .       "         --help,-h  Print this help text\n"
     ;
 
-my ($dot, $tex);
-GetOptions ("dot" => \$dot,
-	    "tex" => \$tex)
+GetOptions ("json" => \$json,
+	    "tex" => \$tex,
+	    "echo=s" => \$echo,
+	    "help" => \$help)
     or die $usage;
+
+if ($help) { print $usage; exit }
 
 my (%trans, %stateIndex, @stateName);
 
 header();
+
+if ($json) {
+    for my $sym (split //, $echo) {
+	trans ("S", "S", $sym, $sym);
+    }
+    trans ("S", "F", '$', '.');
+    trans ("F", "E", undef, '$');
+}
 
 for (my $n = 0; $n < 2; ++$n) {
     trans ("S", bin($n,1), $n % 2, undef);
@@ -80,10 +95,15 @@ for (my $n = 0; $n < 16; ++$n) {
     state ("p2_".bin($n,4));
 }
 
+if ($json) {
+    state("F");
+    state("E");
+}
+
 footer();
 
 sub header {
-    if ($dot) {
+    if (!$json) {
 	print "digraph G {\n";
 	print "rankdir=LR;\n";
     }
@@ -91,32 +111,30 @@ sub header {
 
 sub trans {
     my ($src, $dest, $in, $out) = @_;
-    if ($dot) {
+    if ($json) {
+	push @{$trans{$src}}, [$in,$out,$dest];
+    } else {
 	if ($tex) {
 	    print "$src -> $dest [label=\$", defined($in) ? "${in}_2" : "\\epsilon", "/", defined($out) ? "${out}_2" : "\\epsilon", "\$];\n";
 	} else {
 	    print "$src -> $dest [label=\"", defined($in) ? "${in}" : "", "/", defined($out) ? "${out}" : "", "\"];\n";
 	}
-    } else {
-	push @{$trans{$src}}, [$in,$out,$dest];
     }
 }
 
 sub state {
     my ($state, $label) = @_;
     $label = "" unless defined $label;
-    if ($dot) {
-	print "$state [label=\"$label\"];\n";
-    } else {
+    if ($json) {
 	$stateIndex{$state} = @stateName;
 	push @stateName, $state;
+    } else {
+	print "$state [label=\"$label\"];\n";
     }
 }
 
 sub footer {
-    if ($dot) {
-	print "}\n";
-    } else {
+    if ($json) {
 	print "{\"state\": [\n";
 	for my $s (0..$#stateName) {
 	    my $id = $stateName[$s];
@@ -131,6 +149,8 @@ sub footer {
 		"]}", ($s < $#stateName ? "," : ""), "\n";
 	}
 	print "]}\n";
+    } else {
+	print "}\n";
     }
 }
 
