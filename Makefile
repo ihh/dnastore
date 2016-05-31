@@ -68,14 +68,16 @@ clean:
 debug: all
 
 # Codes
+codes: data/hamming74.json data/mixradar2.json data/mixradar6.json data/sync16.json data/sync64.json data/sync128.json
+
 data/hamming74.json: bin/hamming74.pl
 	perl $< --json >$@
 
-data/mixradar2.json: bin/mixradar.pl
-	perl $< --flush --json --verbose 2 .001 >$@
+data/mixradar%.json: bin/mixradar.pl
+	perl $< --flush --json --verbose $* .001 >$@
 
-data/mixradar6.json: bin/mixradar.pl
-	perl $< --flush --json --verbose 6 .001 >$@
+data/sync%.json: bin/syncer.pl
+	perl $< $* >$@
 
 # Tests
 

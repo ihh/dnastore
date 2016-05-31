@@ -121,6 +121,7 @@ struct Machine {
 
   map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;
 
+  Machine waitingMachine() const;  // convert to waiting machine
   vguard<State> decoderToposort (const string& inputAlphabet) const;  // topological sort by non-output transitions
 };
 

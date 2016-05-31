@@ -502,8 +502,9 @@ bool Machine::isWaitingMachine() const {
   return true;
 }
 
-Machine Machine::compose (const Machine& first, const Machine& second) {
-  LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << second.nStates() << "-state transducer" << endl);
+Machine Machine::compose (const Machine& first, const Machine& origSecond) {
+  LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << origSecond.nStates() << "-state transducer" << endl);
+  const Machine second = origSecond.isWaitingMachine() ? origSecond : origSecond.waitingMachine();
   Assert (second.isWaitingMachine(), "Attempt to compose transducers A*B where B is not a waiting machine");
   vguard<MachineState> comp (first.nStates() * second.nStates());
   auto compState = [&](State i,State j) -> State {
@@ -608,4 +609,40 @@ vguard<State> Machine::decoderToposort (const string& inputAlphabet) const {
   if (edges > 0)
     throw std::domain_error ("Transducer is cyclic, can't toposort");
   return L;
+}
+
+Machine Machine::waitingMachine() const {
+  vguard<MachineState> newState (state);
+  vguard<State> old2new (nStates()), new2old;
+  for (State s = 0; s < nStates(); ++s) {
+    const MachineState& ms = state[s];
+    old2new[s] = new2old.size();
+    new2old.push_back (s);
+    if (!ms.isWait() && !ms.isNonWait()) {
+      MachineState nw, w;
+      nw.name = ms.name + ";n";
+      w.name = ms.name + ";w";
+      nw.leftContext = w.leftContext = ms.leftContext;
+      nw.rightContext = w.rightContext = ms.rightContext;
+      for (const auto& t: ms.trans)
+	if (t.inputEmpty())
+	  nw.trans.push_back(t);
+	else
+	  w.trans.push_back(t);
+      nw.trans.push_back (MachineTransition (MachineNull, MachineNull, newState.size()));
+      old2new.push_back (new2old.size());
+      new2old.push_back (newState.size());
+      swap (newState[s], nw);
+      newState.push_back (w);
+    }
+  }
+  Machine wm;
+  for (State s: new2old) {
+    MachineState& ms = newState[s];
+    for (auto& t: ms.trans)
+      t.dest = old2new[t.dest];
+    wm.state.push_back (ms);
+  }
+  LogThisAt(5,"Converted " << nStates() << "-state transducer into " << wm.nStates() << "-state waiting machine" << endl);
+  return wm;
 }
