@@ -11,6 +11,8 @@ use Cwd qw(abs_path);
 my $root = abs_path (dirname("$0") . "/..");
 my $dnastore = "$root/bin/dnastore";
 my $h74path = "$root/data/hamming74.json";
+my $m2path = "$root/data/mixradar2.json";
+my $m6path = "$root/data/mixradar6.json";
 
 my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
@@ -19,14 +21,17 @@ my ($subrates, $ivratio) = (0, 10);
 my $band = 100;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
-my ($hamming, $exacterrs, $keeptmp, $help);
+my ($hamming, $mixradar2, $mixradar6, $syncfreq, $exacterrs, $keeptmp, $help);
 my ($verbose, $dnastore_verbose) = (2, 2);
-my ($colwidth, $cmdwidth) = (80, 120);
+my ($colwidth, $cmdwidth) = (80, 200);
 
 my $usage = "Usage: $0 [options]\n"
     . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
     . " -codelen,-c <n>      codeword length in nucleotides (default $codelen)\n"
+    . " -mix2,-2             precompose transducer with mixradar length-2 block code\n"
+    . " -mix6,-6             precompose transducer with mixradar length-6 block code\n"
     . " -hamming,-g          precompose transducer with Hamming(7,4) error-correcting code\n"
+    . " -syncfreq,-q <n>     insert a synchronization control word after every n bits\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -48,6 +53,9 @@ my $usage = "Usage: $0 [options]\n"
 GetOptions ("bits=i" => \$bitseqlen,
 	    "codelen=i" => \$codelen,
 	    "hamming|g" => \$hamming,
+	    "mix2|2" => \$mixradar2,
+	    "mix6|6" => \$mixradar6,
+	    "syncfreq|q=i" => \$syncfreq,
 	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|m=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
@@ -77,8 +85,10 @@ sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp"
 
 my $machine = tempfile();
 my $cmdstub = "$dnastore --verbose $dnastore_verbose";
+my $ctrlargs = $codelen < 4 ? " --controls 1" : "";
 my $hamargs = $hamming ? " --compose-machine $h74path" : "";
-syswarn ("$cmdstub --length $codelen --save-machine $machine $hamargs");
+my $mixargs = $mixradar2 ? " --compose-machine $m2path" : ($mixradar6 ? " --compose-machine $m6path" : "");
+syswarn ("$cmdstub --length $codelen $ctrlargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";
 
 for my $subrate (split /,/, $subrates) {
@@ -102,7 +112,7 @@ for my $subrate (split /,/, $subrates) {
 		    print $trainfh $trainstock;
 		    warn $trainstock if $verbose >= 3;
 		}
-	    
+
 		my $errmod = syswarn ("$cmd --fit-error $trainfh --error-global");
 		print $errmodfh $errmod;
 		warn "Estimated error model:\n", $errmod if $verbose >= 2;
@@ -112,8 +122,12 @@ for my $subrate (split /,/, $subrates) {
 	    for my $rep (1..$reps) {
 		warn "Starting repetition $rep of $reps\n" if $verbose;
 		my $bitseq = randseq ([0,1], $bitseqlen);
-		warn $bitseq, "\n" if $verbose >= 5;
-		my $origdna = syswarn ("$cmd --raw --encode-bits $bitseq");
+		my $syncseq = $bitseq;
+		$syncseq =~ s/([01]{$syncfreq})/${1}.A/g if defined $syncfreq;
+
+		warn $syncseq, "\n" if $verbose >= 5;
+
+		my $origdna = syswarn ("$cmd --raw --encode-bits $syncseq");
 		chomp $origdna;
 
 		my @origpos = (0..length($origdna)-1);
@@ -138,9 +152,11 @@ for my $subrate (split /,/, $subrates) {
 
 		warn $decoded, "\n" if $verbose >= 5;
 
-		warn "Length(bitseq)=", length($bitseq), " Length(decoded)=", length($decoded), "\n" if $verbose;
+		my $decodedbits = $decoded;
+		$decodedbits =~ s/[^01]//g;
+		warn "Length(bitseq)=", length($bitseq), " Length(decodedbits)=", length($decodedbits), "\n" if $verbose;
 		
-		my $dist = editDistance ($bitseq, $decoded, $band);
+		my $dist = editDistance ($bitseq, $decodedbits, $band);
 		warn "Edit distance: $dist\n" if $verbose;
 		push @dist, $dist/$bitseqlen;
 	    }

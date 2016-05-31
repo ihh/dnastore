@@ -149,8 +149,10 @@ int main (int argc, char** argv) {
       // pre-compose transducers
       if (vm.count("compose-machine")) {
 	const vector<string> comps = vm.at("compose-machine").as<vector<string> >();
-	for (auto iter = comps.rbegin(); iter != comps.rend(); ++iter)
+	for (auto iter = comps.rbegin(); iter != comps.rend(); ++iter) {
+	  LogThisAt(3,"Pre-composing with " << *iter << endl);
 	  machine = Machine::compose (Machine::fromFile((*iter).c_str()), machine);
+	}
       }
 
       // save transducer
