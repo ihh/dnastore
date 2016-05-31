@@ -98,6 +98,8 @@ die "You cannot use -syncfreq with a machine that does not allow 3 or more contr
     unless $ncontrols >= 3;
 die "You cannot use -syncfreq without a machine that disambiguates flushing (-hamming, -mix2 or -mix6)\n"
     if $syncfreq && !($hamming || $mixradar2 || $mixradar6);
+die "You cannot use -syncfreq and -hamming with a sync period that is not a multiple of 4"
+    if $syncfreq && $hamming && $syncfreq % 4 != 0;
 my $flushargs = $syncfreq ? " --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";
