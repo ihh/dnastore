@@ -42,9 +42,9 @@ typedef int ControlIndex;
 #define MachineRelaxedInputFlag  2
 #define MachineFlushInputFlag    4
 #define MachineControlInputFlag  8
-#define MachineEOFInputFlag      16
+#define MachineSEOFInputFlag     16
 #define MachineDefaultInputFlags (MachineRelaxedInputFlag | MachineControlInputFlag)
-#define MachineAllInputFlags     (MachineStrictInputFlag | MachineRelaxedInputFlag | MachineFlushInputFlag | MachineControlInputFlag |  MachineEOFInputFlag)
+#define MachineAllInputFlags     (MachineStrictInputFlag | MachineRelaxedInputFlag | MachineFlushInputFlag | MachineControlInputFlag |  MachineSEOFInputFlag)
 
 typedef char OutputSymbol;
 typedef char InputSymbol;
@@ -120,6 +120,8 @@ struct Machine {
   string inputDescriptionTable() const;
 
   map<InputSymbol,double> expectedBasesPerInputSymbol (const char* symbols = "01") const;
+
+  vguard<State> decoderToposort (const string& inputAlphabet) const;  // topological sort by non-output transitions
 };
 
 #endif /* TRANSDUCER_INCLUDED */

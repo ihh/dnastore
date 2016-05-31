@@ -3,24 +3,18 @@
 #include "viterbi.h"
 #include "logger.h"
 
-InputModel::InputModel (const string& inputAlphabet, double controlProb) {
-  size_t nControls = 0;
+InputModel::InputModel (const string& inAlph)
+  : inputAlphabet(inAlph)
+{
   for (char c: inputAlphabet)
-    if (Machine::isControl(c))
-      ++nControls;
-  for (char c: inputAlphabet)
-    symProb[c] = Machine::isControl(c)
-      ? (controlProb / (double) nControls)
-      : ((1. - controlProb) / (double) (inputAlphabet.size() - nControls));
+    symProb[c] = 1. / (double) inputAlphabet.size();
 }
 
-InputModel::InputModel() {
-  symProb[MachineSOF] = 1;
-  symProb[MachineEOF] = 1;
-  symProb[MachineBit0] = 1;
-  symProb[MachineBit1] = 1;
-  for (char c = MachineControlFirst; c <= MachineControlLast; ++c)
-    symProb[c] = 1;
+string InputModel::toString() const {
+  ostringstream o;
+  for (const auto& sp: symProb)
+    o << sp.first << ' ' << sp.second << endl;
+  return o.str();
 }
 
 MachineScores::MachineScores (const Machine& machine, const InputModel& inputModel)
@@ -78,9 +72,10 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
   ProgressLog (plog, 2);
   plog.initProgress ("Filling Viterbi matrix (%d*%d cells)", seqLen, machine.nStates());
 
+  const auto stateOrder = machine.decoderToposort (inputModel.inputAlphabet);
   for (Pos pos = 0; pos <= seqLen; ++pos) {
     plog.logProgress (pos / (double) seqLen, "row %d/%d", pos, seqLen);
-    for (State state = 0; state < machine.nStates(); ++state) {
+    for (State state: stateOrder) {
       const StateScores& ss = machineScores.stateScores[state];
       const auto mdl = maxDupLenAt(ss);
 
@@ -255,7 +250,9 @@ string ViterbiMatrix::traceback() const {
 vguard<FastSeq> decodeFastSeqs (const char* filename, const Machine& machine, const MutatorParams& mutatorParams) {
   const vguard<FastSeq> outseqs = readFastSeqs (filename);
   vguard<FastSeq> inseqs;
-  InputModel inmod;
+  const string inAlph = machine.inputAlphabet (MachineRelaxedInputFlag | MachineControlInputFlag | MachineSEOFInputFlag);
+  InputModel inmod (inAlph);
+  LogThisAt(6,"Input model for Viterbi decoding:" << endl << inmod.toString());
   for (auto& outseq: outseqs) {
     ViterbiMatrix vit (machine, inmod, mutatorParams, outseq);
     FastSeq inseq;

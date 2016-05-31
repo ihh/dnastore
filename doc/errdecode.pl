@@ -136,7 +136,7 @@ for my $subrate (split /,/, $subrates) {
 		warn "Starting repetition $rep of $reps\n" if $verbose;
 		my $bitseq = randseq ([0,1], $bitseqlen);
 		my $syncseq = $bitseq;
-		$syncseq =~ s/([01]{$syncfreq})/${1}.A/g if defined $syncfreq;
+		$syncseq =~ s/([01]{$syncfreq})/${1}A/g if defined $syncfreq;
 
 		warn $syncseq, "\n" if $verbose >= 5;
 

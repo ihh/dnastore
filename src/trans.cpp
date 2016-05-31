@@ -282,7 +282,7 @@ string Machine::inputAlphabet (int inputFlags) const {
   for (const auto& ms: state)
     for (const auto& t: ms.trans)
       if (!t.inputEmpty()
-	  && (((t.isEOF() || t.isSOF()) && (inputFlags & MachineEOFInputFlag))
+	  && (((t.isEOF() || t.isSOF()) && (inputFlags & MachineSEOFInputFlag))
 	      || (isControl(t.in) && (inputFlags & MachineControlInputFlag))
 	      || (t.in == MachineFlush && (inputFlags & MachineFlushInputFlag))
 	      || (isRelaxed(t.in) && (inputFlags & MachineRelaxedInputFlag))
@@ -577,4 +577,36 @@ Machine Machine::compose (const Machine& first, const Machine& second) {
     if (seen[oldIdx] && !nullEquiv.count(oldIdx))
       compMachine.state.push_back (comp[oldIdx]);
   return compMachine;
+}
+
+vguard<State> Machine::decoderToposort (const string& inputAlphabet) const {
+  LogThisAt(5,"Toposorting transducer for decoder" << endl);
+  deque<State> S;
+  vguard<State> L;
+  vguard<int> nParents (nStates());
+  vguard<vguard<State> > children (nStates());
+  int edges = 0;
+  for (State s = 0; s < nStates(); ++s)
+    for (const auto& t: state[s].trans)
+      if (t.outputEmpty() && (t.inputEmpty() || inputAlphabet.find(t.in) != string::npos)) {
+	++nParents[t.dest];
+	++edges;
+	children[s].push_back (t.dest);
+      }
+  for (State s = 0; s < nStates(); ++s)
+    if (nParents[s] == 0)
+      S.push_back (s);
+  while (S.size()) {
+    const State n = S.front();
+    S.pop_front();
+    L.push_back (n);
+    for (auto m : children[n]) {
+      --edges;
+      if (--nParents[m] == 0)
+	S.push_back (m);
+    }
+  }
+  if (edges > 0)
+    throw std::domain_error ("Transducer is cyclic, can't toposort");
+  return L;
 }

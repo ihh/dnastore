@@ -5,9 +5,10 @@
 #include "fastseq.h"
 
 struct InputModel {
+  string inputAlphabet;
   map<InputSymbol,double> symProb;
-  InputModel (const string& inputAlphabet, double controlProb);
-  InputModel();
+  InputModel (const string& inputAlphabet);
+  string toString() const;
 };
 
 struct IncomingTransScore {
