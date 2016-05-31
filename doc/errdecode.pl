@@ -88,11 +88,16 @@ my $delext = 2 / $maxdelsize;  # hack
 srand ($rndseed);
 sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp") }
 
+my $ncontrols = $codelen < 4 ? 1 : 4;
 my $machine = tempfile();
 my $cmdstub = "$dnastore --verbose $dnastore_verbose";
-my $ctrlargs = $codelen < 4 ? " --controls 1" : "";
+my $ctrlargs = " --controls $ncontrols";
 my $hamargs = $hamming ? " --compose-machine $h74path" : "";
 my $mixargs = $mixradar2 ? " --compose-machine $m2path" : ($mixradar6 ? " --compose-machine $m6path" : "");
+die "You cannot use -syncfreq with a machine that does not allow 3 or more control words\n"
+    unless $ncontrols >= 3;
+die "You cannot use -syncfreq without a machine that disambiguates flushing (-hamming, -mix2 or -mix6)\n"
+    if $syncfreq && !($hamming || $mixradar2 || $mixradar6);
 my $flushargs = $syncfreq ? " --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";

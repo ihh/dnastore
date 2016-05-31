@@ -505,7 +505,6 @@ bool Machine::isWaitingMachine() const {
 
 Machine Machine::compose (const Machine& first, const Machine& second) {
   LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << second.nStates() << "-state transducer" << endl);
-  Assert (first.isWaitingMachine(), "Attempt to compose transducers A*B where A is not a waiting machine");
   Assert (second.isWaitingMachine(), "Attempt to compose transducers A*B where B is not a waiting machine");
   vguard<MachineState> comp (first.nStates() * second.nStates());
   auto compState = [&](State i,State j) -> State {

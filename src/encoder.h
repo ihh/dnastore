@@ -5,91 +5,211 @@
 
 template<class Writer>
 struct Encoder {
+  typedef map<State,deque<InputSymbol> > StateString;
+  typedef typename StateString::iterator StateStringIter;
+
   const Machine& machine;
   Writer& outs;
-  State current;
+  StateString current;
+  bool sentSOF, sentEOF;
   bool msb0;  // set this to encode MSB first, instead of LSB first
 
   Encoder (const Machine& machine, Writer& outs)
     : machine(machine),
       outs(outs),
-      current(machine.startState()),
-      msb0(false)
-  { }
+      msb0(false),
+      sentSOF(false),
+      sentEOF(false)
+  {
+    current[machine.startState()] = deque<OutputSymbol>();
+    expand();
+  }
 
   ~Encoder() {
     close();
   }
 
   void close() {
-    if (!machine.state[current].isEnd()) {
-      advance();
-      if (!canEncodeSymbol (MachineEOF)) {
-	Warn ("Sending FLUSH. This may add padding bits at end of message");
-	encodeSymbol (MachineFlush);
-      }
+    if (!sentEOF)
       encodeSymbol (MachineEOF);
-    }
-  }
-  
-  void write (char outc) {
-    if (outc)
-      (void) outs.write (&outc, 1);
-  }
 
-  void advance() {
-    while (!machine.state[current].exitsWithInput()) {
-      Assert (machine.state[current].isDeterministic(),
-	      "Reached non-deterministic output state during encoding");
-      const MachineTransition& tn = machine.state[current].next();
-      if (tn.out)
-	write (tn.out);
-      LogThisAt(9,"Transition " << machine.state[current].name
-		<< " -> " << machine.state[tn.dest].name
-		<< (tn.out ? (string(": output ") + tn.out) : string())
-		<< endl);
-      current = tn.dest;
+    if (current.size()) {
+      expand();
+      vguard<StateStringIter> ssIter;
+      for (StateStringIter ss = current.begin(); ss != current.end(); ++ss)
+	if (machine.state[ss->first].isEnd())
+	  ssIter.push_back (ss);
+      if (ssIter.size() == 1)
+	flush (ssIter.front());
+      else if (ssIter.size() > 1) {
+	Warn ("Encoder unresolved: %u possible end states", ssIter.size());
+	for (auto ss: ssIter)
+	  Warn ("State %s: output queue %s", machine.state[ss->first].name.c_str(), ss->second.empty() ? "empty" : to_string_join(ss->second,"").c_str());
+      } else if (current.size() > 1) {
+	Warn ("Encoder unresolved: %u possible states", current.size());
+	showQueue();
+      }
+      current.clear();
     }
   }
 
-  bool canEncodeSymbol (char sym) const {
-    return machine.state[current].transFor(sym) != NULL;
+  void showQueue() const {
+    for (const auto& ss: current)
+      Warn ("State %s: output queue %s", machine.state[ss.first].name.c_str(), ss.second.empty() ? "empty" : to_string_join(ss.second,"").c_str());
+  }
+
+  bool atEnd() const {
+    return current.size() == 1 && machine.state[(*current.begin()).first].isEnd();
+  }
+
+  bool canEncodeSymbol (InputSymbol sym) const {
+    for (const auto& ss: current)
+      if (machine.state[ss.first].transFor(sym) != NULL)
+	return true;
+    return false;
   }
   
-  void encodeSymbol (char sym) {
-    if (current == 0 && sym != MachineSOF && canEncodeSymbol(MachineSOF))
+  void expand() {
+    StateString next, seen;
+    bool foundNew;
+    do {
+      foundNew = false;
+      for (const auto& ss: current) {
+	seen.insert (ss);
+	const State state = ss.first;
+	const auto& str = ss.second;
+	const MachineState& ms = machine.state[state];
+	LogThisAt(10,"Output queue for " << ms.name << " is " << (str.empty() ? string("empty") : string(str.begin(),str.end())) << endl);
+	if (ms.isEnd() || ms.exitsWithInput())
+	  next[state] = str;
+      }
+      for (const auto& ss: current) {
+	const State state = ss.first;
+	const auto& str = ss.second;
+	const MachineState& ms = machine.state[state];
+	for (const auto& t: ms.trans)
+	  if (t.inputEmpty()) {
+	    auto nextStr = str;
+	    if (!t.outputEmpty())
+	      nextStr.push_back (t.out);
+	    if (seen.count (t.dest))
+	      Assert (seen.at(t.dest) == nextStr,
+		      "Encoder error: state %s has two possible output queues (%s, %s)",
+		      machine.state[t.dest].name.c_str(),
+		      to_string_join(seen.at(t.dest),"").c_str(),
+		      to_string_join(nextStr,"").c_str());
+	    else {
+	      next[t.dest] = nextStr;
+	      LogThisAt(9,"Transition " << ms.name
+			<< " -> " << machine.state[t.dest].name
+			<< (nextStr.empty() ? string() : (string(": output queue ") + to_string_join(nextStr,"")))
+			<< endl);
+	      foundNew = true;
+	    }
+	  }
+      }
+      current.swap (next);
+      next.clear();
+    } while (foundNew);
+  }
+  
+  void write (const char* s, size_t len) {
+    char* buf = (char*) malloc (sizeof(char) * (len + 1));
+    for (size_t n = 0; n < len; ++n)
+      buf[n] = s[n];
+    buf[len] = '\0';
+    (void) outs.write (buf, len);
+    free (buf);
+  }
+
+  void flush (StateStringIter ss) {
+    const string str (ss->second.begin(), ss->second.end());
+    if (str.size()) {
+      LogThisAt(9,"Flushing output queue: " << str << endl);
+      write (str.c_str(), str.size());
+      ss->second.clear();
+    }
+  }
+
+  void encodeSymbol (InputSymbol inSym) {
+    if (!sentSOF && inSym != MachineSOF && canEncodeSymbol(MachineSOF))
       encodeSymbol (MachineSOF);
-    if (!canEncodeSymbol (sym)) {
+    if (inSym != MachineFlush && !canEncodeSymbol(inSym)) {
 	Warn ("Sending FLUSH. Depending on the code, this may insert extra bits!");
 	encodeSymbol (MachineFlush);
     }
-    LogThisAt(8,"Encoding " << Machine::charToString(sym) << endl);
-    advance();
-    const MachineTransition* t = machine.state[current].transFor (sym);
-    Assert (t != NULL, "Couldn't encode symbol %s in state %s", Machine::charToString(sym).c_str(), machine.state[current].name.c_str());
+    if (!canEncodeSymbol(inSym))
+      showQueue();
+    LogThisAt(8,"Encoding " << Machine::charToString(inSym) << endl);
+    if (inSym == MachineSOF)
+      sentSOF = true;
+    else if (inSym == MachineEOF)
+      sentEOF = true;
+
+    StateString next;
+    for (const auto& ss: current) {
+      const State state = ss.first;
+      const auto& str = ss.second;
+      for (const auto& t: machine.state[state].trans)
+	if (t.in == inSym) {
+	  const State nextState = t.dest;
+	  auto nextStr = str;
+	  if (!t.outputEmpty())
+	    nextStr.push_back (t.out);
+	  Assert (!next.count(nextState) || next.at(nextState) == nextStr,
+		  "Encoder error: state %s has two possible output queues (%s, %s)",
+		  machine.state[nextState].name.c_str(),
+		  to_string_join(next.at(nextState),"").c_str(),
+		  to_string_join(nextStr,"").c_str());
+	  next[nextState] = nextStr;
+	  LogThisAt(9,"Transition " << machine.state[state].name
+		    << " -> " << machine.state[nextState].name
+		    << ": "
+		    << (nextStr.empty() ? string() : (string("output queue ") + to_string_join(nextStr,"") + ", "))
+		    << "input " << t.in
+		    << endl);
+	}
+    }
+    Assert (!next.empty(), "Can't encode symbol '%c'", inSym);
+    current.swap (next);
+    expand();
+    if (current.size() == 1) {
+      auto iter = current.begin();
+      const MachineState& ms = machine.state[iter->first];
+      if (ms.emitsOutput())
+	flush (iter);
+    } else
+      shiftResolvedSymbols();
+  }
+
+  void shiftResolvedSymbols() {
     while (true) {
-      if (t->out)
-	write (t->out);
-      LogThisAt(9,"Transition " << machine.state[current].name
-		<< " -> " << machine.state[t->dest].name << ": "
-		<< (t->in ? (string("input ") + Machine::charToString(t->in)) : string())
-		<< (t->out ? ((t->in ? string(", ") : string()) + "output " + t->out) : string())
-		<< endl);
-      current = t->dest;
-      if (machine.state[current].exitsWithInput() || machine.state[current].isEnd())
+      bool foundQueue = false, queueNonempty, firstCharSame;
+      OutputSymbol firstChar;
+      for (const auto& ss: current) {
+	if (!foundQueue) {
+	  if ((queueNonempty = !ss.second.empty()))
+	    firstChar = ss.second[0];
+	  foundQueue = firstCharSame = true;
+	} else if (queueNonempty
+		   && (ss.second.empty()
+		       || firstChar != ss.second[0])) {
+	  firstCharSame = false;
+	  break;
+	}
+      }
+      if (foundQueue && queueNonempty && firstCharSame) {
+	LogThisAt(9,"All output queues have '" << firstChar << "' as first symbol; shifting" << endl);
+	write (&firstChar, 1);
+	for (auto& ss: current)
+	  ss.second.erase (ss.second.begin());
+      } else
 	break;
-      Assert (machine.state[current].isDeterministic(),
-	      "Reached non-deterministic output state during encoding");
-      t = &machine.state[current].next();
     }
   }
 
   void encodeBit (bool bit) {
     encodeSymbol (bit ? MachineBit1 : MachineBit0);
-  }
-
-  void encodeMeta (ControlIndex control) {
-    encodeSymbol (Machine::controlChar (control));
   }
 
   template<typename CharType>

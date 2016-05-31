@@ -6,7 +6,7 @@
 
 template<class Writer>
 struct Decoder {
-  typedef map<State,deque<char> > StateString;
+  typedef map<State,deque<InputSymbol> > StateString;
   typedef typename StateString::iterator StateStringIter;
   
   const Machine& machine;
@@ -17,7 +17,7 @@ struct Decoder {
     : machine(machine),
       outs(outs)
   {
-    current[machine.startState()] = deque<char>();
+    current[machine.startState()] = deque<InputSymbol>();
     expand();
   }
 
@@ -40,11 +40,15 @@ struct Decoder {
 	  Warn ("State %s: input queue %s", machine.state[ss->first].name.c_str(), ss->second.empty() ? "empty" : to_string_join(ss->second,"").c_str());
       } else if (current.size() > 1) {
 	Warn ("Decoder unresolved: %u possible states", current.size());
-	for (const auto& ss: current)
-	  Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), ss.second.empty() ? "empty" : to_string_join(ss.second,"").c_str());
+	showQueue();
       }
       current.clear();
     }
+  }
+
+  void showQueue() const {
+    for (const auto& ss: current)
+      Warn ("State %s: input queue %s", machine.state[ss.first].name.c_str(), ss.second.empty() ? "empty" : to_string_join(ss.second,"").c_str());
   }
   
   void expand() {
@@ -57,7 +61,7 @@ struct Decoder {
 	const State state = ss.first;
 	const auto& str = ss.second;
 	const MachineState& ms = machine.state[state];
-	LogThisAt(10,"Input queue for " << ms.name << " is " << string(str.begin(),str.end()) << endl);
+	LogThisAt(10,"Input queue for " << ms.name << " is " << (str.empty() ? string("empty") : string(str.begin(),str.end())) << endl);
 	if (ms.isEnd() || ms.emitsOutput())
 	  next[state] = str;
       }
@@ -66,12 +70,16 @@ struct Decoder {
 	const auto& str = ss.second;
 	const MachineState& ms = machine.state[state];
 	for (const auto& t: ms.trans)
-	  if (isUsable(t) && !t.out) {
+	  if (isUsable(t) && t.outputEmpty()) {
 	    auto nextStr = str;
 	    if (!t.inputEmpty())
 	      nextStr.push_back (t.in);
 	    if (seen.count (t.dest))
-	      Assert (seen.at(t.dest) == nextStr, "Decoder error");
+	      Assert (seen.at(t.dest) == nextStr,
+		      "Decoder error: state %s has two possible input queues (%s, %s)",
+		      machine.state[t.dest].name.c_str(),
+		      to_string_join(seen.at(t.dest),"").c_str(),
+		      to_string_join(nextStr,"").c_str());
 	    else {
 	      next[t.dest] = nextStr;
 	      LogThisAt(9,"Transition " << ms.name
@@ -112,21 +120,23 @@ struct Decoder {
       || Machine::isControl(t.in);
   }
   
-  void decodeBase (char base) {
-    base = toupper(base);
-    LogThisAt(8,"Decoding " << base << endl);
+  void decodeSymbol (OutputSymbol outSym) {
+    LogThisAt(8,"Decoding " << outSym << endl);
     StateString next;
     for (const auto& ss: current) {
       const State state = ss.first;
       const auto& str = ss.second;
       for (const auto& t: machine.state[state].trans)
-	if (isUsable(t) && t.out == base) {
+	if (isUsable(t) && t.out == outSym) {
 	  const State nextState = t.dest;
 	  auto nextStr = str;
 	  if (!t.inputEmpty())
 	    nextStr.push_back (t.in);
 	  Assert (!next.count(nextState) || next.at(nextState) == nextStr,
-		  "Multiple outputs decode to single state");
+		  "Decoder error: state %s has two possible input queues (%s, %s)",
+		  machine.state[nextState].name.c_str(),
+		  to_string_join(next.at(nextState),"").c_str(),
+		  to_string_join(nextStr,"").c_str());
 	  next[nextState] = nextStr;
 	  LogThisAt(9,"Transition " << machine.state[state].name
 		    << " -> " << machine.state[nextState].name
@@ -136,7 +146,7 @@ struct Decoder {
 		    << endl);
 	}
     }
-    Assert (!next.empty(), "No inputs consistent with given output sequence");
+    Assert (!next.empty(), "Can't decode '%c'", outSym);
     current.swap (next);
     expand();
     if (current.size() == 1) {
@@ -151,7 +161,7 @@ struct Decoder {
   void shiftResolvedSymbols() {
     while (true) {
       bool foundQueue = false, queueNonempty, firstCharSame;
-      char firstChar;
+      InputSymbol firstChar;
       for (const auto& ss: current) {
 	if (!foundQueue) {
 	  if ((queueNonempty = !ss.second.empty()))
@@ -176,7 +186,7 @@ struct Decoder {
 
   void decodeString (const string& seq) {
     for (char c: seq)
-      decodeBase (c);
+      decodeSymbol (toupper (c));
   }
 };
 
