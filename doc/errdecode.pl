@@ -8,11 +8,16 @@ use File::Temp;
 use File::Basename;
 use Cwd qw(abs_path);
 
-my $root = abs_path (dirname("$0") . "/..");
-my $dnastore = "$root/bin/dnastore";
-my $h74path = "$root/data/hamming74.json";
-my $m2path = "$root/data/mixradar2.json";
-my $m6path = "$root/data/mixradar6.json";
+my $rootdir = abs_path (dirname($0) . "/..");
+my $bindir = "$rootdir/bin";
+my $datadir = "$rootdir/data";
+
+my $dnastore = "$bindir/dnastore";
+
+my $h74path = "$datadir/hamming74.json";
+my $m2path = "$datadir/mixradar2.json";
+my $m6path = "$datadir/mixradar6.json";
+my $flusherpath = "$datadir/flusher.json";
 
 my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
@@ -88,7 +93,8 @@ my $cmdstub = "$dnastore --verbose $dnastore_verbose";
 my $ctrlargs = $codelen < 4 ? " --controls 1" : "";
 my $hamargs = $hamming ? " --compose-machine $h74path" : "";
 my $mixargs = $mixradar2 ? " --compose-machine $m2path" : ($mixradar6 ? " --compose-machine $m6path" : "");
-syswarn ("$cmdstub --length $codelen $ctrlargs $hamargs $mixargs --save-machine $machine");
+my $flushargs = $syncfreq ? " --compose-machine $flusherpath" : "";
+syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";
 
 for my $subrate (split /,/, $subrates) {
