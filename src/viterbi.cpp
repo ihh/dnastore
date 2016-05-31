@@ -21,7 +21,6 @@ MachineScores::MachineScores (const Machine& machine, const InputModel& inputMod
   : stateScores (machine.nStates())
 {
   machine.verifyContexts();
-  Assert (machine.isWaitingMachine(), "Not a waiting machine");
   for (char c: machine.outputAlphabet())
     Assert (isValidToken(c,dnaAlphabetString), "Not a DNA-outputting machine");
 

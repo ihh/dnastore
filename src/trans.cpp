@@ -466,7 +466,6 @@ void Machine::readJSON (istream& in) {
     state.push_back (ms);
   }
   verifyContexts();
-  Assert (isWaitingMachine(), "Not a waiting machine");
 }
 
 Machine Machine::fromJSON (istream& in) {
