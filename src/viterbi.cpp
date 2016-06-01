@@ -6,9 +6,11 @@
 InputModel::InputModel (const string& inAlph, double symWeight, double controlWeight)
   : inputAlphabet(inAlph)
 {
+  double norm = 0;
   for (char c: inputAlphabet)
-    symProb[c] = Machine::isControl(c) ? controlWeight : symWeight;
-  // do not force-normalize, it penalizes non-control symbols too much...
+    norm += (symProb[c] = Machine::isControl(c) ? controlWeight : symWeight);
+  for (auto& sp: symProb)
+    sp.second /= norm;
 }
 
 string InputModel::toString() const {
@@ -38,12 +40,19 @@ MachineScores::MachineScores (const Machine& machine, const InputModel& inputMod
 	its.src = s;
 	its.score = inputModel.symProb.count(t.in) ? log(inputModel.symProb.at(t.in)) : 0;
 	its.in = t.in;
+
+	OutgoingTransScore ots;
+	ots.dest = t.dest;
+	ots.score = its.score;
+	
 	StateScores& destStateScores = stateScores[t.dest];
-	if (t.outputEmpty())
-	  destStateScores.null.push_back (its);
-	else {
+	if (t.outputEmpty()) {
+	  destStateScores.incomingNull.push_back (its);
+	  ss.outgoingNull.push_back (ots);
+	} else {
 	  its.base = charToBase (t.out);
-	  destStateScores.emit.push_back (its);
+	  destStateScores.incomingEmit.push_back (its);
+	  ss.outgoingEmit.push_back (ots);
 	}
       }
     }
@@ -73,26 +82,23 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
   plog.initProgress ("Filling Viterbi matrix (%d*%d cells)", seqLen, machine.nStates());
 
   const auto stateOrder = machine.decoderToposort (inputModel.inputAlphabet);
+  const deque<State> allStates (stateOrder.begin(), stateOrder.end());
+  deque<State> pushStates;
   for (Pos pos = 0; pos <= seqLen; ++pos) {
     plog.logProgress (pos / (double) seqLen, "row %d/%d", pos, seqLen);
     for (State state: stateOrder) {
       const StateScores& ss = machineScores.stateScores[state];
       const auto mdl = maxDupLenAt(ss);
 
-      for (const auto& its: ss.emit) {
-	dCell(state,pos) = max (dCell(state,pos),
-				max (dCell(its.src,pos) + its.score + mutatorScores.delExtend,
-				     sCell(its.src,pos) + its.score + mutatorScores.delOpen));
-	if (pos > 0)
+      if (pos > 0)
+	for (const auto& its: ss.incomingEmit)
 	  sCell(state,pos) = max (sCell(state,pos),
 				  sCell(its.src,pos-1) + its.score + mutatorScores.noGap + mutatorScores.sub[its.base][seq[pos-1]]);
-      }
-      for (const auto& its: ss.null) {
-	dCell(state,pos) = max (dCell(state,pos),
-				dCell(its.src,pos) + its.score);
+
+      for (const auto& its: ss.incomingNull)
 	sCell(state,pos) = max (sCell(state,pos),
 				sCell(its.src,pos) + its.score);
-      }
+
       sCell(state,pos) = max (sCell(state,pos),
 			      dCell(state,pos) + mutatorScores.delEnd);
 
@@ -108,6 +114,33 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 	for (Pos dupIdx = 0; dupIdx < mdl; ++dupIdx)
 	  tCell(state,pos,dupIdx) = max (tCell(state,pos,dupIdx),
 					 sCell(state,pos) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
+      }
+
+      for (const auto& ots: ss.outgoingEmit)
+	dCell(ots.dest,pos) = max (dCell(ots.dest,pos),
+				   sCell(state,pos) + ots.score + mutatorScores.delOpen);
+    }
+
+    pushStates = allStates;
+    while (!pushStates.empty()) {
+      const State state = pushStates.front();
+      pushStates.pop_front();
+      const StateScores& ss = machineScores.stateScores[state];
+
+      for (const auto& ots: ss.outgoingEmit) {
+	const LogProb sc = dCell(state,pos) + ots.score + mutatorScores.delExtend;
+	if (sc > dCell(ots.dest,pos)) {
+	  dCell(ots.dest,pos) = sc;
+	  pushStates.push_back (ots.dest);
+	}
+      }
+
+      for (const auto& ots: ss.outgoingNull) {
+	const LogProb sc = dCell(state,pos) + ots.score;
+	if (sc > dCell(ots.dest,pos)) {
+	  dCell(ots.dest,pos) = sc;
+	  pushStates.push_back (ots.dest);
+	}
       }
     }
   }
@@ -195,9 +228,9 @@ string ViterbiMatrix::traceback() const {
     if (mutState == sMutStateIndex()) {
 
       if (pos > 0)
-	for (const auto& its: ss.emit)
+	for (const auto& its: ss.incomingEmit)
 	  updateBest (its.src, pos-1, sMutStateIndex(), its.score + mutatorScores.noGap + mutatorScores.sub[its.base][seq[pos-1]], &its);
-      for (const auto& its: ss.null)
+      for (const auto& its: ss.incomingNull)
 	updateBest (its.src, pos, sMutStateIndex(), its.score, &its);
       updateBest (state, pos, dMutStateIndex(), mutatorScores.delEnd, NULL);
 
@@ -212,11 +245,11 @@ string ViterbiMatrix::traceback() const {
 
     } else if (mutState == dMutStateIndex()) {
 
-      for (const auto& its: ss.emit) {
+      for (const auto& its: ss.incomingEmit) {
 	updateBest (its.src, pos, dMutStateIndex(), its.score + mutatorScores.delExtend, &its);
 	updateBest (its.src, pos, sMutStateIndex(), its.score + mutatorScores.delOpen, &its);
       }
-      for (const auto& its: ss.null)
+      for (const auto& its: ss.incomingNull)
 	updateBest (its.src, pos, dMutStateIndex(), its.score, &its);
 
       if (bestIts)
@@ -251,7 +284,7 @@ vguard<FastSeq> decodeFastSeqs (const char* filename, const Machine& machine, co
   const vguard<FastSeq> outseqs = readFastSeqs (filename);
   vguard<FastSeq> inseqs;
   const string inAlph = machine.inputAlphabet (MachineRelaxedInputFlag | MachineControlInputFlag | MachineSEOFInputFlag);
-  InputModel inmod (inAlph);
+  const InputModel inmod (inAlph, 1., pow(4.,-(double)mutatorParams.maxDupLen()));
   LogThisAt(6,"Input model for Viterbi decoding:" << endl << inmod.toString());
   for (auto& outseq: outseqs) {
     ViterbiMatrix vit (machine, inmod, mutatorParams, outseq);

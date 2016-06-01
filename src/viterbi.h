@@ -4,10 +4,14 @@
 #include "mutator.h"
 #include "fastseq.h"
 
+// default probabilistic weighting for control chars means that a 14-base sequence is less probable than the control character that generates it
+// i.e. it's optimized for ~14-base codewords
+#define DefaultInputModelControlWeight 1e-9
+
 struct InputModel {
   string inputAlphabet;
   map<InputSymbol,double> symProb;
-  InputModel (const string& inputAlphabet, double symWeight = 1., double controlWeight = 1.);
+  InputModel (const string& inputAlphabet, double symWeight = 1., double controlWeight = DefaultInputModelControlWeight);
   string toString() const;
 };
 
@@ -18,9 +22,15 @@ struct IncomingTransScore {
   Base base;
 };
 
+struct OutgoingTransScore {
+  State dest;
+  LogProb score;
+};
+
 struct StateScores {
   vguard<Base> leftContext;
-  vguard<IncomingTransScore> emit, null;
+  vguard<IncomingTransScore> incomingEmit, incomingNull;
+  vguard<OutgoingTransScore> outgoingEmit, outgoingNull;
   inline Base base() const { return leftContext.back(); }
 };
 
