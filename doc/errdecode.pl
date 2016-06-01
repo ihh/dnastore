@@ -111,7 +111,7 @@ if (defined $syncfreq) {
 }
 my $flushargs = $syncfreq ? " --compose-machine $syncpath --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
-my $cmd = "$cmdstub --load-machine $machine";
+my $cmd = "$cmdstub --length $codelen --load-machine $machine";
 
 print " ", join (" ", qw(SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit)), "\n";
 my $nRows = 0;

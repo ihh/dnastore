@@ -78,12 +78,13 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
   else
     sCell(0,0) = 0;
 
+  const auto stateOrder = machine.decoderToposort (inputModel.inputAlphabet);
+  const vguard<State> allStates (stateOrder.begin(), stateOrder.end());
+  vguard<State> pushStates;
+
   ProgressLog (plog, 2);
   plog.initProgress ("Filling Viterbi matrix (%d*%d cells)", seqLen, machine.nStates());
 
-  const auto stateOrder = machine.decoderToposort (inputModel.inputAlphabet);
-  const deque<State> allStates (stateOrder.begin(), stateOrder.end());
-  deque<State> pushStates;
   for (Pos pos = 0; pos <= seqLen; ++pos) {
     plog.logProgress (pos / (double) seqLen, "row %d/%d", pos, seqLen);
     for (State state: stateOrder) {
@@ -109,9 +110,11 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
     }
 
     pushStates = allStates;
+    vguard<bool> onStack (machine.nStates(), true);
     while (!pushStates.empty()) {
-      const State state = pushStates.front();
-      pushStates.pop_front();
+      const State state = pushStates.back();
+      pushStates.pop_back();
+      onStack[state] = false;
       const StateScores& ss = machineScores.stateScores[state];
 
       sCell(state,pos) = max (sCell(state,pos),
@@ -123,7 +126,10 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 
 	if (dsc > dCell(ots.dest,pos)) {
 	  dCell(ots.dest,pos) = dsc;
-	  pushStates.push_back (ots.dest);
+	  if (!onStack[ots.dest]) {
+	    pushStates.push_back (ots.dest);
+	    onStack[ots.dest] = true;
+	  }
 	}
       }
 
@@ -141,8 +147,10 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 	  push = true;
 	}
 
-	if (push)
+	if (push && !onStack[ots.dest]) {
 	  pushStates.push_back (ots.dest);
+	  onStack[ots.dest] = true;
+	}
       }
     }
 

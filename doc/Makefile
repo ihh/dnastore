@@ -117,7 +117,7 @@ dnastoretab.tex: dnastoretab.pl
 errtabs: len4.subs.tab len4.mix2.subs.tab len4.mix2.dels.tab len4.mix2.dups.tab len8.mix2.dups.tab len4.ham.subs.tab len4.sync.mix2.dels.tab len4.sync.ham.dels.tab
 
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
-ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10
+ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10 -u 3
 
 len4.subs.tab:
 	$(ERRDECODE) -codelen 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
