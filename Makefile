@@ -88,7 +88,7 @@ GLOBAL = --error-global
 NOERRS = $(NOSUBS) $(NODUPS) $(NODELS) $(GLOBAL)
 ONLYDUPS = $(NOSUBS) $(NODELS) $(GLOBAL)
 
-test: testpattern testmachine testencode testdecode testviterbi testcompose testham testsync testfit
+test: testpattern testmachine testencode testdecode testviterbi testcompose testham testsync testsyncham testfit
 
 testpattern: bin/testpattern
 	$<
@@ -134,3 +134,11 @@ testsync: data/sync16.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-file data/hello.s16mr2.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa $(NOERRS) --raw data/hello.exact.bits
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa --raw data/hello.exact.bits
+
+testsyncham: data/sync16.json data/hamming74.json
+	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/sync16.json --compose-machine data/flusher.json --compose-machine data/hamming74.json --load-machine data/l4c4.json --save-machine - data/s16h74l4c4.json
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --encode-file data/hello.txt data/hello.s16h74.fa
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --decode-file data/hello.s16h74.fa data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --decode-viterbi data/hello.s16h74.fa $(NOERRS) --raw data/hello.exact.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --decode-viterbi data/hello.s16h74.fa --raw data/hello.exact.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --decode-viterbi data/hello.s16h74.del.fa --raw data/hello.exact.bits
