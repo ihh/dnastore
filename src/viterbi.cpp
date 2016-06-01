@@ -79,8 +79,6 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
     sCell(0,0) = 0;
 
   const auto stateOrder = machine.decoderToposort (inputModel.inputAlphabet);
-  const vguard<State> allStates (stateOrder.begin(), stateOrder.end());
-  vguard<State> pushStates;
 
   ProgressLog (plog, 2);
   plog.initProgress ("Filling Viterbi matrix (%d*%d cells)", seqLen, machine.nStates());
@@ -109,7 +107,7 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
       }
     }
 
-    pushStates = allStates;
+    vguard<State> pushStates = stateOrder;
     vguard<bool> onStack (machine.nStates(), true);
     while (!pushStates.empty()) {
       const State state = pushStates.back();
@@ -117,15 +115,18 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
       onStack[state] = false;
       const StateScores& ss = machineScores.stateScores[state];
 
-      sCell(state,pos) = max (sCell(state,pos),
-			      dCell(state,pos) + mutatorScores.delEnd);
-
+      const LogProb dsrc = dCell(state,pos);
+      const LogProb ssrc = max (sCell(state,pos),
+				dsrc + mutatorScores.delEnd);
+      sCell(state,pos) = ssrc;
+      
       for (const auto& ots: ss.outgoingEmit) {
-	const LogProb dsc = max (dCell(state,pos) + mutatorScores.delExtend,
-				 sCell(state,pos) + mutatorScores.delOpen) + ots.score;
+	const LogProb dsc = max (dsrc + mutatorScores.delExtend,
+				 ssrc + mutatorScores.delOpen) + ots.score;
 
-	if (dsc > dCell(ots.dest,pos)) {
-	  dCell(ots.dest,pos) = dsc;
+	LogProb& ddest = dCell(ots.dest,pos);
+	if (dsc > ddest) {
+	  ddest = dsc;
 	  if (!onStack[ots.dest]) {
 	    pushStates.push_back (ots.dest);
 	    onStack[ots.dest] = true;
@@ -134,16 +135,19 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
       }
 
       for (const auto& ots: ss.outgoingNull) {
-	const LogProb dsc = dCell(state,pos) + ots.score;
 	bool push = false;
-	if (dsc > dCell(ots.dest,pos)) {
-	  dCell(ots.dest,pos) = dsc;
+
+	const LogProb dsc = dsrc + ots.score;
+	LogProb& ddest = dCell(ots.dest,pos);
+	if (dsc > ddest) {
+	  ddest = dsc;
 	  push = true;
 	}
 
-	const LogProb ssc = sCell(state,pos) + ots.score;
-	if (ssc > sCell(ots.dest,pos)) {
-	  sCell(ots.dest,pos) = ssc;
+	const LogProb ssc = ssrc + ots.score;
+	LogProb& sdest = sCell(ots.dest,pos);
+	if (ssc > sdest) {
+	  sdest = ssc;
 	  push = true;
 	}
 
