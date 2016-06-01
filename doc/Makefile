@@ -120,28 +120,28 @@ LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.
 ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10
 
 len4.subs.tab:
-	$(ERRDECODE) -codelen 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0
+	$(ERRDECODE) -codelen 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
 len4.mix2.subs.tab:
-	$(ERRDECODE) -codelen 4 -mix2 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
 len4.mix2.dels.tab:
-	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate $(LOGSCALE) -duprate 0
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
 len4.mix2.dups.tab:
-	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4 >$@
 
 len8.mix2.dups.tab:
-	$(ERRDECODE) -codelen 8 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
+	$(ERRDECODE) -codelen 8 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4 >$@
 
 len4.ham.subs.tab:
-	$(ERRDECODE) -codelen 4 -hamming -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0
+	$(ERRDECODE) -codelen 4 -hamming -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
 len4.sync.mix2.dels.tab:
-	$(ERRDECODE) -codelen 4 -syncfreq 64 -mix2 -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0
+	$(ERRDECODE) -codelen 4 -syncfreq 64 -mix2 -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
 
 len4.sync.ham.dels.tab:
-	$(ERRDECODE) -codelen 4 -syncfreq 64 -hamming -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0
+	$(ERRDECODE) -codelen 4 -syncfreq 64 -hamming -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
 
 # Paper rules:
 %.ps: %.tex figures bib $(TEXINCLUDES)
