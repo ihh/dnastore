@@ -88,10 +88,15 @@ GLOBAL = --error-global
 NOERRS = $(NOSUBS) $(NODUPS) $(NODELS) $(GLOBAL)
 ONLYDUPS = $(NOSUBS) $(NODELS) $(GLOBAL)
 
-test: testpattern testmachine testencode testdecode testviterbi testcompose testham testsync testsyncham testfit
+test: testpattern testdist testmachine testencode testdecode testviterbi testcompose testham testsync testsyncham testfit
 
 testpattern: bin/testpattern
 	$<
+
+testdist: bin/editdist
+	@$(TEST) $< ABCDEF ADEF 2
+	@$(TEST) $< '""' '""' 0
+	@$(TEST) $< '""' 'ABC' 3
 
 testmachine: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --length 4 --controls 4 --save-machine - data/l4c4.json

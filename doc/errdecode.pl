@@ -13,6 +13,7 @@ my $bindir = "$rootdir/bin";
 my $datadir = "$rootdir/data";
 
 my $dnastore = "$bindir/dnastore";
+my $editdist = "$bindir/editdist";
 
 my $h74path = "$datadir/hamming74.json";
 my $m2path = "$datadir/mixradar2.json";
@@ -25,7 +26,7 @@ my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
 my ($delrates, $maxdelsize) = (0, 10);
 my ($subrates, $ivratio) = (0, 10);
-my $band = 100;
+my $band;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
 my ($hamming, $mixradar2, $mixradar6, $syncfreq, $exacterrs, $keeptmp, $help);
@@ -46,7 +47,7 @@ my $usage = "Usage: $0 [options]\n"
     . " -maxdelsize,-f <n>   maximum length of deletions (default $maxdelsize)\n"
     . " -subrate,-s <n,n...> comma-separated list of substitution rates (default $subrates)\n"
     . " -ivratio,-i <n>      transition/transversion ratio (default $ivratio)\n"
-    . " -width,-w <n>        width of DP band for edit distance calculations (default $band)\n"
+    . " -width,-w <n>        limit width of DP band for edit distance calculations\n"
     . " -reps,-r <n>         number of repeat simulations at each (subrate,duprate,delrate) setting\n"
     . " -trainalign,-t <n>   number of pairwise alignments in training set for error model (default $trainalign)\n"
     . " -exacterrs,-x        don't train error model on data; cheat by giving it simulation arguments\n"
@@ -295,43 +296,9 @@ sub syswarn {
 }
 
 # Calculate Levenshtein edit distance
+# (reimplemented as separate C++ program for speed)
 sub editDistance {
     my ($x, $y, $band) = @_;
-    my $diff = length($y) - length($x);
-    my ($bmin, $bmax) = (max (int($band/2), -$diff),
-			 max (int($band/2), $diff));
-    my @cell;
-    my ($prev_jmin, $prev_jmax);
-    my ($xlen, $ylen) = map (length($_), $x, $y);
-    my $inf = $xlen + $ylen;  # max possible edit distance
-    for (my $i = 0; $i <= $xlen; ++$i) {
-	my $jmin = max (0, $i - $bmin);
-	my $jmax = min ($ylen, $i + $bmax);
-	if ($i >= 2) { shift @cell }
-	push @cell, [map ($inf, $jmin..$jmax)];
-	my $xi = $i > 0 ? substr($x,$i-1,1) : '?x';
-	warn "cell[0] = (@{$cell[0]})\n" if @cell > 0 && $verbose >= 9;
-	warn "cell[1] = (@{$cell[1]})\n" if @cell > 1 && $verbose >= 9;
-	for (my $j = $jmin; $j <= $jmax; ++$j) {
-	    my $yj = $j > 0 ? substr($y,$j-1,1) : '?y';
-	    my $sc = $inf;
-	    if ($i == 0 && $j == 0) {
-		$sc = 0;
-	    }
-	    if ($i > 0 && $j <= $prev_jmax) {
-		$sc = min ($sc, $cell[0]->[$j-$prev_jmin] + 1);
-		if ($j > $prev_jmin) {
-		    $sc = min ($sc, $cell[0]->[$j-$prev_jmin-1] + ($xi eq $yj ? 0 : 1));
-		}
-	    }
-	    if ($j > $jmin) {
-		$sc = min ($sc, $cell[-1]->[$j-$jmin-1] + 1);
-	    }
-	    $cell[-1]->[$j-$jmin] = $sc;
-	    warn "i=$i xi=$xi j=$j yj=$yj sc=$sc\n" if $verbose >= 9;
-	}
-	($prev_jmin, $prev_jmax) = ($jmin, $jmax);
-    }
-    my $dist = $cell[1]->[-1];
-    return defined($dist) ? $dist : $inf;
+    $band = "" unless defined $band;
+    return `$editdist $x $y $band` + 0;
 }
