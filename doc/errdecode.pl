@@ -52,8 +52,8 @@ my $usage = "Usage: $0 [options]\n"
     . " -exacterrs,-x        don't train error model on data; cheat by giving it simulation arguments\n"
     . " -seed <n>            seed random number generator (default $rndseed)\n"
     . " -keeptmp,-k          keep temporary files\n"
-    . " -verbose,-v          print log messages on stderr\n"
-    . " -dnastore-verbose,-u set verbosity level for dnastore\n"
+    . " -verbose,-v <n>      set verbosity level (default $verbose)\n"
+    . " -ds-verbose,-u <n>   set verbosity level for dnastore (default $dnastore_verbose)\n"
     . " -help,-h             print this help text\n"
     ;
 
@@ -77,7 +77,7 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "seed=i" => \$rndseed,
 	    "keeptmp" => \$keeptmp,
 	    "verbose=i" => \$verbose,
-	    "dnastore-verbose|u=i" => \$dnastore_verbose,
+	    "ds-verbose|u=i" => \$dnastore_verbose,
 	    "help" => \$help)
     or die $usage;
 
