@@ -99,26 +99,13 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
 	sCell(state,pos) = max (sCell(state,pos),
 				sCell(its.src,pos) + its.score);
 
-      sCell(state,pos) = max (sCell(state,pos),
-			      dCell(state,pos) + mutatorScores.delEnd);
+      if (mdl > 0 && pos > 0) {
+	sCell(state,pos) = max (sCell(state,pos),
+				tCell(state,pos-1,0) + mutatorScores.sub[tanDupBase(ss,0)][seq[pos-1]]);
 
-      if (mdl > 0) {
-	if (pos > 0) {
-	  sCell(state,pos) = max (sCell(state,pos),
-				  tCell(state,pos-1,0) + mutatorScores.sub[tanDupBase(ss,0)][seq[pos-1]]);
-
-	  for (Pos dupIdx = 0; dupIdx < mdl - 1; ++dupIdx)
-	    tCell(state,pos,dupIdx) = tCell(state,pos-1,dupIdx+1) + mutatorScores.sub[tanDupBase(ss,dupIdx+1)][seq[pos-1]];
-	}
-
-	for (Pos dupIdx = 0; dupIdx < mdl; ++dupIdx)
-	  tCell(state,pos,dupIdx) = max (tCell(state,pos,dupIdx),
-					 sCell(state,pos) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
+	for (Pos dupIdx = 0; dupIdx < mdl - 1; ++dupIdx)
+	  tCell(state,pos,dupIdx) = tCell(state,pos-1,dupIdx+1) + mutatorScores.sub[tanDupBase(ss,dupIdx+1)][seq[pos-1]];
       }
-
-      for (const auto& ots: ss.outgoingEmit)
-	dCell(ots.dest,pos) = max (dCell(ots.dest,pos),
-				   sCell(state,pos) + ots.score + mutatorScores.delOpen);
     }
 
     pushStates = allStates;
@@ -127,22 +114,46 @@ ViterbiMatrix::ViterbiMatrix (const Machine& machine, const InputModel& inputMod
       pushStates.pop_front();
       const StateScores& ss = machineScores.stateScores[state];
 
+      sCell(state,pos) = max (sCell(state,pos),
+			      dCell(state,pos) + mutatorScores.delEnd);
+
       for (const auto& ots: ss.outgoingEmit) {
-	const LogProb sc = dCell(state,pos) + ots.score + mutatorScores.delExtend;
-	if (sc > dCell(ots.dest,pos)) {
-	  dCell(ots.dest,pos) = sc;
+	const LogProb dsc = max (dCell(state,pos) + mutatorScores.delExtend,
+				 sCell(state,pos) + mutatorScores.delOpen) + ots.score;
+
+	if (dsc > dCell(ots.dest,pos)) {
+	  dCell(ots.dest,pos) = dsc;
 	  pushStates.push_back (ots.dest);
 	}
       }
 
       for (const auto& ots: ss.outgoingNull) {
-	const LogProb sc = dCell(state,pos) + ots.score;
-	if (sc > dCell(ots.dest,pos)) {
-	  dCell(ots.dest,pos) = sc;
-	  pushStates.push_back (ots.dest);
+	const LogProb dsc = dCell(state,pos) + ots.score;
+	bool push = false;
+	if (dsc > dCell(ots.dest,pos)) {
+	  dCell(ots.dest,pos) = dsc;
+	  push = true;
 	}
+
+	const LogProb ssc = sCell(state,pos) + ots.score;
+	if (ssc > sCell(ots.dest,pos)) {
+	  sCell(ots.dest,pos) = ssc;
+	  push = true;
+	}
+
+	if (push)
+	  pushStates.push_back (ots.dest);
       }
     }
+
+    if (pos > 0)
+      for (State state = 0; state < machine.nStates(); ++state) {
+	const StateScores& ss = machineScores.stateScores[state];
+	const auto mdl = maxDupLenAt (ss);
+	for (Pos dupIdx = 0; dupIdx < mdl; ++dupIdx)
+	  tCell(state,pos,dupIdx) = max (tCell(state,pos,dupIdx),
+					 sCell(state,pos) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
+      }
   }
 
   if (mutatorParams.local)
