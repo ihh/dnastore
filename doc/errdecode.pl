@@ -112,6 +112,8 @@ my $flushargs = $syncfreq ? " --compose-machine $syncpath --compose-machine $flu
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";
 
+print " ", join (" ", qw(SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit)), "\n";
+my $nRows = 0;
 for my $subrate (split /,/, $subrates) {
     for my $duprate (split /,/, $duprates) {
 	for my $delrate (split /,/, $delrates) {
@@ -179,7 +181,7 @@ for my $subrate (split /,/, $subrates) {
 	    }
 	    my $distmean = sum(@dist) / @dist;
 	    my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
-	    print "$subrate $duprate $delrate $distmean $distsd\n";
+	    print join (" ", ++$nRows, $subrate, $duprate, $delrate, $distmean, $distsd), "\n";
 	}
     }
 }
