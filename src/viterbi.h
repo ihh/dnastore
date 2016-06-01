@@ -7,7 +7,7 @@
 struct InputModel {
   string inputAlphabet;
   map<InputSymbol,double> symProb;
-  InputModel (const string& inputAlphabet);
+  InputModel (const string& inputAlphabet, double symWeight = 1., double controlWeight = 1.);
   string toString() const;
 };
 

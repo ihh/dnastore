@@ -157,8 +157,13 @@ int main (int argc, char** argv) {
 
       // save transducer
       if (vm.count("save-machine")) {
-	ofstream out (vm.at("save-machine").as<string>());
-	machine.writeJSON (out);
+	const string savefile = vm.at("save-machine").as<string>();
+	if (savefile == "-")
+	  machine.writeJSON (cout);
+	else {
+	  ofstream out (savefile);
+	  machine.writeJSON (out);
+	}
       }
 
       // encoding or decoding?

@@ -3,11 +3,12 @@
 #include "viterbi.h"
 #include "logger.h"
 
-InputModel::InputModel (const string& inAlph)
+InputModel::InputModel (const string& inAlph, double symWeight, double controlWeight)
   : inputAlphabet(inAlph)
 {
   for (char c: inputAlphabet)
-    symProb[c] = 1. / (double) inputAlphabet.size();
+    symProb[c] = Machine::isControl(c) ? controlWeight : symWeight;
+  // do not force-normalize, it penalizes non-control symbols too much...
 }
 
 string InputModel::toString() const {

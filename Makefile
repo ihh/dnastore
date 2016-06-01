@@ -80,8 +80,36 @@ data/sync%.json: bin/syncer.pl
 	perl $< $* >$@
 
 # Tests
+TEST = t/testexpect.pl
+NOERRS = --error-sub-prob 0 --error-dup-prob 0 --error-del-open 0 --error-global
 
-test: testpattern
+test: testpattern testmachine testencode testdecode testviterbi testcompose testfit
 
 testpattern: bin/testpattern
-	bin/testpattern
+	$<
+
+testmachine:
+	@$(TEST) bin/$(MAIN) -v0 --length 4 --controls 4 --save-machine - data/l4c4.json
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --save-machine - data/l4c4.json
+
+testencode:
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --encode-file data/hello.txt data/hello.fa
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --raw --encode-string HELLO data/hello.dna
+
+testdecode:
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-file data/hello.fa data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-string `cat data/hello.dna` data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-bits `cat data/hello.dna` data/hello.bits
+
+testviterbi:
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.fa $(NOERRS) --raw data/hello.bits
+
+testcompose: data/mixradar2.json
+	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/mixradar2.json --load-machine data/l4c4.json --save-machine - data/mr2l4c4.json
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --encode-file data/hello.txt data/hello.mr2.fa
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-file data/hello.mr2.fa data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.mr2.bits
+
+testfit:
+	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk data/tiny.params.json
+	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk data/test.params.json

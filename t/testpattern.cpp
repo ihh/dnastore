@@ -19,7 +19,7 @@ int main (int argc, char** argv) {
   TestOK (!hasExactNonlocalInvertedRepeat (stringToKmer("ACGTCGT"),7,3,2));
   TestOK (hasExactNonlocalInvertedRepeat (stringToKmer("ACGTTCGT"),8,3,2));
 
-  cout << (ok ? "ok" : "not ok") << endl;
+  cout << (ok ? "ok: pattern recognition works. Kudos to Cayce Pollard" : "not ok: pattern recognition broken. Email Hubertus.Bigend@BlueAnt.com") << endl;
 
   return EXIT_SUCCESS;
 }
