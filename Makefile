@@ -81,9 +81,14 @@ data/sync%.json: bin/syncer.pl
 
 # Tests
 TEST = t/testexpect.pl
-NOERRS = --error-sub-prob 0 --error-dup-prob 0 --error-del-open 0 --error-global
+NOSUBS = --error-sub-prob 0
+NODUPS = --error-dup-prob 0
+NODELS = --error-del-open 0
+GLOBAL = --error-global
+NOERRS = $(NOSUBS) $(NODUPS) $(NODELS) $(GLOBAL)
+ONLYDUPS = $(NOSUBS) $(NODELS) $(GLOBAL)
 
-test: testpattern testmachine testencode testdecode testviterbi testcompose testfit
+test: testpattern testmachine testencode testdecode testviterbi testcompose testham testfit
 
 testpattern: bin/testpattern
 	$<
@@ -99,17 +104,33 @@ testencode:
 testdecode:
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-file data/hello.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-string `cat data/hello.dna` data/hello.txt
-	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-bits `cat data/hello.dna` data/hello.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-bits `cat data/hello.dna` data/hello.padded.bits
 
 testviterbi:
-	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.fa $(NOERRS) --raw data/hello.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.fa $(NOERRS) --raw data/hello.padded.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.dup.fa $(ONLYDUPS) --raw data/hello.padded.bits
 
 testcompose: data/mixradar2.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/mixradar2.json --load-machine data/l4c4.json --save-machine - data/mr2l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --encode-file data/hello.txt data/hello.mr2.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-file data/hello.mr2.fa data/hello.txt
-	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.mr2.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.exact.bits
 
 testfit:
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk data/tiny.params.json
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk data/test.params.json
+
+testham: data/hamming74.json
+	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/hamming74.json --load-machine data/l4c4.json --save-machine - data/h74l4c4.json
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --encode-file data/hello.txt data/hello.h74.fa
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-file data/hello.h74.fa data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-viterbi data/hello.h74.fa $(NOERRS) --raw data/hello.exact.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-viterbi data/hello.h74.fa --raw data/hello.exact.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-viterbi data/hello.h74.sub.fa --raw data/hello.exact.bits
+
+testsync: data/sync16.json
+	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/sync16.json --compose-machine data/flusher.json --compose-machine data/mixradar2.json --load-machine data/l4c4.json --save-machine - data/s16mr2l4c4.json
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --encode-file data/hello.txt data/hello.s16mr2.fa
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-file data/hello.s16mr2.fa data/hello.txt
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa $(NOERRS) --raw data/hello.exact.bits
+	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa --raw data/hello.exact.bits
