@@ -215,7 +215,7 @@ sub evolve {
 sub randcoords {
     my ($seq, $minsize, $maxsize) = @_;
     my $len = length ($seq);
-    my $size = int (rand() * ($maxsize + 1 - $minsize)) + $minsize;
+    my $size = int (rand() * min ($len, $maxsize + 1 - $minsize)) + $minsize;
     my $pos = int (rand() * ($len + 1 - $size));
     return ($pos, $size);
 }
@@ -297,14 +297,16 @@ sub syswarn {
 # Calculate Levenshtein edit distance
 sub editDistance {
     my ($x, $y, $band) = @_;
-    my $b2 = int($band/2);
+    my $diff = length($y) - length($x);
+    my ($bmin, $bmax) = (max (int($band/2), -$diff),
+			 max (int($band/2), $diff));
     my @cell;
     my ($prev_jmin, $prev_jmax);
     my ($xlen, $ylen) = map (length($_), $x, $y);
     my $inf = $xlen + $ylen;  # max possible edit distance
     for (my $i = 0; $i <= $xlen; ++$i) {
-	my $jmin = max (0, $i - $b2);
-	my $jmax = min ($ylen, $i + $b2);
+	my $jmin = max (0, $i - $bmin);
+	my $jmax = min ($ylen, $i + $bmax);
 	if ($i >= 2) { shift @cell }
 	push @cell, [map ($inf, $jmin..$jmax)];
 	my $xi = $i > 0 ? substr($x,$i-1,1) : '?x';
