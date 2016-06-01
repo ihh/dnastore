@@ -18,6 +18,8 @@ my $h74path = "$datadir/hamming74.json";
 my $m2path = "$datadir/mixradar2.json";
 my $m6path = "$datadir/mixradar6.json";
 my $flusherpath = "$datadir/flusher.json";
+my $syncprefix = "$datadir/sync";
+my $syncsuffix = ".json";
 
 my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
@@ -33,10 +35,10 @@ my ($colwidth, $cmdwidth) = (80, 200);
 my $usage = "Usage: $0 [options]\n"
     . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
     . " -codelen,-c <n>      codeword length in nucleotides (default $codelen)\n"
-    . " -mix2,-2             precompose transducer with mixradar length-2 block code\n"
-    . " -mix6,-6             precompose transducer with mixradar length-6 block code\n"
-    . " -hamming,-g          precompose transducer with Hamming(7,4) error-correcting code\n"
-    . " -syncfreq,-q <n>     insert a synchronization control word after every n bits\n"
+    . " -mix2,-2             precompose with mixradar length-2 block code\n"
+    . " -mix6,-6             precompose with mixradar length-6 block code\n"
+    . " -hamming,-g          precompose with Hamming(7,4) error-correcting code\n"
+    . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -100,7 +102,13 @@ die "You cannot use -syncfreq without a machine that disambiguates flushing (-ha
     if $syncfreq && !($hamming || $mixradar2 || $mixradar6);
 die "You cannot use -syncfreq and -hamming with a sync period that is not a multiple of 4"
     if $syncfreq && $hamming && $syncfreq % 4 != 0;
-my $flushargs = $syncfreq ? " --compose-machine $flusherpath" : "";
+my $syncpath;
+if (defined $syncfreq) {
+    $syncpath = $syncprefix . $syncfreq . $syncsuffix;
+    die "You cannot use -syncfreq with a sync period whose transducer does not exist (try 16, 32, or 128)"
+	unless -e $syncpath;
+}
+my $flushargs = $syncfreq ? " --compose-machine $syncpath --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --load-machine $machine";
 
@@ -135,12 +143,10 @@ for my $subrate (split /,/, $subrates) {
 	    for my $rep (1..$reps) {
 		warn "Starting repetition $rep of $reps\n" if $verbose;
 		my $bitseq = randseq ([0,1], $bitseqlen);
-		my $syncseq = $bitseq;
-		$syncseq =~ s/([01]{$syncfreq})/${1}A/g if defined $syncfreq;
 
-		warn $syncseq, "\n" if $verbose >= 5;
+		warn $bitseq, "\n" if $verbose >= 5;
 
-		my $origdna = syswarn ("$cmd --raw --encode-bits $syncseq");
+		my $origdna = syswarn ("$cmd --raw --encode-bits $bitseq");
 		chomp $origdna;
 
 		my @origpos = (0..length($origdna)-1);
@@ -165,11 +171,9 @@ for my $subrate (split /,/, $subrates) {
 
 		warn $decoded, "\n" if $verbose >= 5;
 
-		my $decodedbits = $decoded;
-		$decodedbits =~ s/[^01]//g;
-		warn "Length(bitseq)=", length($bitseq), " Length(decodedbits)=", length($decodedbits), "\n" if $verbose;
+		warn "Length(bitseq)=", length($bitseq), " Length(decoded)=", length($decoded), "\n" if $verbose;
 		
-		my $dist = editDistance ($bitseq, $decodedbits, $band);
+		my $dist = editDistance ($bitseq, $decoded, $band);
 		warn "Edit distance: $dist\n" if $verbose;
 		push @dist, $dist/$bitseqlen;
 	    }

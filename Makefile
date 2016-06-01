@@ -93,34 +93,34 @@ test: testpattern testmachine testencode testdecode testviterbi testcompose test
 testpattern: bin/testpattern
 	$<
 
-testmachine:
+testmachine: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --length 4 --controls 4 --save-machine - data/l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --save-machine - data/l4c4.json
 
-testencode:
+testencode: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --encode-file data/hello.txt data/hello.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --raw --encode-string HELLO data/hello.dna
 
-testdecode:
+testdecode: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-file data/hello.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-string `cat data/hello.dna` data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-bits `cat data/hello.dna` data/hello.padded.bits
 
-testviterbi:
+testviterbi: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.fa $(NOERRS) --raw data/hello.padded.bits
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/l4c4.json --decode-viterbi data/hello.dup.fa $(ONLYDUPS) --raw data/hello.padded.bits
 
-testcompose: data/mixradar2.json
+testcompose: $(MAIN) data/mixradar2.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/mixradar2.json --load-machine data/l4c4.json --save-machine - data/mr2l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --encode-file data/hello.txt data/hello.mr2.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-file data/hello.mr2.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.exact.bits
 
-testfit:
+testfit: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk data/tiny.params.json
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk data/test.params.json
 
-testham: data/hamming74.json
+testham: $(MAIN) data/hamming74.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/hamming74.json --load-machine data/l4c4.json --save-machine - data/h74l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --encode-file data/hello.txt data/hello.h74.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-file data/hello.h74.fa data/hello.txt
@@ -128,14 +128,14 @@ testham: data/hamming74.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-viterbi data/hello.h74.fa --raw data/hello.exact.bits
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/h74l4c4.json --decode-viterbi data/hello.h74.sub.fa --raw data/hello.exact.bits
 
-testsync: data/sync16.json
+testsync: $(MAIN) data/sync16.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/sync16.json --compose-machine data/flusher.json --compose-machine data/mixradar2.json --load-machine data/l4c4.json --save-machine - data/s16mr2l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --encode-file data/hello.txt data/hello.s16mr2.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-file data/hello.s16mr2.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa $(NOERRS) --raw data/hello.exact.bits
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16mr2l4c4.json --decode-viterbi data/hello.s16mr2.fa --raw data/hello.exact.bits
 
-testsyncham: data/sync16.json data/hamming74.json
+testsyncham: $(MAIN) data/sync16.json data/hamming74.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/sync16.json --compose-machine data/flusher.json --compose-machine data/hamming74.json --load-machine data/l4c4.json --save-machine - data/s16h74l4c4.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --encode-file data/hello.txt data/hello.s16h74.fa
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/s16h74l4c4.json --decode-file data/hello.s16h74.fa data/hello.txt
