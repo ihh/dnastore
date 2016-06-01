@@ -962,8 +962,10 @@ e.g. more efficient machines for
 adding parity bits, converting binary to mixed-radix, generating repeat-free DNA
 or modeling errors
 
-NB an error-avoiding code, not an error-correcting code!
-Necessary to add error-correcting features if noise from DNA degradation/sequencing is unavoidable
+In common with Gray Codes \cite{GrayCodes}, motivation for our code is error-avoidance, not error-correction.
+However does have some error-correcting properties.
+If noise from DNA degradation/sequencing is unavoidable,
+it would be necessary to upgrade error-correcting features
 
 State-of-the-art error-correcting codes generally outstrip the capabilities of state machines:
 the highest-performing codes on classical noisy channels with substitutions, such as turbo codes and low-density parity check codes (LDPC codes, a.k.a. ``Gallager codes''),
