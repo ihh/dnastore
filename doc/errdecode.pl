@@ -300,5 +300,5 @@ sub syswarn {
 sub editDistance {
     my ($x, $y, $band) = @_;
     $band = "" unless defined $band;
-    return `$editdist $x $y $band` + 0;
+    return `$editdist "$x" "$y" $band` + 0;
 }
