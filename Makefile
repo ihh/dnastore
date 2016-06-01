@@ -88,7 +88,7 @@ GLOBAL = --error-global
 NOERRS = $(NOSUBS) $(NODUPS) $(NODELS) $(GLOBAL)
 ONLYDUPS = $(NOSUBS) $(NODELS) $(GLOBAL)
 
-test: testpattern testmachine testencode testdecode testviterbi testcompose testham testfit
+test: testpattern testmachine testencode testdecode testviterbi testcompose testham testsync testfit
 
 testpattern: bin/testpattern
 	$<
