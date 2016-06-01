@@ -215,7 +215,7 @@ sub evolve {
 sub randcoords {
     my ($seq, $minsize, $maxsize) = @_;
     my $len = length ($seq);
-    my $size = int (rand() * min ($len, $maxsize + 1 - $minsize)) + $minsize;
+    my $size = int (rand() * (min($len,$maxsize) + 1 - $minsize)) + $minsize;
     my $pos = int (rand() * ($len + 1 - $size));
     return ($pos, $size);
 }

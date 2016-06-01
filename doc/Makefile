@@ -120,10 +120,10 @@ LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.
 ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10
 
 len4.subs.tab:
-	$(ERRDECODE) -codelen 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
+	$(ERRDECODE) -codelen 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 -band 1000 >$@
 
 len4.mix2.subs.tab:
-	$(ERRDECODE) -codelen 4 -mix2 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 -band 1000 >$@
 
 len4.mix2.dels.tab:
 	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
