@@ -114,7 +114,7 @@ dnastoretab.tex: dnastoretab.pl
 	perl $< >$@
 
 # Simulations of decoding with errors:
-errtabs: len4.subs.tab len4.dels.tab len4.dups.tab len8.dups.tab len4.ham.subs.tab len4.sync.mix2.dels.tab len4.sync.ham.dels.tab
+errtabs: len4.subs.tab len4.mix2.dels.tab len4.mix2.dups.tab len8.mix2.dups.tab len4.ham.subs.tab len4.sync.mix2.dels.tab len4.sync.ham.dels.tab
 
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
 ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10
@@ -122,14 +122,17 @@ ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10
 len4.subs.tab:
 	$(ERRDECODE) -codelen 4 -subrate $(LOGSCALE) -delrate 0 -duprate 0
 
-len4.dels.tab:
-	$(ERRDECODE) -codelen 4 -subrate 0 -delrate $(LOGSCALE) -duprate 0
+len4.mix2.subs.tab:
+	$(ERRDECODE) -codelen 4 -mix2 -subrate $(LOGSCALE) -delrate 0 -duprate 0
 
-len4.dups.tab:
-	$(ERRDECODE) -codelen 4 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
+len4.mix2.dels.tab:
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate $(LOGSCALE) -duprate 0
 
-len8.dups.tab:
-	$(ERRDECODE) -codelen 8 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
+len4.mix2.dups.tab:
+	$(ERRDECODE) -codelen 4 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
+
+len8.mix2.dups.tab:
+	$(ERRDECODE) -codelen 8 -mix2 -subrate 0 -delrate 0 -duprate $(LOGSCALE) -maxdupsize 4
 
 len4.ham.subs.tab:
 	$(ERRDECODE) -codelen 4 -hamming -subrate $(LOGSCALE) -delrate 0 -duprate 0
