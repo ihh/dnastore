@@ -88,7 +88,7 @@ GLOBAL = --error-global
 NOERRS = $(NOSUBS) $(NODUPS) $(NODELS) $(GLOBAL)
 ONLYDUPS = $(NOSUBS) $(NODELS) $(GLOBAL)
 
-test: testpattern testdist testmachine testencode testdecode testviterbi testcompose testham testsync testsyncham testfit
+test: testpattern testdist testmachine testencode testdecode testviterbi testcompose testham testsync testsyncham testcount testfit
 
 testpattern: bin/testpattern
 	$<
@@ -121,8 +121,12 @@ testcompose: $(MAIN) data/mixradar2.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-file data/hello.mr2.fa data/hello.txt
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.exact.bits
 
-testfit: $(MAIN)
+testcount: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.stk data/dup.counts.json
+	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.sub.stk data/dup.sub.counts.json
+	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.sub.misaligned.stk data/dup.sub.counts.json
+
+testfit: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk --strict-guides data/tiny.params.json
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk --strict-guides data/test.params.json
 
