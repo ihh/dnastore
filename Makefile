@@ -124,7 +124,7 @@ testcompose: $(MAIN) data/mixradar2.json
 testcount: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.stk data/dup.counts.json
 	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.sub.stk data/dup.sub.counts.json
-	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.sub.misaligned.stk data/dup.sub.counts.json
+	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.sub.misaligned.stk data/dup.sub.counts.misaligned.json
 
 testfit: $(MAIN)
 	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk --strict-guides data/tiny.params.json
