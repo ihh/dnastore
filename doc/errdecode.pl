@@ -22,24 +22,27 @@ my $flusherpath = "$datadir/flusher.json";
 my $syncprefix = "$datadir/sync";
 my $syncsuffix = ".json";
 
+for my $dep ($dnastore, $editdist, $h74path, $m2path, $m6path, $flusherpath) {
+    die "Dependency '$dep' not found" unless -e $dep;
+}
+
 my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
 my ($delrates, $maxdelsize) = (0, 10);
 my ($subrates, $ivratio) = (0, 10);
-my $band;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
-my ($hamming, $mixradar2, $mixradar6, $syncfreq, $exacterrs, $keeptmp, $help);
+my ($band, $hamming, $mixradar2, $mixradar6, $syncfreq, $exacterrs, $keeptmp, $help, @dnastore_opt);
 my ($verbose, $dnastore_verbose) = (2, 2);
 my ($colwidth, $cmdwidth) = (80, 200);
 
 my $usage = "Usage: $0 [options]\n"
     . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
-    . " -codelen,-c <n>      codeword length in nucleotides (default $codelen)\n"
+    . " -length,-l <n>       codeword length in nucleotides (default $codelen)\n"
     . " -mix2,-2             precompose with mixradar length-2 block code\n"
     . " -mix6,-6             precompose with mixradar length-6 block code\n"
     . " -hamming,-g          precompose with Hamming(7,4) error-correcting code\n"
-    . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits\n"
+    . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -59,7 +62,7 @@ my $usage = "Usage: $0 [options]\n"
     ;
 
 GetOptions ("bits=i" => \$bitseqlen,
-	    "codelen=i" => \$codelen,
+	    "length=i" => \$codelen,
 	    "hamming|g" => \$hamming,
 	    "mix2|2" => \$mixradar2,
 	    "mix6|6" => \$mixradar6,
@@ -79,6 +82,7 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "keeptmp" => \$keeptmp,
 	    "verbose=i" => \$verbose,
 	    "ds-verbose|u=i" => \$dnastore_verbose,
+	    "ds-opt|o=s" => \@dnastore_opt,
 	    "help" => \$help)
     or die $usage;
 
@@ -93,7 +97,7 @@ sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp"
 
 my $ncontrols = $codelen < 4 ? 1 : 4;
 my $machine = tempfile();
-my $cmdstub = "$dnastore --verbose $dnastore_verbose";
+my $cmdstub = "$dnastore --verbose $dnastore_verbose @dnastore_opt";
 my $ctrlargs = " --controls $ncontrols";
 my $hamargs = $hamming ? " --compose-machine $h74path" : "";
 my $mixargs = $mixradar2 ? " --compose-machine $m2path" : ($mixradar6 ? " --compose-machine $m6path" : "");
@@ -123,7 +127,7 @@ for my $subrate (split /,/, $subrates) {
 	    my $errmodfh = tempfile();
 	    unless ($exacterrs) {
 		my $trainfh = tempfile();
-		my $trainlen = 8*$bitseqlen;  # crude way to match training seq len to simulated seqs
+		my $trainlen = $bitseqlen;  # crude way to match training seq len to simulated seqs
 		for my $n (1..$trainalign) {
 		    warn "Generating training sequence #$n (length $trainlen)\n" if $verbose;
 		    my $orig = randseq ([qw(A C G T)], $trainlen);

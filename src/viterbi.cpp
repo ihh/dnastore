@@ -307,7 +307,7 @@ vguard<FastSeq> decodeFastSeqs (const char* filename, const Machine& machine, co
   const vguard<FastSeq> outseqs = readFastSeqs (filename);
   vguard<FastSeq> inseqs;
   const string inAlph = machine.inputAlphabet (MachineRelaxedInputFlag | MachineControlInputFlag | MachineSEOFInputFlag);
-  const InputModel inmod (inAlph, 1., pow(4.,-(double)mutatorParams.maxDupLen()));
+  const InputModel inmod (inAlph, 1., pow(4.,-(double)(4*mutatorParams.maxDupLen())));  // somewhat arbitrary penalty for control characters. Rationale: maxDupLen is typically half of codeword length; paths to control chars are typically <1.5*codeword length
   LogThisAt(6,"Input model for Viterbi decoding:" << endl << inmod.toString());
   for (auto& outseq: outseqs) {
     ViterbiMatrix vit (machine, inmod, mutatorParams, outseq);

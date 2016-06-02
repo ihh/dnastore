@@ -41,6 +41,7 @@ public:
   const GuideAlignmentEnvelope env;
   const TokSeq inSeq, outSeq;
   const size_t inLen, outLen;
+  const bool strictAlignments;
   
   MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments);
 
@@ -73,12 +74,13 @@ public:
 
 struct ForwardMatrix : MutatorMatrix {
   ForwardMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments);
-  inline LogProb loglike() const { return sCell(inLen,outLen); }
+  LogProb loglike;
 };
 
 struct BackwardMatrix : MutatorMatrix {
-  BackwardMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments);
-  inline LogProb loglike() const { return sCell(0,0); }
+  const ForwardMatrix& fwd;
+  BackwardMatrix (const ForwardMatrix& fwd);
+  LogProb loglike;
 };
 
 struct FwdBackMatrix {
@@ -86,7 +88,7 @@ struct FwdBackMatrix {
   BackwardMatrix back;
   FwdBackMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments);
   MutatorCounts counts() const;
-  LogProb loglike() const;
+  inline LogProb loglike() const { return fwd.loglike; }
   inline double pS2S (SeqIdx destInPos, SeqIdx destOutPos) const {
     return exp (fwd.sCell(destInPos-1,destOutPos-1) + fwd.mutatorScores.noGap + fwd.cellSubScore(destInPos,destOutPos) + back.sCell(destInPos,destOutPos) - loglike());
   }

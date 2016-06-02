@@ -14,11 +14,12 @@ MutatorMatrix::MutatorMatrix (const MutatorParams& mutatorParams, const Stockhol
     maxDupLen (mutatorParams.maxDupLen()),
     stock (stock),
     align (stock.gapped),
-    env (align.path, 0, 1, strictAlignments ? 0 : 2*maxDupLen),
+    env (align.path, 0, 1, strictAlignments ? 0 : maxDupLen),
     inSeq (align.ungapped.at(0).tokens(dnaAlphabetString)),
     outSeq (align.ungapped.at(1).tokens(dnaAlphabetString)),
     inLen (inSeq.size()),
-    outLen (outSeq.size())
+    outLen (outSeq.size()),
+    strictAlignments (strictAlignments)
 {
   cellStorage.resize (inLen + 1);
   Assert (stock.rows() == 2, "Training mutator model requires a 2-row alignment; this alignment has %d rows", stock.rows());
@@ -43,7 +44,12 @@ ForwardMatrix::ForwardMatrix (const MutatorParams& mutatorParams, const Stockhol
   : MutatorMatrix (mutatorParams, stock, strictAlignments)
 {
   sCell(0,0) = 0;
-  for (SeqIdx ip = 0; ip <= inLen; ++ip)
+
+  ProgressLog (plog, 3);
+  plog.initProgress ("Forward matrix fill (%u*%u cells)", inLen, outLen);
+
+  for (SeqIdx ip = 0; ip <= inLen; ++ip) {
+    plog.logProgress (ip / (double) inLen, "row %u/%u", ip+1, inLen);
     for (SeqIdx op = 0; op <= outLen; ++op)
       if (env.inRange(ip,op)) {
 	Cell& cell = getCell(ip,op);
@@ -66,14 +72,22 @@ ForwardMatrix::ForwardMatrix (const MutatorParams& mutatorParams, const Stockhol
 	for (Pos dupIdx = 0; dupIdx < maxDupLenAt(ip); ++dupIdx)
 	  log_accum_exp (cell.t[dupIdx], cell.s + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
       }
-  LogThisAt(6,"Forward log-odds ratio: " << loglike() << endl);
+  }
+  loglike = sCell(inLen,outLen);
+  LogThisAt(6,"Forward log-odds ratio: " << loglike << endl);
 }
 
-BackwardMatrix::BackwardMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments)
-  : MutatorMatrix (mutatorParams, stock, strictAlignments)
+BackwardMatrix::BackwardMatrix (const ForwardMatrix& fwd)
+  : MutatorMatrix (fwd.mutatorParams, fwd.stock, fwd.strictAlignments),
+    fwd (fwd)
 {
   sCell(inLen,outLen) = 0;
-  for (int ip = inLen; ip >= 0; --ip)
+
+  ProgressLog (plog, 3);
+  plog.initProgress ("Backward matrix fill (%u*%u cells)", inLen, outLen);
+
+  for (int ip = inLen; ip >= 0; --ip) {
+    plog.logProgress ((inLen - ip) / (double) inLen, "row %u/%u", inLen-ip+1, inLen);
     for (int op = outLen; op >= 0; --op)
       if (env.inRange(ip,op)) {
 	Cell& cell = getCell(ip,op);
@@ -96,19 +110,21 @@ BackwardMatrix::BackwardMatrix (const MutatorParams& mutatorParams, const Stockh
 	  log_accum_exp (cell.s, cell.t[dupIdx] + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
 	log_accum_exp (cell.d, cell.s + mutatorScores.delEnd);
       }
-  LogThisAt(6,"Backward log-odds ratio: " << loglike() << endl);
+  }
+  loglike = sCell(0,0);
+  LogThisAt(6,"Backward log-odds ratio: " << loglike << endl);
 }
 
 FwdBackMatrix::FwdBackMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments)
   : fwd (mutatorParams, stock, strictAlignments),
-    back (mutatorParams, stock, strictAlignments)
+    back (fwd)
 {
   LogThisAt(7,"Scores:\n" << fwd.mutatorScores.toJSON());
   LogThisAt(9,"Forward matrix:\n" << fwd.toString() << "Backward matrix:\n" << back.toString());
   LogThisAt(8,"Forward-backward posterior probabilities:\n" << postProbsToString());
 
-  if (abs ((fwd.loglike() - back.loglike()) / fwd.loglike()) > FwdBackTolerance)
-    Warn ("Forward score (%g) does not match Backward score (%g)", fwd.loglike(), back.loglike());
+  if (abs ((fwd.loglike - back.loglike) / fwd.loglike) > FwdBackTolerance)
+    Warn ("Forward score (%g) does not match Backward score (%g)", fwd.loglike, back.loglike);
 }
 
 string FwdBackMatrix::postProbsToString() const {
@@ -137,18 +153,18 @@ string FwdBackMatrix::postProbsToString() const {
 
 MutatorCounts FwdBackMatrix::counts() const {
   MutatorCounts counts (fwd.mutatorParams);
-  for (SeqIdx ip = 0; ip <= fwd.inLen; ++ip)
+  ProgressLog (plog, 3);
+  plog.initProgress ("Forward-Backward counts (%u*%u cells)", fwd.inLen, fwd.outLen);
+  for (SeqIdx ip = 0; ip <= fwd.inLen; ++ip) {
+    plog.logProgress (ip / (double) fwd.inLen, "row %u/%u", ip, fwd.inLen);
     for (SeqIdx op = 0; op <= fwd.outLen; ++op)
       if (fwd.env.inRange(ip,op)) {
-	const BackwardMatrix::Cell& cell = back.getCell(ip,op);
-	// TODO: pass cell, ins, etc to pS2S, pT2T etc
 	if (ip > 0 && op > 0) {
 	  const double c = pS2S(ip,op);
 	  counts.nNoGap += c;
 	  counts.nSub[fwd.cellInBase(ip)][fwd.cellOutBase(op)] += c;
 	}
 	if (ip > 0 && op > 0) {
-	  const ForwardMatrix::Cell& ins = fwd.getCell(ip,op-1);
 	  for (Pos dupIdx = 0; dupIdx < fwd.maxDupLenAt(ip) - 1; ++dupIdx) {
 	    const double ci = pT2T(ip,op,dupIdx);
 	    counts.nSub[fwd.cellTanDupBase(ip,dupIdx+1)][fwd.cellOutBase(op)] += ci;
@@ -167,11 +183,8 @@ MutatorCounts FwdBackMatrix::counts() const {
 	  counts.nLen[dupIdx] += c;
 	}
       }
+  }
   return counts;
-}
-
-LogProb FwdBackMatrix::loglike() const {
-  return fwd.loglike();
 }
 
 MutatorCounts expectedCounts (const MutatorParams& params, const list<Stockholm>& db, LogProb& ll, bool strictAlignments) {
