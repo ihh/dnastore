@@ -1184,11 +1184,28 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 }
 \end{figure}
 
+\easyfig{dupplot.ps}{width=\textwidth}{DupPlot}{
+  Effect of simulated duplications on decoder accuracy for two different error models.
+  ...
+  MIXRADAR(2)+DNASTORE(4) with 2 bases of error-model context, MIXRADAR(2)+DNASTORE(8) with 4 bases of error-model context
+  ...
+10 repetitions,
+1 kilobyte random sequence
+...
+Up to four nucleotides randomly duplicated
+...
+Overlapping (nested) duplications were excluded
+...
+Levenshtein edit distance
+}
+
 \easyfig{subplot.ps}{width=\textwidth}{SubPlot}{
   Effect of simulated substitution errors on decoder accuracy for three different codes.
 ...
 10 repetitions,
 1 kilobyte random sequence
+...
+Transition/transversion ratio of 10
 ...
 Levenshtein edit distance
 }
