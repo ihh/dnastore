@@ -74,6 +74,27 @@ MutatorScores::MutatorScores (const MutatorParams& params)
     len[l] = log(params.pLen[l]);
 }
 
+void MutatorScores::writeJSON (ostream& out) const {
+  out << "{\n";
+  out << " \"delOpen\": " << delOpen << ",\n";
+  out << " \"tanDup\": " << tanDup << ",\n";
+  out << " \"noGap\": " << noGap << ",\n";
+  out << " \"delExtend\": " << delExtend << ",\n";
+  out << " \"delEnd\": " << delEnd << ",\n";
+  out << " \"sub\": [ ";
+  for (Base i = 0; i < 4; ++i)
+    out << (i > 0 ? ", " : "") << "[" << to_string_join(sub[i],",") << "]";
+  out << " ],\n";
+  out << " \"len\": [ " << to_string_join(len,", ") << " ],\n";
+  out << "}\n";
+}
+
+string MutatorScores::toJSON() const {
+  ostringstream out;
+  writeJSON (out);
+  return out.str();
+}
+
 MutatorCounts::MutatorCounts (const MutatorParams& params)
   : nDelOpen(0),
     nTanDup(0),

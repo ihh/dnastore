@@ -36,6 +36,8 @@ struct MutatorScores {
   vguard<vguard<LogProb> > sub;  // sub[base][observed]
   vguard<LogProb> len;
   MutatorScores (const MutatorParams& params);
+  void writeJSON (ostream& out) const;
+  string toJSON() const;
 };
 
 struct MutatorCounts {

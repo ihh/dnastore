@@ -74,6 +74,8 @@ int main (int argc, char** argv) {
       ("error-global", "force global alignment in error model (disallow partial reads)")
       ("error-file,F", po::value<string>(), "load error model from file")
       ("fit-error,f", po::value<string>(), "train error model on Stockholm database of pairwise alignments and print to stdout")
+      ("error-counts", po::value<string>(), "estimate posterior expected counts of various different types of error from Stockholm database")
+      ("strict-guides", "treat alignments in Stockholm database as strict truth, not just hints")
       ("verbose,v", po::value<int>()->default_value(2), "verbosity level")
       ("log", po::value<vector<string> >(), "log everything in this function")
       ("nocolor", "log in monochrome")
@@ -128,13 +130,20 @@ int main (int argc, char** argv) {
     }
 
     const bool rawSeqOutput = vm.count("raw");
+    const bool strictAlignments = vm.count("strict-guides");
     
     if (vm.count("fit-error")) {
       const list<Stockholm> db = readStockholmDatabase (vm.at("fit-error").as<string>().c_str());
       MutatorCounts prior (mut);
       prior.initLaplace();
-      const MutatorParams fitMut = baumWelchParams (mut, prior, db);
+      const MutatorParams fitMut = baumWelchParams (mut, prior, db, strictAlignments);
       fitMut.writeJSON (cout);
+
+    } else if (vm.count("error-counts")) {
+      const list<Stockholm> db = readStockholmDatabase (vm.at("error-counts").as<string>().c_str());
+      LogProb ll;
+      const MutatorCounts counts = expectedCounts (mut, db, ll, strictAlignments);
+      counts.writeJSON (cout);
 
     } else {
       // build, or load, transducer

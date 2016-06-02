@@ -122,8 +122,9 @@ testcompose: $(MAIN) data/mixradar2.json
 	@$(TEST) bin/$(MAIN) -v0 --load-machine data/mr2l4c4.json --decode-viterbi data/hello.mr2.fa $(NOERRS) --raw data/hello.exact.bits
 
 testfit: $(MAIN)
-	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk data/tiny.params.json
-	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk data/test.params.json
+	@$(TEST) bin/$(MAIN) -v0 -l6 --error-sub-prob 1e-9 --error-dup-prob 1e-9 --error-del-open 1e-9 --error-counts data/dup.stk data/dup.counts.json
+	@$(TEST) bin/$(MAIN) -v0 --fit-error data/tiny.stk --strict-guides data/tiny.params.json
+	@$(TEST) bin/$(MAIN) -v0 --fit-error data/test.stk --strict-guides data/test.params.json
 
 testham: $(MAIN) data/hamming74.json
 	@$(TEST) bin/$(MAIN) -v0 --compose-machine data/hamming74.json --load-machine data/l4c4.json --save-machine - data/h74l4c4.json

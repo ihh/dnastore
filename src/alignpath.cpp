@@ -234,3 +234,32 @@ vguard<FastSeq> Alignment::gapped() const {
   }
   return gs;
 }
+GuideAlignmentEnvelope::GuideAlignmentEnvelope (const AlignPath& guide, AlignRowIndex row1, AlignRowIndex row2, int maxDistance)
+  : maxDistance (maxDistance),
+    row1 (row1),
+    row2 (row2)
+{
+  Assert (guide.find(row1) != guide.end(), "Guide alignment is missing row #%u", row1);
+  Assert (guide.find(row2) != guide.end(), "Guide alignment is missing row #%u", row2);
+
+  const AlignColIndex cols = alignPathColumns (guide);
+  cumulativeMatches.reserve (cols + 1);
+  int matches = 0;
+
+  row1PosToCol.push_back (0);
+  row2PosToCol.push_back (0);
+  cumulativeMatches.push_back (0);
+  
+  for (AlignColIndex col = 0; col < cols; ++col) {
+    if (guide.at(row1)[col])
+      row1PosToCol.push_back (col + 1);
+
+    if (guide.at(row2)[col])
+      row2PosToCol.push_back (col + 1);
+
+    if (guide.at(row1)[col] && guide.at(row2)[col])
+      ++matches;
+
+    cumulativeMatches.push_back (matches);
+  }
+}
