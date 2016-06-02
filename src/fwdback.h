@@ -1,32 +1,36 @@
 #ifndef FWDBACK_INCLUDED
 #define FWDBACK_INCLUDED
 
+#include <unordered_map>
 #include "mutator.h"
 #include "stockholm.h"
 
 class MutatorMatrix {
+public:
+  struct Cell {
+    LogProb s, d;
+    vguard<LogProb> t;
+    Cell (size_t maxDupLen)
+      : s (-numeric_limits<double>::infinity()),
+	d (-numeric_limits<double>::infinity()),
+	t (maxDupLen, -numeric_limits<double>::infinity())
+    { }
+  };
+
 private:
-  vguard<LogProb> cell;
-
-  static inline size_t nCells (const MutatorParams& mutatorParams, const Stockholm& stock) {
-    const AlignPath path = stock.path();
-    return (mutatorParams.maxDupLen() + 2) * (alignPathResiduesInRow (path.at(0)) + 1) * (alignPathResiduesInRow (path.at(1)) + 1);
-  };
-
-  inline size_t sCellIndex (SeqIdx inPos, SeqIdx outPos) const {
-    return (maxDupLen + 2) * (inPos + (inLen + 1) * outPos);
-  };
-  inline size_t dCellIndex (SeqIdx inPos, SeqIdx outPos) const {
-    return sCellIndex(inPos,outPos) + 1;
-  };
-  inline size_t tCellIndex (SeqIdx inPos, SeqIdx outPos, Pos dupIdx) const {
-    return sCellIndex(inPos,outPos) + 2 + dupIdx;
-  };
+  vguard<unordered_map<SeqIdx,Cell> > cellStorage;
+  const Cell dummyCell;
 
 protected:
-  inline LogProb& sCell (SeqIdx inPos, SeqIdx outPos) { return cell[sCellIndex(inPos,outPos)]; }
-  inline LogProb& dCell (SeqIdx inPos, SeqIdx outPos) { return cell[dCellIndex(inPos,outPos)]; }
-  inline LogProb& tCell (SeqIdx inPos, SeqIdx outPos, Pos idx) { return cell[tCellIndex(inPos,outPos,idx)]; }
+  inline Cell& getCell (SeqIdx inPos, SeqIdx outPos) {
+    if (!cellStorage[inPos].count(outPos))
+      return (*cellStorage[inPos].insert (pair<SeqIdx,Cell> (outPos, Cell(maxDupLen))).first).second;
+    return cellStorage[inPos].at(outPos);
+  }
+  
+  inline LogProb& sCell (SeqIdx inPos, SeqIdx outPos) { return getCell(inPos,outPos).s; }
+  inline LogProb& dCell (SeqIdx inPos, SeqIdx outPos) { return getCell(inPos,outPos).d; }
+  inline LogProb& tCell (SeqIdx inPos, SeqIdx outPos, Pos idx) { return getCell(inPos,outPos).t[idx]; }
 
 public:
   const MutatorParams& mutatorParams;
@@ -40,9 +44,15 @@ public:
   
   MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments);
 
-  inline LogProb sCell (SeqIdx inPos, SeqIdx outPos) const { return cell[sCellIndex(inPos,outPos)]; }
-  inline LogProb dCell (SeqIdx inPos, SeqIdx outPos) const { return cell[dCellIndex(inPos,outPos)]; }
-  inline LogProb tCell (SeqIdx inPos, SeqIdx outPos, Pos dupIdx) const { return cell[tCellIndex(inPos,outPos,dupIdx)]; }
+  inline const Cell& getCell (SeqIdx inPos, SeqIdx outPos) const {
+    if (!cellStorage[inPos].count(outPos))
+      return dummyCell;
+    return cellStorage[inPos].at(outPos);
+  }
+
+  inline LogProb sCell (SeqIdx inPos, SeqIdx outPos) const { return getCell(inPos,outPos).s; }
+  inline LogProb dCell (SeqIdx inPos, SeqIdx outPos) const { return getCell(inPos,outPos).d; }
+  inline LogProb tCell (SeqIdx inPos, SeqIdx outPos, Pos idx) const { return getCell(inPos,outPos).t.at(idx); }
 
   inline Pos maxDupLenAt (SeqIdx inPos) const { return min ((Pos) maxDupLen, (Pos) inPos); }
 

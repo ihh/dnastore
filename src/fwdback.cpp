@@ -8,7 +8,7 @@
 #define BaumWelchMaxIter 100
 
 MutatorMatrix::MutatorMatrix (const MutatorParams& mutatorParams, const Stockholm& stock, bool strictAlignments)
-  : cell (nCells (mutatorParams, stock), -numeric_limits<double>::infinity()),
+  : dummyCell (mutatorParams.maxDupLen()),
     mutatorParams (mutatorParams),
     mutatorScores (mutatorParams),
     maxDupLen (mutatorParams.maxDupLen()),
@@ -20,6 +20,7 @@ MutatorMatrix::MutatorMatrix (const MutatorParams& mutatorParams, const Stockhol
     inLen (inSeq.size()),
     outLen (outSeq.size())
 {
+  cellStorage.resize (inLen + 1);
   Assert (stock.rows() == 2, "Training mutator model requires a 2-row alignment; this alignment has %d rows", stock.rows());
 }
 
@@ -45,19 +46,25 @@ ForwardMatrix::ForwardMatrix (const MutatorParams& mutatorParams, const Stockhol
   for (SeqIdx ip = 0; ip <= inLen; ++ip)
     for (SeqIdx op = 0; op <= outLen; ++op)
       if (env.inRange(ip,op)) {
-	if (ip > 0 && op > 0 && env.inRange(ip-1,op-1))
-	  sCell(ip,op) = sCell(ip-1,op-1) + mutatorScores.noGap + cellSubScore(ip,op);
-	if (ip > 0 && op > 0 && env.inRange(ip,op-1)) {
-	  for (Pos dupIdx = 0; dupIdx < maxDupLenAt(ip) - 1; ++dupIdx)
-	    tCell(ip,op,dupIdx) = tCell(ip,op-1,dupIdx+1) + cellTanDupScore(ip,op,dupIdx+1);
-	  log_accum_exp (sCell(ip,op), tCell(ip,op-1,0) + cellTanDupScore(ip,op,0));
+	Cell& cell = getCell(ip,op);
+	if (ip > 0 && op > 0) {
+	  if (env.inRange(ip-1,op-1))
+	    cell.s = sCell(ip-1,op-1) + mutatorScores.noGap + cellSubScore(ip,op);
+	  if (env.inRange(ip,op-1)) {
+	    const Cell& ins = getCell(ip,op-1);
+	    for (Pos dupIdx = 0; dupIdx < maxDupLenAt(ip) - 1; ++dupIdx)
+	      cell.t[dupIdx] = ins.t[dupIdx+1] + cellTanDupScore(ip,op,dupIdx+1);
+	    log_accum_exp (cell.s, ins.t[0] + cellTanDupScore(ip,op,0));
+	  }
 	}
-	if (ip > 0 && env.inRange(ip-1,op))
-	  dCell(ip,op) = log_sum_exp (sCell(ip-1,op) + mutatorScores.delOpen,
-				      dCell(ip-1,op) + mutatorScores.delExtend);
-	log_accum_exp (sCell(ip,op), dCell(ip,op) + mutatorScores.delEnd);
+	if (ip > 0 && env.inRange(ip-1,op)) {
+	  const Cell& del = getCell(ip-1,op);
+	  cell.d = log_sum_exp (del.s + mutatorScores.delOpen,
+				del.d + mutatorScores.delExtend);
+	}
+	log_accum_exp (cell.s, cell.d + mutatorScores.delEnd);
 	for (Pos dupIdx = 0; dupIdx < maxDupLenAt(ip); ++dupIdx)
-	  log_accum_exp (tCell(ip,op,dupIdx), sCell(ip,op) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
+	  log_accum_exp (cell.t[dupIdx], cell.s + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
       }
   LogThisAt(6,"Forward log-odds ratio: " << loglike() << endl);
 }
@@ -69,20 +76,25 @@ BackwardMatrix::BackwardMatrix (const MutatorParams& mutatorParams, const Stockh
   for (int ip = inLen; ip >= 0; --ip)
     for (int op = outLen; op >= 0; --op)
       if (env.inRange(ip,op)) {
-	if (ip < inLen && op < outLen && env.inRange(ip+1,op+1))
-	  sCell(ip,op) = mutatorScores.noGap + cellSubScore(ip+1,op+1) + sCell(ip+1,op+1);
-	if (ip > 0 && op < outLen && env.inRange(ip,op+1)) {
-	  for (Pos dupIdx = 1; dupIdx < maxDupLenAt(ip); ++dupIdx)
-	    tCell(ip,op,dupIdx) = cellTanDupScore(ip,op+1,dupIdx) + tCell(ip,op+1,dupIdx-1);
-	  tCell(ip,op,0) = cellTanDupScore(ip,op+1,0) + sCell(ip,op+1);
+	Cell& cell = getCell(ip,op);
+	if (op < outLen) {
+	  if (ip < inLen && env.inRange(ip+1,op+1))
+	    cell.s = mutatorScores.noGap + cellSubScore(ip+1,op+1) + sCell(ip+1,op+1);
+	  if (ip > 0 && env.inRange(ip,op+1)) {
+	    const Cell& ins = getCell(ip,op+1);
+	    for (Pos dupIdx = 1; dupIdx < maxDupLenAt(ip); ++dupIdx)
+	      cell.t[dupIdx] = cellTanDupScore(ip,op+1,dupIdx) + ins.t[dupIdx-1];
+	    cell.t[0] = cellTanDupScore(ip,op+1,0) + ins.s;
+	  }
 	}
 	if (ip < inLen && env.inRange(ip+1,op)) {
-	  log_accum_exp (sCell(ip,op), mutatorScores.delOpen + dCell(ip+1,op));
-	  dCell(ip,op) = mutatorScores.delExtend + dCell(ip+1,op);
+	  const Cell& del = getCell(ip+1,op);
+	  log_accum_exp (cell.s, mutatorScores.delOpen + del.d);
+	  cell.d = mutatorScores.delExtend + del.d;
 	}
 	for (Pos dupIdx = 0; dupIdx < maxDupLenAt(ip); ++dupIdx)
-	  log_accum_exp (sCell(ip,op), tCell(ip,op,dupIdx) + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
-	log_accum_exp (dCell(ip,op), sCell(ip,op) + mutatorScores.delEnd);
+	  log_accum_exp (cell.s, cell.t[dupIdx] + mutatorScores.tanDup + mutatorScores.len[dupIdx]);
+	log_accum_exp (cell.d, cell.s + mutatorScores.delEnd);
       }
   LogThisAt(6,"Backward log-odds ratio: " << loglike() << endl);
 }
@@ -128,12 +140,15 @@ MutatorCounts FwdBackMatrix::counts() const {
   for (SeqIdx ip = 0; ip <= fwd.inLen; ++ip)
     for (SeqIdx op = 0; op <= fwd.outLen; ++op)
       if (fwd.env.inRange(ip,op)) {
+	const BackwardMatrix::Cell& cell = back.getCell(ip,op);
+	// TODO: pass cell, ins, etc to pS2S, pT2T etc
 	if (ip > 0 && op > 0) {
 	  const double c = pS2S(ip,op);
 	  counts.nNoGap += c;
 	  counts.nSub[fwd.cellInBase(ip)][fwd.cellOutBase(op)] += c;
 	}
 	if (ip > 0 && op > 0) {
+	  const ForwardMatrix::Cell& ins = fwd.getCell(ip,op-1);
 	  for (Pos dupIdx = 0; dupIdx < fwd.maxDupLenAt(ip) - 1; ++dupIdx) {
 	    const double ci = pT2T(ip,op,dupIdx);
 	    counts.nSub[fwd.cellTanDupBase(ip,dupIdx+1)][fwd.cellOutBase(op)] += ci;
