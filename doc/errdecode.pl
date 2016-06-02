@@ -95,6 +95,10 @@ my $delext = 2 / $maxdelsize;  # hack
 srand ($rndseed);
 sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp") }
 
+if ($maxdupsize > $codelen/2) {
+    warn "\nWARNING: maximum duplication size (-maxdupsize) is greater than half of codeword length (-length).\nSome duplications will go undetected by the error decoder!\n\n";
+}
+
 my $ncontrols = $codelen < 4 ? 1 : 4;
 my $machine = tempfile();
 my $cmdstub = "$dnastore --verbose $dnastore_verbose @dnastore_opt";
