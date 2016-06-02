@@ -28,7 +28,7 @@ G.~M. Church, Y.~Gao, and S.~Kosuri.
 
 \bibitem{MilenkovicEtAl2005}
 O.~Milenkovic and N.~Kashyap.
-\newblock {DNA Codes that Avoid Secondary Structures}.
+\newblock {DNA} codes that avoid secondary structures.
 \newblock August 2005.
 
 \bibitem{YazdiEtAl2015}
@@ -48,12 +48,12 @@ H.~M. Kiah, G.~J. Puleo, and O.~Milenkovic.
 
 \bibitem{MilenkovicEtAl2015}
 S.~M. Yazdi, H.~M. Kiah, E.~R. Garcia, J.~Ma, H.~Zhao, and O.~Milenkovic.
-\newblock Dna-based storage: Trends and methods.
+\newblock {DNA}-based storage: Trends and methods.
 \newblock {\em CoRR}, abs/1507.01611, 2015.
 
 \bibitem{GabrysEtAl2015}
 R.~Gabrys, H.~M. Kiah, and O.~Milenkovic.
-\newblock Asymmetric lee distance codes for dna-based storage.
+\newblock Asymmetric {L}ee distance codes for {DNA}-based storage.
 \newblock {\em CoRR}, abs/1506.00740, 2015.
 
 \bibitem{MilenkovicEtAl2016}
@@ -82,7 +82,7 @@ M.~C. Davey and D.~J.~C. MacKay.
 
 \bibitem{Mackay2003}
 D.~J.~C. Mackay.
-\newblock {\em {Information Theory, Inference and Learning Algorithms}}.
+\newblock {\em Information Theory, Inference and Learning Algorithms}.
 \newblock Cambridge University Press, 1st edition, 2003.
 
 \bibitem{FreyMackay98}
@@ -101,7 +101,7 @@ K.~P. Murphy, Y.~Weiss, and M.~I. Jordan.
 
 \bibitem{Mackay1997}
 D.~J.~C. Mackay and R.~M. Neal.
-\newblock {Near Shannon Limit Performance of Low Density Parity Check Codes}.
+\newblock Near {S}hannon limit performance of low density parity check codes.
 \newblock {\em Electronics Letters}, 33(6):457--458, 1997.
 
 \bibitem{MohriPereiraRiley2000}
@@ -148,7 +148,7 @@ R.~F. Schwarz, A.~Trinh, B.~Sipos, J.~D. Brenton, N.~Goldman, and F.~Markowetz.
 
 \bibitem{DeBruijn1946}
 N.~G. de~Bruijn.
-\newblock {A Combinatorial Problem}.
+\newblock A combinatorial problem.
 \newblock {\em Koninklijke Nederlandsche Akademie Van Wetenschappen},
   49(6):758--764, June 1946.
 

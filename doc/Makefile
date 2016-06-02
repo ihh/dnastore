@@ -14,7 +14,7 @@ ALLFIGPS := $(addsuffix .ps,$(ALLFIG))
 ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
 ALLFIGJUNK := $(ALLFIGTEX)
 
-FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps eof2.ps
+FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps eof2.ps subplot.ps
 
 # LaTeX:
 TEXINCLUDES := defs.tex notation.tex mixradtab.tex dnastoretab.tex
@@ -71,36 +71,36 @@ hamming74.dot: ../bin/hamming74.pl
 	perl $< >$@
 
 # Arithmetic code with wordlen=2
-eof2.dot: ../bin/mixradar.pl Makefile
+eof2.dot: ../bin/mixradar.pl
 	perl ../bin/mixradar.pl -k 2 1/100 >$@
 
 # Arithmetic code with wordlen=3
-eof3.dot: ../bin/mixradar.pl Makefile
+eof3.dot: ../bin/mixradar.pl
 	perl ../bin/mixradar.pl -k 3 1/100 >$@
 
 # DNAstore machines
-dna1full.lacirco: filter.pl Makefile
+dna1full.lacirco: filter.pl
 	../bin/dnastore -l1 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
-dna2full.lacirco: filter.pl Makefile
+dna2full.lacirco: filter.pl
 	../bin/dnastore -l2 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
-dna2start.lacirco: filter.pl Makefile
+dna2start.lacirco: filter.pl
 	../bin/dnastore -l2 -c1 -t0 --no-end --dot | perl filter.pl >$@
 
-dna2startend.lacirco: filter.pl Makefile
+dna2startend.lacirco: filter.pl
 	../bin/dnastore -l2 -c1 -t0 --dot | perl filter.pl >$@
 
-dna2norep.lacirco: filter.pl Makefile
+dna2norep.lacirco: filter.pl
 	../bin/dnastore -l2 -c0 --no-end --dot | perl filter.pl >$@
 
-dna2startnorep.lacirco: filter.pl Makefile
+dna2startnorep.lacirco: filter.pl
 	../bin/dnastore -l2 -c1 --no-end --dot | perl filter.pl >$@
 
-dna2startendnorep.lacirco: filter.pl Makefile
+dna2startendnorep.lacirco: filter.pl
 	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@
 
-dna3.lacirco: filter.pl Makefile
+dna3.lacirco: filter.pl
 	../bin/dnastore -l3 --dot | perl filter.pl >$@
 
 # Results data tables
@@ -142,6 +142,12 @@ len4.sync.mix2.dels.tab:
 
 len4.sync.ham.dels.tab:
 	$(ERRDECODE) -length 4 -syncfreq 64 -hamming -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
+
+# R
+RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript
+
+%.ps: %.r
+	$(RSCRIPT) $<
 
 # Paper rules:
 %.ps: %.tex figures bib $(TEXINCLUDES)
