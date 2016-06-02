@@ -125,6 +125,9 @@ len4.subs.tab:
 len4.mix2.subs.tab:
 	$(ERRDECODE) -length 4 -mix2 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
+len4.mix6.subs.tab:
+	$(ERRDECODE) -length 4 -mix6 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
+
 len4.mix2.dels.tab:
 	$(ERRDECODE) -length 4 -mix2 -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
