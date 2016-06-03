@@ -248,7 +248,7 @@ for my $mutrate (split /,/, $mutrates) {
 		@dist = sort { $a <=> $b } @dist;
 		my $distmean = sum(@dist) / @dist;
 		my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
-		my ($distmedian, $distuq, $distlq) = @dist[@dist/4, @dist/2, 3*@dist/4];
+		my ($distlq, $distmedian, $distuq) = @dist[@dist/4, @dist/2, 3*@dist/4];
 		print join (" ", ++$nRows, $mutrate, $subrate, $duprate, $delrate, $distmean, $distsd, $distmedian, $distuq, $distlq), "\n";
 	    }
 	}
