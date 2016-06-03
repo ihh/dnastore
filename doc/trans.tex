@@ -41,11 +41,12 @@ Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a trinary (radi
 synthesizing to fourfold redundancy for additional error correction.
 Gupta {\em et al} introduced a trinary Golay code for error correction \cite{GuptaEtAl2015}.
 Strauss {\em et al} improved on Goldman {\em et al}'s redundancy using an exclusive-or method.
-Milenkovic {\em et al} have published extensively in this area,
-considering the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
-proposing several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
-and devising a random-access rewritable filesystem \cite{YazdiEtAl2015}.
-A parallel body of work describes error-correcting codes for noisy channels that are subject to
+Milenkovic {\em et al} have considered
+the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
+proposed several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
+and devised a random-access rewritable filesystem \cite{YazdiEtAl2015}.
+In work not specifically oriented to DNA storage,
+Davey and MacKay describe error-correcting codes for noisy channels that are subject to
 substitutions, insertions and deletions \cite{DaveyMackay2000,DaveyMackay2001}.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
@@ -605,9 +606,7 @@ The root of the prefix tree serves as the initial and final state
 \figref{Arithmetic} shows a transducer that was built by this algorithm
 for 2-digit codewords with $\nu=1/100$.
 
-
-
-\subsection{Making the decoder robust to substitutions, local tandem and inverted duplications, and other indels}
+\subsection{A model of substitutions, local tandem and inverted duplications, and other indels}
 \seclabel{ErrorModel}
 
 In this section we describe a statistical error model,
@@ -817,7 +816,31 @@ The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
 By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
 
-\subsection{Adding error-correcting codes}
+\subsection{Adding codes to correct insertion, deletion and substitution errors}
+\seclabel{Watermarks}
+
+In \secref{Arithmetic} we described a code that attempted to pack as much encoded information as possible into the mixed-radix sequence.
+However, we can also use the extra information in the trinary and quaternary bits for error-correction purposes:
+either to store parity bits, or to store a watermark.
+
+The watermark was introduced by Davey and MacKay as a frame-preserving signal that can be used as an ``inner code'' to correct for insertion and deletion errors
+in combination with an ``outer code'', such as a low-density parity check (LDPC) code, to correct substitution errors \cite{DaveyMackay2000,DaveyMackay2001}.
+Using transducers we can introduce watermark-type synchronization in several ways:
+(i) we can construct an $M$-state cyclic transducer that
+introduces one of the control signals from \secref{DeBruijnTransducer}
+(i.e. a reserved word) into the output DNA after every $M$ input bits;
+(ii) we can give each of the $M$ states a unique pseudorandom signature for radix conversion,
+so that every (binary) input digits is mapped uniquely to a single (binary, trinary or quaternary) output digit,
+but this mapping is performed slightly differently by each of the $M$ states;
+(iii) for additional synchronization we can have the transducer interleave extra (fixed-value) bits into the encoded sequence,
+for example after every $k$ states.
+
+When using watermark codes, we first encode the message using an LDPC code,
+which we then apply to the decoded sequence at the other end.
+The block length of the LDPC code can be matched to the block length of the watermark code
+to facilitate decoding of message fragments obtained via DNA sequencing.
+
+\subsection{Combining the component transducers}
 \seclabel{ErrorCorrection}
 
 We have described several component transducers so far,
@@ -854,21 +877,18 @@ We can use this to particular advantage when combining $\transerror$ with $\tran
 States in $\transerror$ will only mesh with states in $\transdelay$ that have compatible contexts,
 so we can efficiently throw out many of the possible combinations of states.
 
-Our implementation of these algorithms includes a few extra codes, such as a synchronization code
-that transmits a reserved control word (as described in \secref{DeBruijnTransducer})
-after every $N$ bits. The modular nature of transducers makes it straightforward to incorporate
-additional such variations into the coding framework, with the caveat that each such additional
-component machine multiplies the state and transition sets of the composite transducer
-and that the cost of Viterbi
-decoding scales in memory with the number of states and in time with the number of transitions.
-
 While some error-correcting codes, such as short Hamming codes, can be conveniently represented
-as state machines with exhaustively enumerable state spaces (as we have done here),
-more sophisticated codes---such as convolutional
-codes---generally have too many possibilities to enumerate efficiently.
-However, these codes can be represented as graphical models \cite{FreyMackay98,MurphyEtAl1999};
-likewise HMMs can be represented as trellis graphical models,
-which may offer a common framework for decoding such codes.
+as state machines with exhaustively enumerable state spaces,
+more sophisticated codes---such as LDPC codes---generally have too many possibilities to enumerate efficiently.
+Instead, LDPC codes are generally decoded using sum-product belief propagation on cyclic graphical models \cite{Mackay1997,FreyMackay98}.
+Following Davey and MacKay \cite{DaveyMackay2000},
+we have here implemented decoding as a two-stage process wherein the HMM corrects indel errors
+and the LDPC code corrects any remaining substitution errors.
+However, since LDPC codes and HMMs can both be represented as factor graphs
+of (respectively) trellis and cyclic topology \cite{Kschischang2006},
+these could in principle offer a common likelihood framework in which uncertainty from the HMM decoding
+could inform the second stage of LDPC bit-correction.
+
 
 \section{Results}
 \seclabel{Results}
@@ -1008,13 +1028,6 @@ In common with Gray Codes \cite{GrayCodes}, motivation for our code is error-avo
 However does have some error-correcting properties.
 If noise from DNA degradation/sequencing is unavoidable,
 it would be necessary to upgrade error-correcting features
-
-State-of-the-art error-correcting codes generally outstrip the capabilities of state machines:
-the highest-performing codes on classical noisy channels with substitutions, such as turbo codes and low-density parity check codes (LDPC codes, a.k.a. ``Gallager codes''),
-are decoded using constructions that can be interpreted as cyclic graphical models \cite{Mackay1997,FreyMackay98}.
-In parallel work, codes that have been developed for error correction on channels with substitutions, insertions and deletions
-wrap an inner ``watermark'' code, that can achieve synchronization using a Hidden Markov model, with an outer LDPC code to correct substitutions
-\cite{DaveyMackay2000,DaveyMackay2001}.
 
 We do not address the higher-level organization of DNA ``filesystem'',
 which has been addressed by others \cite{YazdiEtAl2015}

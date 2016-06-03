@@ -228,6 +228,11 @@ M.~Golin, X.~Xu, and J.~Yu.
   Discrete Algorithms}, SODA '09, pages 758--767, Philadelphia, PA, USA, 2009.
   Society for Industrial and Applied Mathematics.
 
+\bibitem{Kschischang2006}
+F.~R. Kschischang, B.~J. Frey, and H.~A. Loeliger.
+\newblock Factor graphs and the sum-product algorithm.
+\newblock {\em IEEE Trans. Inf. Theor.}, 47(2):498--519, September 2006.
+
 \bibitem{GrayCodes}
 W.~H. Press, S.~A. Teukolsky, W.~T. Vetterling, and B.~P. Flannery.
 \newblock {\em Numerical Recipes: The Art of Scientific Computing}, chapter
