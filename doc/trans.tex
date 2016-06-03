@@ -46,7 +46,7 @@ the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
 proposed several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
 and devised a random-access rewritable filesystem \cite{YazdiEtAl2015}.
 In work not specifically oriented to DNA storage,
-Davey and MacKay describe error-correcting codes for noisy channels that are subject to
+Davey and MacKay describe error-correcting ``watermark'' codes that are resistant to
 substitutions, insertions and deletions \cite{DaveyMackay2000,DaveyMackay2001}.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
@@ -106,10 +106,13 @@ bioinformatics datasets \cite{HsiYangEtAl2011}.
 De Bruijn graphs, and patterns in DNA.
 \secref{DeBruijnTransducer} describes the repeat-avoiding transducer that accepts a mixed-radix sequence on its input
 and generates a DNA sequence without homopolymers, short microsatellites or other local repeats.
+\secref{DelayedMachine} reformulates this transducer so each state has ``knowledge'' of its past and future context,
+facilitating error models that use this context to identify local duplications or context-sensitive substitutions.
 \secref{Arithmetic} develops a transducer motivated by the arithmetic compression algorithm
 that converts a binary input sequence into a mixed-radix sequence suitable for subsequent encoding as DNA.
 \secref{ErrorModel} describes an error-model transducer that mutates and deletes bases and reintroduces repeats.
-\secref{ErrorCorrection} shows how all these transducers can be combined, together with transducers that implement error-correcting codes.
+\secref{Watermarks} describes a transducer that introduces a watermark for synchronization.
+\secref{CombinedCode} shows how all these transducers can be combined.
 
 \subsection{Preliminary concepts}
 \seclabel{Preliminaries}
@@ -841,7 +844,7 @@ The block length of the LDPC code can be matched to the block length of the wate
 to facilitate decoding of message fragments obtained via DNA sequencing.
 
 \subsection{Combining the component transducers}
-\seclabel{ErrorCorrection}
+\seclabel{CombinedCode}
 
 We have described several component transducers so far,
 including machines
@@ -896,7 +899,7 @@ could inform the second stage of LDPC bit-correction.
 We have developed two open-source computer programs implementing the algorithms in this paper.
 MIXRADAR implements the MIXed-RADix ARithmetic code of \secref{Arithmetic}.
 DNASTORE implements the non-repeating DNA code of \secref{DeBruijnTransducer},
-a subset of the error-correcting code of \secref{ErrorCorrection},
+a subset of the error-correcting code of \secref{CombinedCode},
 and the transducer composition algorithm from \secref{TransducerComposition}.
 
 Both programs are available at \url{https://github.com/ihh/dnastore}

@@ -30,36 +30,42 @@ G.~M. Church, Y.~Gao, and S.~Kosuri.
 O.~Milenkovic and N.~Kashyap.
 \newblock {DNA} codes that avoid secondary structures.
 \newblock August 2005.
+\newblock \url{http://arxiv.org/abs/cs.DM/0508055}.
 
 \bibitem{YazdiEtAl2015}
 S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock {{A} Rewritable, Random-Access {D}{N}{A}-Based Storage System}.
-\newblock {\em Sci Rep}, 5:14138, 2015.
+\newblock {\em Scientific Reports}, 5:14138, 2015.
 
 \bibitem{GuptaEtAl2015}
 V.~Dhameliya, D.~Limbachiya, M.~Khakhar, and M.~K. Gupta.
 \newblock On optimal family of codes for {DNA} storage.
-\newblock {\em CoRR}, abs/1501.07133, 2015.
+\newblock {\em Computing Research Repository}, abs/1501.07133, 2015.
+\newblock \url{http://arxiv.org/abs/1501.07133}.
 
 \bibitem{MilenkovicEtAl2014}
 H.~M. Kiah, G.~J. Puleo, and O.~Milenkovic.
 \newblock Codes for {DNA} storage channels.
-\newblock {\em CoRR}, abs/1410.8837, 2014.
+\newblock {\em Computing Research Repository}, abs/1410.8837, 2014.
+\newblock \url{http://arxiv.org/abs/1410.8837}.
 
 \bibitem{MilenkovicEtAl2015}
 S.~M. Yazdi, H.~M. Kiah, E.~R. Garcia, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock {DNA}-based storage: Trends and methods.
-\newblock {\em CoRR}, abs/1507.01611, 2015.
+\newblock {\em Computing Research Repository}, abs/1507.01611, 2015.
+\newblock \url{http://arxiv.org/abs/1507.01611}.
 
 \bibitem{GabrysEtAl2015}
 R.~Gabrys, H.~M. Kiah, and O.~Milenkovic.
 \newblock Asymmetric {L}ee distance codes for {DNA}-based storage.
-\newblock {\em CoRR}, abs/1506.00740, 2015.
+\newblock {\em Computing Research Repository}, abs/1506.00740, 2015.
+\newblock \url{http://arxiv.org/abs/1506.00740}.
 
 \bibitem{MilenkovicEtAl2016}
 R.~Gabrys, E.~Yaakobi, and O.~Milenkovic.
 \newblock Codes in the damerau distance for {DNA} storage.
-\newblock {\em CoRR}, abs/1601.06885, 2016.
+\newblock {\em Computing Research Repository}, abs/1601.06885, 2016.
+\newblock \url{http://arxiv.org/abs/1601.06885}.
 
 \bibitem{BornholtEtAl2016}
 J.~Bornholt, R.~Lopez, D.~M. Carmean, L.~Ceze, G.~Seelig, and K.~Strauss.
@@ -67,6 +73,7 @@ J.~Bornholt, R.~Lopez, D.~M. Carmean, L.~Ceze, G.~Seelig, and K.~Strauss.
 \newblock In {\em Proceedings of the Twenty-First International Conference on
   Architectural Support for Programming Languages and Operating Systems},
   ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
+\newblock \url{http://doi.acm.org/10.1145/2872362.2872397}.
 
 \bibitem{DaveyMackay2000}
 M.~C. Davey and D.~J.~C. MacKay.
@@ -98,11 +105,13 @@ K.~P. Murphy, Y.~Weiss, and M.~I. Jordan.
 \newblock In {\em Proceedings of the Fifteenth Conference on Uncertainty in
   Artificial Intelligence}, UAI'99, pages 467--475, San Francisco, CA, USA,
   1999. Morgan Kaufmann Publishers Inc.
+\newblock \url{http://dl.acm.org/citation.cfm?id=2073796.2073849}.
 
 \bibitem{Mackay1997}
 D.~J.~C. Mackay and R.~M. Neal.
 \newblock Near {S}hannon limit performance of low density parity check codes.
 \newblock {\em Electronics Letters}, 33(6):457--458, 1997.
+\newblock \url{http://ieeexplore.ieee.org/xpls/abs_all.jsp?arnumber=585036}.
 
 \bibitem{MohriPereiraRiley2000}
 M.~Mohri, F.~Pereira, and M.~Riley.
@@ -144,7 +153,7 @@ O.~Westesson, G.~Lunter, B.~Paten, and I.~Holmes.
 \bibitem{SchwarzEtAl2014}
 R.~F. Schwarz, A.~Trinh, B.~Sipos, J.~D. Brenton, N.~Goldman, and F.~Markowetz.
 \newblock {{P}hylogenetic Quantification of Intra-Tumour Heterogeneity}.
-\newblock {\em PLoS Comput. Biol.}, 10(4):e1003535, Apr 2014.
+\newblock {\em PLoS Computational Biology}, 10(4):e1003535, Apr 2014.
 
 \bibitem{DeBruijn1946}
 N.~G. de~Bruijn.
@@ -155,25 +164,26 @@ N.~G. de~Bruijn.
 \bibitem{PevznerEtAl2001}
 P.~A. Pevzner, H.~Tang, and M.~S. Waterman.
 \newblock {{A}n {E}ulerian Path Approach to {D}{N}{A} Fragment Assembly}.
-\newblock {\em Proc. Natl. Acad. Sci. U.S.A.}, 98(17):9748--9753, Aug 2001.
+\newblock {\em Proceedings of the National Academy of Sciences of the United
+  States of America}, 98(17):9748--9753, Aug 2001.
 
 \bibitem{ZerbinoBirney2008}
 D.~R. Zerbino and E.~Birney.
 \newblock {{V}elvet: Algorithms for De Novo Short Read Assembly Using de
   {B}ruijn Graphs}.
-\newblock {\em Genome Res.}, 18(5):821--829, May 2008.
+\newblock {\em Genome Research}, 18(5):821--829, May 2008.
 
 \bibitem{IqbalEtAl2012}
 Z.~Iqbal, M.~Caccamo, I.~Turner, P.~Flicek, and G.~McVean.
 \newblock {{D}e Novo Assembly and Genotyping of Variants Using Colored De
   {B}ruijn Graphs}.
-\newblock {\em Nat. Genet.}, 44(2):226--232, Feb 2012.
+\newblock {\em Nature Genetics}, 44(2):226--232, Feb 2012.
 
 \bibitem{BurgeKarlin1997}
 C.~Burge and S.~Karlin.
 \newblock {{P}rediction of Complete Gene Structures in Human Genomic
   {D}{N}{A}}.
-\newblock {\em J. Mol. Biol.}, 268(1):78--94, Apr 1997.
+\newblock {\em Journal of Molecular Biology}, 268(1):78--94, Apr 1997.
 
 \bibitem{SalzbergEtAl1999}
 S.~L. Salzberg, M.~Pertea, A.~L. Delcher, M.~J. Gardner, and H.~Tettelin.
@@ -183,13 +193,15 @@ S.~L. Salzberg, M.~Pertea, A.~L. Delcher, M.~J. Gardner, and H.~Tettelin.
 \bibitem{Rissanen1976}
 J.~J. Rissanen.
 \newblock Generalized {K}raft inequality and arithmetic coding.
-\newblock {\em IBM J. Res. Dev.}, 20(3):198--203, May 1976.
+\newblock {\em IBM Journal of Research and Development}, 20(3):198--203, May
+  1976.
+\newblock \url{http://dx.doi.org/10.1147/rd.203.0198}.
 
 \bibitem{HsiYangEtAl2011}
 M.~Hsi-Yang~Fritz, R.~Leinonen, G.~Cochrane, and E.~Birney.
 \newblock {{E}fficient Storage of High Throughput {D}{N}{A} Sequencing Data
   using Reference-Based Compression}.
-\newblock {\em Genome Res.}, 21(5):734--740, May 2011.
+\newblock {\em Genome Research}, 21(5):734--740, May 2011.
 
 \bibitem{Durbin98}
 R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
@@ -200,7 +212,8 @@ R.~Durbin, S.~Eddy, A.~Krogh, and G.~Mitchison.
 \bibitem{PereiraRiley1996}
 F.~C.~N. Pereira and M.~Riley.
 \newblock Speech recognition by composition of weighted finite automata.
-\newblock {\em CoRR}, cmp-lg/9603001, 1996.
+\newblock {\em Computing Research Repository}, cmp-lg/9603001, 1996.
+\newblock \url{http://arxiv.org/abs/cmp-lg/9603001}.
 
 \bibitem{Holmes2003}
 I.~Holmes.
@@ -219,6 +232,7 @@ K.-C. Chu and J.~Gill.
 \newblock Computer science.
 \newblock chapter Mixed-Radix Huffman Codes, pages 209--218. Plenum Press, New
   York, NY, USA, 1992.
+\newblock \url{http://dl.acm.org/citation.cfm?id=166961.167006}.
 
 \bibitem{GolinEtAl2009}
 M.~Golin, X.~Xu, and J.~Yu.
@@ -227,11 +241,14 @@ M.~Golin, X.~Xu, and J.~Yu.
 \newblock In {\em Proceedings of the Twentieth Annual ACM-SIAM Symposium on
   Discrete Algorithms}, SODA '09, pages 758--767, Philadelphia, PA, USA, 2009.
   Society for Industrial and Applied Mathematics.
+\newblock \url{http://dl.acm.org/citation.cfm?id=1496770.1496853}.
 
 \bibitem{Kschischang2006}
 F.~R. Kschischang, B.~J. Frey, and H.~A. Loeliger.
 \newblock Factor graphs and the sum-product algorithm.
-\newblock {\em IEEE Trans. Inf. Theor.}, 47(2):498--519, September 2006.
+\newblock {\em IEEE Transactions on Information Theory}, 47(2):498--519,
+  September 2006.
+\newblock \url{http://dx.doi.org/10.1109/18.910572}.
 
 \bibitem{GrayCodes}
 W.~H. Press, S.~A. Teukolsky, W.~T. Vetterling, and B.~P. Flannery.
