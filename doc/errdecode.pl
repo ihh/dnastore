@@ -20,7 +20,8 @@ my $m2path = "$datadir/mixradar2.json";
 my $m6path = "$datadir/mixradar6.json";
 my $flusherpath = "$datadir/flusher.json";
 my $syncprefix = "$datadir/sync";
-my $syncsuffix = ".json";
+my $waterprefix = "$datadir/water";
+my $codesuffix = ".json";
 
 for my $dep ($dnastore, $editdist, $h74path, $m2path, $m6path, $flusherpath) {
     die "Dependency '$dep' not found" unless -e $dep;
@@ -32,7 +33,7 @@ my ($delrates, $maxdelsize) = (0, 10);
 my ($subrates, $ivratio) = (0, 10);
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
-my ($band, $hamming, $mixradar2, $mixradar6, $syncfreq, $exacterrs, $keeptmp, $help, @dnastore_opt);
+my ($ldpcdir, $hamming, $mixradar2, $mixradar6, $syncfreq, $waterfreq, $exacterrs, $keeptmp, $help, @dnastore_opt);
 my ($verbose, $dnastore_verbose) = (2, 2);
 my ($colwidth, $cmdwidth) = (80, 200);
 
@@ -43,6 +44,7 @@ my $usage = "Usage: $0 [options]\n"
     . " -mix6,-6             precompose with mixradar length-6 block code\n"
     . " -hamming,-g          precompose with Hamming(7,4) error-correcting code\n"
     . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
+    . " -watermark,-w <n>    precompose with watermark synchronizer with period n bits (n=128...)\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -50,7 +52,6 @@ my $usage = "Usage: $0 [options]\n"
     . " -maxdelsize,-f <n>   maximum length of deletions (default $maxdelsize)\n"
     . " -subrate,-s <n,n...> comma-separated list of substitution rates (default $subrates)\n"
     . " -ivratio,-i <n>      transition/transversion ratio (default $ivratio)\n"
-    . " -width,-w <n>        limit width of DP band for edit distance calculations\n"
     . " -reps,-r <n>         number of repeat simulations at each (subrate,duprate,delrate) setting\n"
     . " -trainalign,-t <n>   number of pairwise alignments in training set for error model (default $trainalign)\n"
     . " -exacterrs,-x        don't train error model on data; cheat by giving it simulation arguments\n"
@@ -67,6 +68,7 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "mix2|2" => \$mixradar2,
 	    "mix6|6" => \$mixradar6,
 	    "syncfreq|q=i" => \$syncfreq,
+	    "watermark|w=i" => \$waterfreq,
 	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|m=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
@@ -74,7 +76,6 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "maxdelsize|n=f" => \$maxdelsize,
 	    "subrate|s=s" => \$subrates,
 	    "ivratio=f" => \$ivratio,
-	    "width=i" => \$band,
 	    "reps=i" => \$reps,
 	    "exacterrs|x" => \$exacterrs,
 	    "trainalign=i" => \$trainalign,
@@ -113,11 +114,15 @@ die "You cannot use -syncfreq and -hamming with a sync period that is not a mult
     if $syncfreq && $hamming && $syncfreq % 4 != 0;
 my $syncpath;
 if (defined $syncfreq) {
-    $syncpath = $syncprefix . $syncfreq . $syncsuffix;
+    $syncpath = $syncprefix . $syncfreq . $codesuffix;
     die "You cannot use -syncfreq with a sync period whose transducer does not exist (try 16, 32, or 128)"
 	unless -e $syncpath;
+} elsif (defined $waterfreq) {
+    $syncpath = $waterprefix . $waterfreq . $codesuffix;
+    die "You cannot use -watermark with a sync period whose transducer does not exist (try 128)"
+	unless -e $syncpath;
 }
-my $flushargs = $syncfreq ? " --compose-machine $syncpath --compose-machine $flusherpath" : "";
+my $flushargs = defined($syncpath) ? " --compose-machine $syncpath --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --length $codelen --load-machine $machine";
 
@@ -184,7 +189,7 @@ for my $subrate (split /,/, $subrates) {
 
 		warn "Length(bitseq)=", length($bitseq), " Length(decoded)=", length($decoded), "\n" if $verbose;
 		
-		my $dist = editDistance ($bitseq, $decoded, $band);
+		my $dist = editDistance ($bitseq, $decoded);
 		warn "Edit distance: $dist\n" if $verbose;
 		push @dist, $dist/$bitseqlen;
 	    }
@@ -306,7 +311,6 @@ sub syswarn {
 # Calculate Levenshtein edit distance
 # (reimplemented as separate C++ program for speed)
 sub editDistance {
-    my ($x, $y, $band) = @_;
-    $band = "" unless defined $band;
-    return `$editdist "$x" "$y" $band` + 0;
+    my ($x, $y) = @_;
+    return `$editdist "$x" "$y"` + 0;
 }
