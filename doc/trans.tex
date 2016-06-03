@@ -36,10 +36,10 @@ treating DNA storage as a noisy channel coding problem.
 Recently, several coding schemes for DNA storage have been proposed
 that address the interrelated issues of error avoidance, error correction and redundancy
 \cite{GoldmanEtAl2013,MilenkovicEtAl2005,YazdiEtAl2015,GuptaEtAl2015,MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016,BornholtEtAl2016}.
-Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a trinary (radix-3) code that avoids repeated nucleotides
+Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a ternary (radix-3) code that avoids repeated nucleotides
 (somewhat similarly to a technique known as ``run-length limitation'' in coding theory),
 synthesizing to fourfold redundancy for additional error correction.
-Gupta {\em et al} introduced a trinary Golay code for error correction \cite{GuptaEtAl2015}.
+Gupta {\em et al} introduced a ternary Golay code for error correction \cite{GuptaEtAl2015}.
 Strauss {\em et al} improved on Goldman {\em et al}'s redundancy using an exclusive-or method.
 Milenkovic {\em et al} have considered
 the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
@@ -50,8 +50,8 @@ Davey and MacKay describe error-correcting ``watermark'' codes that are resistan
 substitutions, insertions and deletions \cite{DaveyMackay2000,DaveyMackay2001}.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
-As noted above, much recent work has used Goldman {\em et al}'s trinary code as a starting point.
-The trinary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position, hence the radix of 3.
+As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
+The ternary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position, hence the radix of 3.
 The rationale for this system advanced by Goldman {\em et al} is that it guards against the most common class of errors in DNA resequencing which occur at homopolymer runs.
 However, there are hidden assumptions in this reasoning, specifically that it is worth making synthesis a bit more expensive in order to improve sequencing.
 This may indeed be the case, but (for the moment at least) synthesis is vastly more expensive than sequencing,
@@ -59,7 +59,7 @@ so we might want to pack in more information---and yet still (perhaps) reserve c
 whether for biological function (e.g. restriction enzyme binding sites for convenient cleavage of DNA at pre-specified locations)
 or to organize our nucleic acid filesystem (e.g. barcodes, synchronization signals, or metadata block boundaries).
 Alternatively, assuming a world where synthesis is cheap and yet sequencing and bioinformatics have not solved the problem of decoding homopolymer runs
-(an assumption which might motivate the trinary code),
+(an assumption which might motivate the ternary code),
 it may also be desirable to avoid other motifs prone to sequencing error, such as repeated dinucleotides, trinucleotides or longer repeats.
 Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate.
 We may also wish to introduce error-correcting codes such as Hamming codes \cite{Mackay2003}, Golay codes \cite{GuptaEtAl2015},
@@ -72,7 +72,7 @@ Codes can be designed using this method to meet flexible needs
 including error-avoidance, error-correction, and demarcation of metadata.
 
 The core idea of our approach is to convert raw binary data (possibly interleaved with filesystem metadata) into a mixed-radix sequence
-wherein successive digits may be binary (radix-2), trinary (radix-3) or quaternary (radix-4).
+wherein successive digits may be binary (radix-2), ternary (radix-3) or quaternary (radix-4).
 The radix at any given position is effectively specified by the number of nucleotides available for coding at that position
 (which may vary due to avoidance of repeats or reserved motifs).
 The mixed-radix sequence can then be efficiently converted to a DNA sequence.
@@ -104,12 +104,12 @@ bioinformatics datasets \cite{HsiYangEtAl2011}.
 \section{Methods}
 
 \secref{Preliminaries} reviews preliminary concepts such as operations on weighted finite-state transducers,
-De Bruijn graphs, and patterns in DNA.
+De Bruijn graphs, patterns in DNA sequences, and the arithmetic coding algorithm.
 \secref{DeBruijnTransducer} describes the repeat-avoiding transducer that accepts a mixed-radix sequence on its input
 and generates a DNA sequence without homopolymers, short microsatellites or other local repeats.
 \secref{DelayedMachine} reformulates this transducer so each state has ``knowledge'' of its past and future context,
 facilitating error models that use this context to identify local duplications or context-sensitive substitutions.
-\secref{Arithmetic} develops a transducer motivated by the arithmetic compression algorithm
+\secref{Arithmetic} develops a transducer motivated by arithmetic coding
 that converts a binary input sequence into a mixed-radix sequence suitable for subsequent encoding as DNA.
 \secref{ErrorModel} describes an error-model transducer that mutates and deletes bases and reintroduces repeats.
 \secref{Watermarks} describes a transducer that introduces a watermark for synchronization.
@@ -284,13 +284,46 @@ Similarly, a direct inverted repeat of length $k$ is a $k$-nucleotide sequence f
 A local inverted repeat of length $k$ and separation $l$ is a $k$-nucleotide sequence, followed an $l$-nucleotide sequence, followed by the reverse complement
 of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $\seqlen{\someseq}=k$ and $\seqlen{\otherseq}=l$.
 
+\subsubsection{Arithmetic coding}
+\seclabel{ArithmeticCoding}
+
+Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
+given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
+can be efficiently evaluated.
+Suppose without loss of generality that the symbol alphabet (including the end-of-block character) is the set of integers $1 \ldots K$
+and let $C_n(k) \equiv P(x_{n+1} \leq k | x_1 \ldots x_n)$ be the cumulative distributions for the predictive marginals.
+Arithmetic coding uses the following ideas:
+\begin{itemize}
+\item The probability distribution over the first character divides the interval $[0,1)$ into $K$ subintervals.
+  The $k$'th subinterval is $[C_1(k-1),C_1(k))$.
+  \item Each subinterval is then further subdivided by the second character, then the third, and so on until the end of message.
+    So, for example, the subinterval for the first character is $[C_1(x_1-1),C_1(x_1))$,
+      for the second character $[C_1(x_1-1) + Q_1(x_1) C_2(x_2-1),C_1(x_1) + Q_1(x_1) C_2(x_2))$,
+          and so on.
+        \item If the interval before encoding the $n$'th character is $[A_n,B_n)$ then
+          $[A_0,B_0) = [0,1)$,
+              $A_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1}-1)$,
+              and $B_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1})$.
+            \item The upshot of all of this is that each message is associated with a finite subinterval of $[0,1)$
+              and these subintervals are lexicographically ordered (i.e. sorted by the first symbol, then the second, then the third, and so on).
+            \item Any finite-precision floating-point number also specifies a subinterval of $[0,1)$
+              containing all floating-point numbers of greater precision that would be rounded to that number.
+              For example, the decimal floating-point number $0.413$ specifies the subinterval $[0.4125,0.4135)$.
+              \item To encode the message $x_1 x_2 \ldots x_N$,
+                we simply need to transmit enough digits of a (binary) floating-point number such that its
+                rounding interval is fully contained within the interval $[A_{N+1},B_{N+1})$.
+                  The number of floating-point binary digits this requires should not exceed the Shannon entropy of the message,
+                  $-\log_2 P(x_1 x_2 \ldots x_N)$, by more than one bit.
+\end{itemize}
+
+
 \subsection{A transducer for encoding signals as DNA without short repeats or reserved words}
 \seclabel{DeBruijnTransducer}
 
 In this section we contruct, in several steps, a transducer $\transcoder$
 that accepts a mixed-radix sequence on the input
 (that is, every input state either accepts binary symbols $\{ \bit{0}, \bit{1} \}$,
-trinary symbols $\{ \trit{0}, \trit{1}, \trit{2} \}$ or
+ternary symbols $\{ \trit{0}, \trit{1}, \trit{2} \}$ or
 quaternary symbols $\{ \quat{0}, \quat{1}, \quat{2}, \quat{3} \}$)
 and outputs a (uniquely decodable) nucleotide sequence that is free of
 repeated nucleotides, short tandem repeats, or inverted repeats.
@@ -378,7 +411,7 @@ The output label of the transition is the label of the edge.
 \item The input label of each transition is determined as follows:
 \begin{itemize}
 \item For states in $\norepvertices$ with two outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the binary digits (bits) $\bit{0}$ and $\bit{1}$.
-\item For states in $\norepvertices$ with three outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the trinary digits (trits) $\trit{0}$, $\trit{1}$ and $\trit{2}$.
+\item For states in $\norepvertices$ with three outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the ternary digits (trits) $\trit{0}$, $\trit{1}$ and $\trit{2}$.
 \item For states in $\norepvertices$ with four outgoing transitions to other states in $\norepvertices$, those transitions are input-labeled with the quaternary digits (quats) $\quat{0}$, $\quat{1}$, $\quat{2}$ and $\quat{3}$.
 \item Transitions from states in $\norepvertices$ to states in $\controlbridges{n,\stepsto(\controlword_n,\controlset)}$,
 which begin a path to the $n$'th control word $\controlword_n$,
@@ -433,7 +466,7 @@ so these transitions and the corresponding states can be deleted.
 An analogous procedure can be used to transform a machine with $\kmerlen$ symbols of past input context
 into a machine with $\kmerlen/2$ past input context and $\kmerlen/2$ future input context.
 
-\subsection{A transducer that converts a binary sequence into a mixed-radix sequence of binary, trinary and quaternary digits}
+\subsection{A transducer that converts a binary sequence into a mixed-radix sequence of binary, ternary and quaternary digits}
 \seclabel{Arithmetic}
 
 We here describe a transducer $\transrad$ for converting the binary sequence to the mixed-radix sequence
@@ -444,7 +477,7 @@ that is, we simply never use the extra symbols in our alphabet $\{ \trit{2}, \qu
 However, we can do better than this and pack some extra information into the additional symbols when they are available.
 
 It is tempting to try something like the machine of \figref{BinaryToTrinary},
-which maps binary $\bit{0}\bit{0}$ to trinary $\trit{0}$,
+which maps binary $\bit{0}\bit{0}$ to ternary $\trit{0}$,
 $\bit{0}\bit{1}$ to $\trit{1}$,
 and $\bit{1}$ to $\trit{2}$;
 that is, it sometimes encodes two bits as one trit.
@@ -465,46 +498,20 @@ Of course, once we start adding additional symbols like end-of-block, the number
 but this effect 
 since we have to reserve some codewords for transmitting these symbols.
 
-The Huffman block code for binary encoding is well known, and generalizes easily to trinary.
+The Huffman block code for binary encoding is well known, and generalizes readily to ternary \cite{BornholtEtAl2016}.
 For mixed-radix output, when the radices at each position are fully specified,
 the relevant code is the mixed-radix Huffman code, for which optimal dynamic programming strategies have been presented \cite{ChuGill1992,GolinEtAl2009}.
-Here, we present a strategy for developing compact automata (transducers) that convert short binary codewords into any mixed-radix encoding.
-The code is not optimal, although it would become optimal at long block lengths,
-since it is based on arithmetic coding, which asymptotically approaches the Shannon limit for long sequences.
+However, this approach would require a different mixed-radix Huffman code for every possible combination of radices,
+and so is not particularly convenient for the situation when the number of available coding nucleotides varies from site to site
+(as in the repeat-avoiding code).
+
+In this section, we present a strategy for developing compact automata (transducers) that convert short binary codewords into any mixed-radix encoding.
+The code approaches optimality at long block lengths.
 Unfortunately, the number of states used by the machine grows exponentially with the sequence length, so this asymptotic limit is hard to realize.
 Nevertheless, the codes generated are not totally awful, and approach the asymptotic limit reasonably fast,
 as shown in \secref{Results}.
 
-Arithmetic coding is a method for compressing a message $x_1 x_2 \ldots x_N$
-given a probability model over messages whose predictive marginals for the next character in the sequence, $Q_n(k) \equiv P(x_{n+1}|x_1 \ldots x_n)$,
-can be efficiently evaluated.
-Suppose without loss of generality that the symbol alphabet (including the end-of-block character) is the set of integers $1 \ldots K$
-and let $C_n(k) \equiv P(x_{n+1} \leq k | x_1 \ldots x_n)$ be the cumulative distributions for the predictive marginals.
-Arithmetic coding uses the following ideas:
-\begin{itemize}
-\item The probability distribution over the first character divides the interval $[0,1)$ into $K$ subintervals.
-  The $k$'th subinterval is $[C_1(k-1),C_1(k))$.
-  \item Each subinterval is then further subdivided by the second character, then the third, and so on until the end of message.
-    So, for example, the subinterval for the first character is $[C_1(x_1-1),C_1(x_1))$,
-      for the second character $[C_1(x_1-1) + Q_1(x_1) C_2(x_2-1),C_1(x_1) + Q_1(x_1) C_2(x_2))$,
-          and so on.
-        \item If the interval before encoding the $n$'th character is $[A_n,B_n)$ then
-          $[A_0,B_0) = [0,1)$,
-              $A_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1}-1)$,
-              and $B_{n+1} = (B_n-A_n) C_{n+1}(x_{n+1})$.
-            \item The upshot of all of this is that each message is associated with a finite subinterval of $[0,1)$
-              and these subintervals are lexicographically ordered (i.e. sorted by the first symbol, then the second, then the third, and so on).
-            \item Any finite-precision floating-point number also specifies a subinterval of $[0,1)$
-              containing all floating-point numbers of greater precision that would be rounded to that number.
-              For example, the decimal floating-point number $0.413$ specifies the subinterval $[0.4125,0.4135)$.
-              \item To encode the message $x_1 x_2 \ldots x_N$,
-                we simply need to transmit enough digits of a (binary) floating-point number such that its
-                rounding interval is fully contained within the interval $[A_{N+1},B_{N+1})$.
-                  The number of floating-point binary digits this requires should not exceed the Shannon entropy of the message,
-                  $-\log_2 P(x_1 x_2 \ldots x_N)$, by more than one bit.
-\end{itemize}
-
-We apply these concepts to encode input words as mixed-radix floating point numbers.
+We apply the concepts of arithmetic coding (\secref{ArithmeticCoding}) to encode input words as mixed-radix floating point numbers.
 The set of input words to be encoded is the set of all length-$N$ binary strings,
 plus the set of all length-$k$ binary strings ($0 \leq k < N$) that are followed by the `\$' character.
 Thus, if $N=2$ then the input word set is $\{\$,0\$,1\$,00,01,10,11\}$.
@@ -527,7 +534,7 @@ merging identical states in the transducer, and pruning unnecessary states) that
 \begin{algorithm}
   \KwData{$W$, the list of input words sorted by decreasing probability}
   \KwData{$A_w,B_w,P(w)$, the bounds and size of the probability interval for each input word}
-  \KwResult{A finite-state transducer that converts an input word into a mixed-radix sequence with all possible combinations of binary, trinary and quaternary radix at every available position}
+  \KwResult{A finite-state transducer that converts an input word into a mixed-radix sequence with all possible combinations of binary, ternary and quaternary radix at every available position}
 
   First construct the prefix tree of the input words, assign a state to every node and an input-labeled transition to every correspondingly labeled edge.
 The root of the prefix tree serves as the initial and final state
@@ -606,7 +613,9 @@ The root of the prefix tree serves as the initial and final state
 }
 \end{algorithm}
 
-\algref{MixedRadixTransducer} generates the transducer.
+Pseudocode to generate the transducer is shown in \algref{MixedRadixTransducer}.
+The essence of the approach is to build a tree of the digits of all possible radices that the arithmetic coding approach
+would use to encode each position, with some optimizations (as noted) to merge states and adjust output intervals.
 \figref{Arithmetic} shows a transducer that was built by this algorithm
 for 2-digit codewords with $\nu=1/100$.
 
@@ -824,7 +833,7 @@ By composing it with the transducer in \subfigref{PartialObservation}{c}, we can
 \seclabel{Watermarks}
 
 In \secref{Arithmetic} we described a code that attempted to pack as much encoded information as possible into the mixed-radix sequence.
-However, we can also use the extra information in the trinary and quaternary bits for error-correction purposes:
+However, we can also use the extra information in the ternary and quaternary bits for error-correction purposes:
 either to store parity bits, or to store a watermark.
 
 The watermark was introduced by Davey and MacKay as a frame-preserving signal that can be used as an ``inner code'' to correct for insertion and deletion errors
@@ -834,7 +843,7 @@ Using transducers we can introduce watermark-type synchronization in several way
 introduces one of the control signals from \secref{DeBruijnTransducer}
 (i.e. a reserved word) into the output DNA after every $M$ input bits;
 (ii) we can give each of the $M$ states a unique pseudorandom signature for radix conversion,
-so that every (binary) input digits is mapped uniquely to a single (binary, trinary or quaternary) output digit,
+so that every (binary) input digits is mapped uniquely to a single (binary, ternary or quaternary) output digit,
 but this mapping is performed slightly differently by each of the $M$ states;
 (iii) for additional synchronization we can have the transducer interleave extra (fixed-value) bits into the encoded sequence,
 for example after every $k$ states.
@@ -910,8 +919,6 @@ and scripts to generate those codes.
 \subsection{MIXRADAR}
 \seclabel{MIXRADAR}
 
-\tabref{MIXRADAR.codes} shows statistics for codes generated with MIXRADAR.
-
 \begin{table}
 \begin{tabular}{rrrrrrr}
 & & & & \multicolumn{3}{c}{Mean output symbols/input bit} \\
@@ -936,23 +943,20 @@ $N$ is the block length in bits; $\nu$ is the probability of the end-of-block sy
 }
 \end{table}
 
-Near-ideal performance in converting bits to quats is pretty straightforward
-Near-ideal performance in a bit-to-trit block code requires long blocks
-Need positive integers $m,n$ for which $3^m$ is only a little more than $2^n$
-The number of bits/trit is then $n/m$
-% Maybe show graph of $n/ceil(n*log(2)/log(3))$ vs $n$ ?
-% Or $m=ceil(n*log(2)/log(3))$ vs $n$
-These do not occur until values of $m,n$ that are large enough to require unmanageably many states in the state machine
-e.g. $3^7 \simeq 2^{11} \times 1.07$, $3^{12} \simeq 2^{19} \times 1.01$
-These give bits/trit of $11/7 \simeq 1.571$ and $19/12 \simeq 1.583$, respectively
+\tabref{MIXRADAR.codes} shows statistics for codes generated with MIXRADAR.
+It is straightforward to achieve (near-)ideal performance in converting bits to quats,
+but near-ideal performance in a bit-to-trit block code requires long blocks.
+The essence of the problem is to find positive integers $m,n$ for which $3^m$ is only a little more than $2^n$;
+the number of bits/trit is then $n/m$.
+For example, good values of $(m,n)$ are $(7,11)$
+(since $3^7 \simeq 2^{11} \times 1.07$)
+and $(12,19)$ (since $3^{12} \simeq 2^{19} \times 1.01$).
+These offer bit/trit ratios of $11/7 \simeq 1.571$ and $19/12 \simeq 1.583$, respectively
 (compared to the theoretical maximum $\log_2(3) \simeq 1.585$ bits/trit).
-However, 11-bit codewords would require millions of states to encode all the possible mixed-radix outputs
-% Test this?
-Best we can achieve at lower codeword-lengths is $3^4 \simeq 2^6 \times 1.27$
-This gives a performance that is near-ideal for radix-2 output (1 bit/base) and radix-4 output (2 bits/base)
-and decent for radix-3 output (1.5 bits/base)
-at 2125 states and 6375 transitions
-
+However, codewords of 11 or 19 bits in length would require millions or billions of states to encode all the possible mixed-radix outputs.
+The best we can achieve at lower codeword lengths is $(m,n) = (4,6)$ (where $3^4 \simeq 2^6 \times 1.27$).
+This codeword length (6 bits) gives a performance that is near-ideal for radix-2 output (1 bit/base) and radix-4 output (2 bits/base)
+and decent for radix-3 output (1.5 bits/base), at 2125 states and 6375 transitions (see \tabref{MIXRADAR.codes}).
 
 % ../bin/mixradar.pl 6 .001 -s -v
 %
@@ -970,19 +974,21 @@ at 2125 states and 6375 transitions
 \subsection{DNASTORE}
 \seclabel{DNASTORE}
 
-By default, DNASTORE uses the naive binary-to-trinary conversion of
+By default, DNASTORE uses the naive binary-to-ternary conversion of
 \figref{BinaryToTrinary} and adds a zero padding bit when the machine needs to be flushed,
 rather than the block codes generated by MIXRADAR that do not require padding bits.
 This can cause some problems (e.g. single-bit errors at the end of the message during decoding).
-
 To circumvent such problems, and for general flexibility,
 DNASTORE can be supplied with alternative coding machines described in a compact JSON format
 and can compose multiple machines using the algorithm outlined in \secref{TransducerComposition}.
-Composite state machines incorporating other stages
-(e.g. more sophisticated radix conversion, or error correcting codes)
-can be incorporated in this way.
+This allows the straightforward incorporation of composite state machines incorporating other stages
+(e.g. more sophisticated radix conversion, or error correcting codes).
 
-\tabref{DNASTORE.codes} shows statistics for codes generated with DNASTORE.
+\tabref{DNASTORE.codes} shows statistics for codes generated with DNASTORE
+using the algorithm of \secref{DeBruijnTransducer}.
+For most of the simulations and composite codes in this paper, we have used a short code of $\kmerlen=4$ nucleotides,
+which avoids single-base and dinucleotide repeats,
+but not trinucleotide (or longer) repeats.
 
 \begin{table}
   \begin{tabular}{rrrrrrrll}
@@ -1006,39 +1012,49 @@ can be incorporated in this way.
 \subsection{Error correction}
 \seclabel{Viterbi}
 
-Performance of DNASTORE at encoding \& decoding a large file
+At the time of writing,
+DNASTORE implements error correction using a simplified version of the transducer $\transerror$
+of \secref{ErrorModel}, modeling only tandem duplications and not inverted duplications.
+It can also estimate the parameters of the error model from training data
+(in the form of alignments of sequenced DNA to known reference copies of that DNA).
 
-DNASTORE's implementation of $\transerror$
-sets $\pcont(j,k)=\pnogap$
-and $\pfwddup=\prevdup=0$
+To test the performance of these codes, we tried encoding and decoding a uniformly random sequence of 8,192 bits
+while simulating the controlled corruption of the sequenced DNA by various types of random mutation:
+point substitutions, deletions of up to 4 bases, and tandem duplications of up to 4 bases.
+We explored several different composite codes, with components including
+the length-4 and length-8 codes from \tabref{DNASTORE.codes};
+the mixed-radix block code of 2-bit codewords from \tabref{MIXRADAR.codes};
+the Hamming(7,4) error-correction code of \subfigref{HammingTransducer}{b};
+the watermark synchronization codes of \secref{Watermarks};
+and an outer LDPC(16384,8192) code implemented using Neal's LDPC-codes
+software available from \url{https://github.com/radfordneal/LDPC-codes}.
+We varied substitution, deletion and insertion rates, repeating the experiment 12 times at each setting,
+and measuring the Levenshtein edit distance (normalized by the number of input bits) between the original and recovered bit-sequences.
 
-Viterbi decoding with simulated errors
-
-Global or local
+The results of these computational experiments are summarized in \figref{DupPlot}, \figref{SubPlot} and \figref{DelPlot}.
+% WRITE ME
 
 % Plot: per-bit edit distance vs per-base prob of substitutions, duplications, single-base deletions, multi-base deletions
 
 \section{Discussion}
 \seclabel{Discussion}
 
-We have outlined general design principles for efficient encoding signals in DNA
+We have outlined general design principles for efficiently encoding signals in DNA
+by converting a binary sequence to a mixed-radix sequence and then a nonrepeating nucleotide sequence.
+A distinct feature of our approach is its modularity,
+which allows integrated simultaneous decoding of multi-layer codes as long as they can be represented by state machines.
+This allows for straightforward incorporation of improved state machines for
+inserting watermarks or metadata, adding parity bits, converting binary to mixed-radix, generating repeat-free DNA,
+or modeling errors, or for other tasks that we have not thought to include.
 
-Advantage of modular approach is that modules can be switched out independently
-e.g. more efficient machines for
-adding parity bits, converting binary to mixed-radix, generating repeat-free DNA
-or modeling errors
+We have not addressed the higher-level organization of the DNA ``filesystem'',
+which has been explored in work by others \cite{YazdiEtAl2015,BornholtEtAl2016}.
+The code described here operates at a lower level.
+However, our allowance for reserved ``control words''
+can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks.
 
-In common with Gray Codes \cite{GrayCodes}, motivation for our code is error-avoidance, not error-correction.
-However does have some error-correcting properties.
-If noise from DNA degradation/sequencing is unavoidable,
-it would be necessary to upgrade error-correcting features
 
-We do not address the higher-level organization of DNA ``filesystem'',
-which has been addressed by others \cite{YazdiEtAl2015}
-The code described here operates at a lower level, though our use of reserved ``control words''
-can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks,
-or for providing watermark-style sequences for indel-tolerant synchronization
-
+% WRITE ME
 Filesystem may include redundancy measures (c.f. RAID)
 Further redundancy in readout arises because we are likely have multiple reads covering the same region
 This point could in principle be addressed using transducer operations
@@ -1079,7 +1095,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 
 \newpage
 \dotfig{b2t}{width=\textwidth}{BinaryToTrinary}{
-  A transducer that converts binary to trinary.
+  A transducer that converts binary to ternary.
   This machine maps $\bit{0}\bit{0} \to \trit{0}$,
   $\bit{0}\bit{1} \to \trit{1}$
   and
@@ -1151,12 +1167,12 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   Left column (a,d): codes in which there are no reserved control words, so the machine start and end in arbitrary states.
   Central column (b,e): codes in which there is one reserved control word, which only ever appears once, at the start of the encoded DNA sequence.
   Right-hand column (c,f): codes in which there is one reserved control word, which only ever appears twice: once at the start of the encoded DNA sequence and once at the end.
-  The leftmost machine in the bottom row (d) is similar to the trinary code of \cite{GoldmanEtAl2013}.
+  The leftmost machine in the bottom row (d) is similar to the ternary code of \cite{GoldmanEtAl2013}.
   {\bf Key:}
   Transition label annotations have been omitted from this diagram.
   Instead, the labels may be deduced from the node and edge shapes, as follows:
   Solid bold-weight transitions from rectangular states encode quaternary input digits.
-  Solid regular-weight transitions from triangular states encode trinary input digits.
+  Solid regular-weight transitions from triangular states encode ternary input digits.
   Dashed-line transitions from double-circle states encode binary input digits.
   Dotted-line transitions do not encode input digits;
   states that can only be exited via these transitions are shown as rectangles.
@@ -1217,12 +1233,23 @@ Levenshtein edit distance
 }
 
 \easyfig{subplot.ps}{width=\textwidth}{SubPlot}{
-  Effect of simulated substitution errors on decoder accuracy for three different codes.
+  Effect of simulated substitution errors on decoder accuracy for four different codes.
 ...
 10 repetitions,
 1 kilobyte random sequence
 ...
 Transition/transversion ratio of 10
+...
+Levenshtein edit distance
+}
+
+\easyfig{delplot.ps}{width=\textwidth}{DelPlot}{
+  Effect of simulated deletions on decoder accuracy for three different codes.
+...
+10 repetitions,
+1 kilobyte random sequence
+...
+Up to four nucleotides randomly duplicated
 ...
 Levenshtein edit distance
 }
