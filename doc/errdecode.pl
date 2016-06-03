@@ -172,7 +172,7 @@ if (defined $syncfreq) {
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --length $codelen --load-machine $machine";
 
-print " ", join (" ", qw(MutProb SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit)), "\n";
+print " ", join (" ", qw(MutProb SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit MedianEditsPerBit UpperQuartileEditsPerBit LowerQuartileEditsPerBit)), "\n";
 my $nRows = 0;
 for my $mutrate (split /,/, $mutrates) {
     for my $subrate (map ($mutrate*$_, split (/,/, $subrates))) {
@@ -245,9 +245,11 @@ for my $mutrate (split /,/, $mutrates) {
 		    warn "Edit distance: $dist", defined($ldpcdir) ? (" (pre-LDPC: ", editDistance($encseq,$recseq), ")") : (), "\n" if $verbose;
 		    push @dist, $dist/$bitseqlen;
 		}
+		@dist = sort { $a <=> $b } @dist;
 		my $distmean = sum(@dist) / @dist;
 		my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
-		print join (" ", ++$nRows, $mutrate, $subrate, $duprate, $delrate, $distmean, $distsd), "\n";
+		my ($distmedian, $distuq, $distlq) = @dist[@dist/4, @dist/2, 3*@dist/4];
+		print join (" ", ++$nRows, $mutrate, $subrate, $duprate, $delrate, $distmean, $distsd, $distmedian, $distuq, $distlq), "\n";
 	    }
 	}
     }

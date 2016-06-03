@@ -120,10 +120,16 @@ dnastoretab.tex: dnastoretab.pl
 	perl $< >$@
 
 # Simulations of decoding with errors:
-errtabs: len4.subs.tab len4.mix2.subs.tab len4.mix2.dels.tab len4.mix2.dups.tab len8.mix2.dups.tab len4.ham.subs.tab len4.sync64.mix2.dels.tab len4.wat128.ldpc.subs.tab len4.wat128.ldpc.dels.tab len4.wat128.ldpc.dups.tab len4.wat128.16.ldpc.subs.tab len4.wat128.16.ldpc.dels.tab len4.wat128.16.ldpc.dups.tab len4.mix6.subs.tab
+errtabs: deltabs duptabs subtabs
+
+deltabs: len4.mix2.dels.tab len4.wat128.ldpc.dels.tab len4.wat128.16.ldpc.dels.tab
+
+duptabs: len4.mix2.dups.tab len8.mix2.dups.tab
+
+subtabs: len4.subs.tab len4.mix2.subs.tab len4.ham.subs.tab len4.wat128.ldpc.subs.tab
 
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
-ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10 -u 3
+ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 12 -u 3
 
 len4.subs.tab:
 	$(ERRDECODE) -length 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
