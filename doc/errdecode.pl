@@ -31,6 +31,7 @@ my ($bitseqlen, $codelen) = (8192, 8);
 my ($duprates, $maxdupsize, $allowdupoverlaps) = (.01, 4, 0);
 my ($delrates, $maxdelsize) = (0, 10);
 my ($subrates, $ivratio) = (0, 10);
+my $mutrates = 1;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
 my ($ldpcdir, $hamming, $mixradar2, $mixradar6, $syncfreq, $waterfreq, $exacterrs, $keeptmp, $help, @dnastore_opt);
@@ -38,29 +39,30 @@ my ($verbose, $dnastore_verbose) = (2, 2);
 my ($colwidth, $cmdwidth) = (80, 200);
 
 my $usage = "Usage: $0 [options]\n"
-    . " -bits,-b <n>         number of random bits to encode (default $bitseqlen)\n"
-    . " -length,-l <n>       codeword length in nucleotides (default $codelen)\n"
-    . " -mix2,-2             precompose with mixradar length-2 block code\n"
-    . " -mix6,-6             precompose with mixradar length-6 block code\n"
-    . " -hamming,-g          precompose with Hamming(7,4) error-correcting code\n"
-    . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
-    . " -watermark,-w <n>    precompose with watermark synchronizer with period n bits (n=128...)\n"
-    . " -ldpc,-c <dir>       wrap with a Low Density Parity Check code using Radford Neal's LDPC package downloaded from https://github.com/radfordneal/LDPC-codes\n"
-    . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
-    . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
-    . " -overlaps,-o         allow overlapping duplications\n"
-    . " -delrate,-e <n,n...> comma-separated list of deletion rates (default $delrates)\n"
-    . " -maxdelsize,-f <n>   maximum length of deletions (default $maxdelsize)\n"
-    . " -subrate,-s <n,n...> comma-separated list of substitution rates (default $subrates)\n"
-    . " -ivratio,-i <n>      transition/transversion ratio (default $ivratio)\n"
-    . " -reps,-r <n>         number of repeat simulations at each (subrate,duprate,delrate) setting\n"
-    . " -trainalign,-t <n>   number of pairwise alignments in training set for error model (default $trainalign)\n"
-    . " -exacterrs,-x        don't train error model on data; cheat by giving it simulation arguments\n"
-    . " -seed <n>            seed random number generator (default $rndseed)\n"
-    . " -keeptmp,-k          keep temporary files\n"
-    . " -verbose,-v <n>      set verbosity level (default $verbose)\n"
-    . " -ds-verbose,-u <n>   set verbosity level for dnastore (default $dnastore_verbose)\n"
-    . " -help,-h             print this help text\n"
+    . " -bits,-b <n>          number of random bits to encode (default $bitseqlen)\n"
+    . " -length,-l <n>        codeword length in nucleotides (default $codelen)\n"
+    . " -mix2,-2              precompose with mixradar length-2 block code\n"
+    . " -mix6,-6              precompose with mixradar length-6 block code\n"
+    . " -hamming,-g           precompose with Hamming(7,4) error-correcting code\n"
+    . " -syncfreq,-q <n>      precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
+    . " -watermark,-w <n[.m]> precompose with watermark synchronizer with period n bits and subperiod m bits (n=128, m=16...)\n"
+    . " -ldpc,-c <dir>        wrap with a Low Density Parity Check code using Radford Neal's LDPC package downloaded from https://github.com/radfordneal/LDPC-codes\n"
+    . " -mutrate,-m <n>       comma-separated list of scale factors for all mutation rates (default $mutrates)\n"
+    . " -duprate,-d <n>       comma-separated list of duplication rates (default $duprates)\n"
+    . " -maxdupsize,-z <n>    maximum length of duplications (default $maxdupsize)\n"
+    . " -overlaps,-o          allow overlapping duplications\n"
+    . " -delrate,-e <n>       comma-separated list of deletion rates (default $delrates)\n"
+    . " -maxdelsize,-f <n>    maximum length of deletions (default $maxdelsize)\n"
+    . " -subrate,-s <n,n...>  comma-separated list of substitution rates (default $subrates)\n"
+    . " -ivratio,-i <n>       transition/transversion ratio (default $ivratio)\n"
+    . " -reps,-r <n>          number of repeat simulations at each (subrate,duprate,delrate) setting\n"
+    . " -trainalign,-t <n>    number of pairwise alignments in training set for error model (default $trainalign)\n"
+    . " -exacterrs,-x         don't train error model on data; cheat by giving it simulation arguments\n"
+    . " -seed <n>             seed random number generator (default $rndseed)\n"
+    . " -keeptmp,-k           keep temporary files\n"
+    . " -verbose,-v <n>       set verbosity level (default $verbose)\n"
+    . " -ds-verbose,-u <n>    set verbosity level for dnastore (default $dnastore_verbose)\n"
+    . " -help,-h              print this help text\n"
     ;
 
 GetOptions ("bits=i" => \$bitseqlen,
@@ -69,10 +71,11 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "mix2|2" => \$mixradar2,
 	    "mix6|6" => \$mixradar6,
 	    "syncfreq|q=i" => \$syncfreq,
-	    "watermark|w=i" => \$waterfreq,
+	    "watermark|w=s" => \$waterfreq,
 	    "ldpc|c=s" => \$ldpcdir,
+	    "mutrate|m=s" => \$mutrates,
 	    "duprate|d=s" => \$duprates,
-	    "maxdupsize|m=f" => \$maxdupsize,
+	    "maxdupsize|z=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
 	    "delrate|e=s" => \$delrates,
 	    "maxdelsize|n=f" => \$maxdelsize,
@@ -169,81 +172,83 @@ if (defined $syncfreq) {
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --length $codelen --load-machine $machine";
 
-print " ", join (" ", qw(SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit)), "\n";
+print " ", join (" ", qw(MutProb SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit)), "\n";
 my $nRows = 0;
-for my $subrate (split /,/, $subrates) {
-    for my $duprate (split /,/, $duprates) {
-	for my $delrate (split /,/, $delrates) {
-	    warn "subrate=$subrate duprate=$duprate delrate=$delrate\n" if $verbose;
+for my $mutrate (split /,/, $mutrates) {
+    for my $subrate (map ($mutrate*$_, split (/,/, $subrates))) {
+	for my $duprate (map ($mutrate*$_, (split /,/, $duprates))) {
+	    for my $delrate (map ($mutrate*$_, (split /,/, $delrates))) {
+		warn "mutrate=$mutrate subrate=$subrate duprate=$duprate delrate=$delrate\n" if $verbose;
 
-	    my $errmodfh = tempfile (SUFFIX => '.err.json');
-	    unless ($exacterrs) {
-		my $trainfh = tempfile (SUFFIX => '.stk');
-		my $trainlen = $bitseqlen;  # crude way to match training seq len to simulated seqs
-		for my $n (1..$trainalign) {
-		    warn "Generating training sequence #$n (length $trainlen)\n" if $verbose;
-		    my $orig = randseq ([qw(A C G T)], $trainlen);
-		    my @origpos = (0..length($orig)-1);
-		    my $seq = lc $orig;
-		    $seq = evolve (\@origpos, $seq, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
-		    $seq = evolve (\@origpos, $seq, $subrate, 1, 1, \&subst, "substitution", 1);
-		    $seq = evolve (\@origpos, $seq, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
-		    my $trainstock = stockholm($orig,$seq,\@origpos);
-		    print $trainfh $trainstock;
-		    warn $trainstock if $verbose >= 3;
+		my $errmodfh = tempfile (SUFFIX => '.err.json');
+		unless ($exacterrs) {
+		    my $trainfh = tempfile (SUFFIX => '.stk');
+		    my $trainlen = $bitseqlen;  # crude way to match training seq len to simulated seqs
+		    for my $n (1..$trainalign) {
+			warn "Generating training sequence #$n (length $trainlen)\n" if $verbose;
+			my $orig = randseq ([qw(A C G T)], $trainlen);
+			my @origpos = (0..length($orig)-1);
+			my $seq = lc $orig;
+			$seq = evolve (\@origpos, $seq, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
+			$seq = evolve (\@origpos, $seq, $subrate, 1, 1, \&subst, "substitution", 1);
+			$seq = evolve (\@origpos, $seq, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
+			my $trainstock = stockholm($orig,$seq,\@origpos);
+			print $trainfh $trainstock;
+			warn $trainstock if $verbose >= 3;
+		    }
+
+		    my $errmod = syswarn ("$cmd --fit-error $trainfh --error-global");
+		    print $errmodfh $errmod;
+		    warn "Estimated error model:\n", $errmod if $verbose >= 2;
 		}
 
-		my $errmod = syswarn ("$cmd --fit-error $trainfh --error-global");
-		print $errmodfh $errmod;
-		warn "Estimated error model:\n", $errmod if $verbose >= 2;
+		my @dist;
+		for my $rep (1..$reps) {
+		    warn "Starting repetition $rep of $reps\n" if $verbose;
+		    my $bitseq = randseq ([0,1], $bitseqlen);
+
+		    warn $bitseq, "\n" if $verbose >= 5;
+
+		    my $encseq = defined($ldpcdir) ? ldpc_encode($bitseq) : $bitseq;
+		    
+		    my $origdna = syswarn ("$cmd --raw --encode-bits $encseq");
+		    chomp $origdna;
+
+		    my @origpos = (0..length($origdna)-1);
+		    my $dna = lc($origdna);
+
+		    $dna = evolve (\@origpos, $dna, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
+		    $dna = evolve (\@origpos, $dna, $subrate, 1, 1, \&subst, "substitution", 1);
+		    $dna = evolve (\@origpos, $dna, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
+
+		    warn stockholm($origdna,$dna,\@origpos) if $verbose >= 3;
+		    
+		    warn $dna, "\n" if $verbose >= 5;
+		    $dna = uc($dna);
+
+		    my $seqfh = tempfile (SUFFIX => '.fa');
+		    print $seqfh ">seq\n$dna\n";
+		    my $exactArgs =  "--error-global --error-sub-prob $subrate --error-dup-prob $duprate --error-del-open $delrate --error-del-ext $delext";
+		    my $errArgs = $exacterrs ? $exactArgs : "--error-file $errmodfh";
+		    my $recseq = syswarn ("$cmd --raw --decode-viterbi $seqfh $errArgs");
+		    chomp $recseq;
+		    $recseq =~ s/[\^\$]//g;
+
+		    warn $recseq, "\n" if $verbose >= 5;
+
+		    my $ldpc_err_prob = min (.999, max (1 - (1-$subrate)*(1-$duprate*($maxdupsize+1)/2)*(1-$delrate*($maxdelsize+1)/2), 1e-9));
+		    my $decseq = defined($ldpcdir) ? ldpc_decode($recseq,$ldpc_err_prob) : $recseq;
+		    
+		    warn "Length(bitseq)=", length($bitseq), " Length(decseq)=", length($decseq), "\n" if $verbose;
+		    
+		    my $dist = editDistance ($bitseq, $decseq);
+		    warn "Edit distance: $dist", defined($ldpcdir) ? (" (pre-LDPC: ", editDistance($encseq,$recseq), ")") : (), "\n" if $verbose;
+		    push @dist, $dist/$bitseqlen;
+		}
+		my $distmean = sum(@dist) / @dist;
+		my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
+		print join (" ", ++$nRows, $mutrate, $subrate, $duprate, $delrate, $distmean, $distsd), "\n";
 	    }
-
-	    my @dist;
-	    for my $rep (1..$reps) {
-		warn "Starting repetition $rep of $reps\n" if $verbose;
-		my $bitseq = randseq ([0,1], $bitseqlen);
-
-		warn $bitseq, "\n" if $verbose >= 5;
-
-		my $encseq = defined($ldpcdir) ? ldpc_encode($bitseq) : $bitseq;
-		
-		my $origdna = syswarn ("$cmd --raw --encode-bits $encseq");
-		chomp $origdna;
-
-		my @origpos = (0..length($origdna)-1);
-		my $dna = lc($origdna);
-
-		$dna = evolve (\@origpos, $dna, $duprate, 1, $maxdupsize, \&dup, "duplication", $allowdupoverlaps);
-		$dna = evolve (\@origpos, $dna, $subrate, 1, 1, \&subst, "substitution", 1);
-		$dna = evolve (\@origpos, $dna, $delrate, 1, $maxdelsize, \&del, "deletion", 1);
-
-		warn stockholm($origdna,$dna,\@origpos) if $verbose >= 3;
-		
-		warn $dna, "\n" if $verbose >= 5;
-		$dna = uc($dna);
-
-		my $seqfh = tempfile (SUFFIX => '.fa');
-		print $seqfh ">seq\n$dna\n";
-		my $exactArgs =  "--error-global --error-sub-prob $subrate --error-dup-prob $duprate --error-del-open $delrate --error-del-ext $delext";
-		my $errArgs = $exacterrs ? $exactArgs : "--error-file $errmodfh";
-		my $recseq = syswarn ("$cmd --raw --decode-viterbi $seqfh $errArgs");
-		chomp $recseq;
-		$recseq =~ s/[\^\$]//g;
-
-		warn $recseq, "\n" if $verbose >= 5;
-
-		my $ldpc_err_prob = min (.999, max (1 - (1-$subrate)*(1-$duprate*($maxdupsize+1)/2)*(1-$delrate*($maxdelsize+1)/2), 1e-9));
-		my $decseq = defined($ldpcdir) ? ldpc_decode($recseq,$ldpc_err_prob) : $recseq;
-		
-		warn "Length(bitseq)=", length($bitseq), " Length(decseq)=", length($decseq), "\n" if $verbose;
-		
-		my $dist = editDistance ($bitseq, $decseq);
-		warn "Edit distance: $dist", defined($ldpcdir) ? (" (pre-LDPC: ", editDistance($encseq,$recseq), ")") : (), "\n" if $verbose;
-		push @dist, $dist/$bitseqlen;
-	    }
-	    my $distmean = sum(@dist) / @dist;
-	    my $distsd = sqrt (sum(map($_*$_,@dist)) / @dist - $distmean**2);
-	    print join (" ", ++$nRows, $subrate, $duprate, $delrate, $distmean, $distsd), "\n";
 	}
     }
 }

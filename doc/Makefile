@@ -1,3 +1,9 @@
+# Makefile dir
+TOP := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+
+# LDPC
+LDPCDIR := $(TOP)/../../LDPC-codes
+
 # All source files
 # Figures:
 DNASTORE := dna1full dna2full dna2start dna2startend dna2norep dna2startnorep dna2startendnorep dna3
@@ -114,7 +120,7 @@ dnastoretab.tex: dnastoretab.pl
 	perl $< >$@
 
 # Simulations of decoding with errors:
-errtabs: len4.subs.tab len4.mix2.subs.tab len4.mix2.dels.tab len4.mix2.dups.tab len8.mix2.dups.tab len4.ham.subs.tab len4.sync.mix2.dels.tab len4.sync.ham.dels.tab
+errtabs: len4.subs.tab len4.mix2.subs.tab len4.mix2.dels.tab len4.mix2.dups.tab len8.mix2.dups.tab len4.ham.subs.tab len4.sync64.mix2.dels.tab len4.wat128.ldpc.subs.tab len4.wat128.ldpc.dels.tab len4.wat128.ldpc.dups.tab len4.wat128.16.ldpc.subs.tab len4.wat128.16.ldpc.dels.tab len4.wat128.16.ldpc.dups.tab len4.mix6.subs.tab
 
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
 ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 10 -u 3
@@ -140,11 +146,26 @@ len8.mix2.dups.tab:
 len4.ham.subs.tab:
 	$(ERRDECODE) -length 4 -hamming -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
-len4.sync.mix2.dels.tab:
+len4.sync64.mix2.dels.tab:
 	$(ERRDECODE) -length 4 -syncfreq 64 -mix2 -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
 
-len4.sync.ham.dels.tab:
-	$(ERRDECODE) -length 4 -syncfreq 64 -hamming -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
+len4.wat128.ldpc.subs.tab:
+	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
+
+len4.wat128.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat128.ldpc.dups.tab:
+	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0 -delrate 0 -duprate $(LOGSCALE) >$@
+
+len4.wat128.16.ldpc.subs.tab:
+	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
+
+len4.wat128.16.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat128.16.ldpc.dups.tab:
+	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0 -delrate 0 -duprate $(LOGSCALE) >$@
 
 # R
 RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript
