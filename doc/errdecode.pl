@@ -45,6 +45,7 @@ my $usage = "Usage: $0 [options]\n"
     . " -hamming,-g          precompose with Hamming(7,4) error-correcting code\n"
     . " -syncfreq,-q <n>     precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
     . " -watermark,-w <n>    precompose with watermark synchronizer with period n bits (n=128...)\n"
+    . " -ldpc,-c <dir>       wrap with a Low Density Parity Check code using Radford Neal's LDPC package downloaded from https://github.com/radfordneal/LDPC-codes\n"
     . " -duprate,-d <n,n...> comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-m <n>   maximum length of duplications (default $maxdupsize)\n"
     . " -overlaps,-o         allow overlapping duplications\n"
@@ -63,12 +64,13 @@ my $usage = "Usage: $0 [options]\n"
     ;
 
 GetOptions ("bits=i" => \$bitseqlen,
-	    "length=i" => \$codelen,
+	    "length|l=i" => \$codelen,
 	    "hamming|g" => \$hamming,
 	    "mix2|2" => \$mixradar2,
 	    "mix6|6" => \$mixradar6,
 	    "syncfreq|q=i" => \$syncfreq,
 	    "watermark|w=i" => \$waterfreq,
+	    "ldpc|c=s" => \$ldpcdir,
 	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|m=f" => \$maxdupsize,
 	    "overlaps" => \$allowdupoverlaps,
@@ -94,14 +96,54 @@ my %transversion = (A=>[qw(C T)],C=>[qw(A G)],G=>[qw(C T)],T=>[qw(A G)]);
 
 my $delext = 2 / $maxdelsize;  # hack
 srand ($rndseed);
-sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp") }
+sub tempfile { return File::Temp->new (UNLINK => $keeptmp ? 0 : 1, DIR => "/tmp", @_) }
 
 if ($maxdupsize > $codelen/2) {
     warn "\nWARNING: maximum duplication size (-maxdupsize) is greater than half of codeword length (-length).\nSome duplications will go undetected by the error decoder!\n\n";
 }
 
+# LDPC
+my ($ldpc_pchk, $ldpc_gen);
+if (defined $ldpcdir) {
+    $ldpc_pchk = tempfile (SUFFIX => '.pchk');
+    $ldpc_gen = tempfile (SUFFIX => '.gen');
+    my ($ldpc_checks, $ldpc_bits) = ($bitseqlen, 2 * $bitseqlen);  # hardcoded
+    my $ldpc_seed = 1;
+    my $ldpc_checks_per_col = 3;
+    syswarn ("$ldpcdir/make-ldpc $ldpc_pchk $ldpc_checks $ldpc_bits $ldpc_seed evenboth $ldpc_checks_per_col no4cycle");
+    syswarn ("$ldpcdir/make-gen $ldpc_pchk $ldpc_gen dense");
+}
+
+sub ldpc_encode {
+    my ($bitseq) = @_;
+    my $ldpc_src = tempfile (SUFFIX => '.src');
+    my $ldpc_enc = tempfile (SUFFIX => '.enc');
+    print $ldpc_src $bitseq, "\n";
+    syswarn ("$ldpcdir/encode $ldpc_pchk $ldpc_gen $ldpc_src $ldpc_enc");
+    my @ldpc_enc = <$ldpc_enc>;
+    my $encseq = join ("", @ldpc_enc);
+    $encseq =~ s/[^01]//g;
+    return $encseq;
+}
+
+sub ldpc_decode {
+    my ($recseq, $subprob) = @_;
+    my $ldpc_rec = tempfile (SUFFIX => '.rec');
+    my $ldpc_dec = tempfile (SUFFIX => '.dec');
+    my $ldpc_msg = tempfile (SUFFIX => '.msg');
+    print $ldpc_rec $recseq, "\n";
+    my $ldpc_max_iters = 250;
+    syswarn ("$ldpcdir/decode $ldpc_pchk $ldpc_rec $ldpc_dec bsc $subprob prprp $ldpc_max_iters");
+    syswarn ("$ldpcdir/extract $ldpc_gen $ldpc_dec $ldpc_msg");
+    my @ldpc_msg = <$ldpc_msg>;
+    my $msg = join ("", @ldpc_msg);
+    $msg =~ s/[^01]//g;
+    return $msg;
+}
+
+# DNASTORE
 my $ncontrols = $codelen < 4 ? 1 : 4;
-my $machine = tempfile();
+my $machine = tempfile (SUFFIX => '.code.json');
 my $cmdstub = "$dnastore --verbose $dnastore_verbose @dnastore_opt";
 my $ctrlargs = " --controls $ncontrols";
 my $hamargs = $hamming ? " --compose-machine $h74path" : "";
@@ -112,17 +154,18 @@ die "You cannot use -syncfreq without a machine that disambiguates flushing (-ha
     if $syncfreq && !($hamming || $mixradar2 || $mixradar6);
 die "You cannot use -syncfreq and -hamming with a sync period that is not a multiple of 4"
     if $syncfreq && $hamming && $syncfreq % 4 != 0;
-my $syncpath;
+my $flushargs = "";
 if (defined $syncfreq) {
-    $syncpath = $syncprefix . $syncfreq . $codesuffix;
+    my $syncpath = $syncprefix . $syncfreq . $codesuffix;
     die "You cannot use -syncfreq with a sync period whose transducer does not exist (try 16, 32, or 128)"
 	unless -e $syncpath;
+    $flushargs = " --compose-machine $syncpath --compose-machine $flusherpath";
 } elsif (defined $waterfreq) {
-    $syncpath = $waterprefix . $waterfreq . $codesuffix;
+    my $waterpath = $waterprefix . $waterfreq . $codesuffix;
     die "You cannot use -watermark with a sync period whose transducer does not exist (try 128)"
-	unless -e $syncpath;
+	unless -e $waterpath;
+    $flushargs = " --compose-machine $waterpath";
 }
-my $flushargs = defined($syncpath) ? " --compose-machine $syncpath --compose-machine $flusherpath" : "";
 syswarn ("$cmdstub --length $codelen $ctrlargs $flushargs $hamargs $mixargs --save-machine $machine");
 my $cmd = "$cmdstub --length $codelen --load-machine $machine";
 
@@ -133,9 +176,9 @@ for my $subrate (split /,/, $subrates) {
 	for my $delrate (split /,/, $delrates) {
 	    warn "subrate=$subrate duprate=$duprate delrate=$delrate\n" if $verbose;
 
-	    my $errmodfh = tempfile();
+	    my $errmodfh = tempfile (SUFFIX => '.err.json');
 	    unless ($exacterrs) {
-		my $trainfh = tempfile();
+		my $trainfh = tempfile (SUFFIX => '.stk');
 		my $trainlen = $bitseqlen;  # crude way to match training seq len to simulated seqs
 		for my $n (1..$trainalign) {
 		    warn "Generating training sequence #$n (length $trainlen)\n" if $verbose;
@@ -162,7 +205,9 @@ for my $subrate (split /,/, $subrates) {
 
 		warn $bitseq, "\n" if $verbose >= 5;
 
-		my $origdna = syswarn ("$cmd --raw --encode-bits $bitseq");
+		my $encseq = defined($ldpcdir) ? ldpc_encode($bitseq) : $bitseq;
+		
+		my $origdna = syswarn ("$cmd --raw --encode-bits $encseq");
 		chomp $origdna;
 
 		my @origpos = (0..length($origdna)-1);
@@ -177,20 +222,23 @@ for my $subrate (split /,/, $subrates) {
 		warn $dna, "\n" if $verbose >= 5;
 		$dna = uc($dna);
 
-		my $seqfh = tempfile();
+		my $seqfh = tempfile (SUFFIX => '.fa');
 		print $seqfh ">seq\n$dna\n";
 		my $exactArgs =  "--error-global --error-sub-prob $subrate --error-dup-prob $duprate --error-del-open $delrate --error-del-ext $delext";
 		my $errArgs = $exacterrs ? $exactArgs : "--error-file $errmodfh";
-		my $decoded = syswarn ("$cmd --raw --decode-viterbi $seqfh $errArgs");
-		chomp $decoded;
-		$decoded =~ s/[\^\$]//g;
+		my $recseq = syswarn ("$cmd --raw --decode-viterbi $seqfh $errArgs");
+		chomp $recseq;
+		$recseq =~ s/[\^\$]//g;
 
-		warn $decoded, "\n" if $verbose >= 5;
+		warn $recseq, "\n" if $verbose >= 5;
 
-		warn "Length(bitseq)=", length($bitseq), " Length(decoded)=", length($decoded), "\n" if $verbose;
+		my $ldpc_err_prob = min (.999, max (1 - (1-$subrate)*(1-$duprate*($maxdupsize+1)/2)*(1-$delrate*($maxdelsize+1)/2), 1e-9));
+		my $decseq = defined($ldpcdir) ? ldpc_decode($recseq,$ldpc_err_prob) : $recseq;
 		
-		my $dist = editDistance ($bitseq, $decoded);
-		warn "Edit distance: $dist\n" if $verbose;
+		warn "Length(bitseq)=", length($bitseq), " Length(decseq)=", length($decseq), "\n" if $verbose;
+		
+		my $dist = editDistance ($bitseq, $decseq);
+		warn "Edit distance: $dist", defined($ldpcdir) ? (" (pre-LDPC: ", editDistance($encseq,$recseq), ")") : (), "\n" if $verbose;
 		push @dist, $dist/$bitseqlen;
 	    }
 	    my $distmean = sum(@dist) / @dist;

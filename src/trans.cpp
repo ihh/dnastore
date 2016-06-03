@@ -506,6 +506,8 @@ Machine Machine::compose (const Machine& first, const Machine& origSecond) {
   LogThisAt(3,"Composing " << first.nStates() << "-state transducer with " << origSecond.nStates() << "-state transducer" << endl);
   const Machine second = origSecond.isWaitingMachine() ? origSecond : origSecond.waitingMachine();
   Assert (second.isWaitingMachine(), "Attempt to compose transducers A*B where B is not a waiting machine");
+  Assert (first.state.back().isEnd(), "Last state must be end state");
+  Assert (second.state.back().isEnd(), "Last state must be end state");
   vguard<MachineState> comp (first.nStates() * second.nStates());
   auto compState = [&](State i,State j) -> State {
     return i * second.nStates() + j;
@@ -538,20 +540,40 @@ Machine Machine::compose (const Machine& first, const Machine& origSecond) {
 	  LogThisAt(6,"Adding transition from " << ms.name << " to " << compStateName(i,jt.dest) << endl);
 	}
     }
-  vguard<bool> seen (comp.size(), false);
+  vguard<bool> reachableFromStart (comp.size(), false);
   deque<State> queue;
   queue.push_back (compState(first.startState(),second.startState()));
+  reachableFromStart[queue.front()] = true;
   while (queue.size()) {
     const State c = queue.front();
     queue.pop_front();
-    seen[c] = true;
     for (const auto& t: comp[c].trans)
-      if (!seen[t.dest])
+      if (!reachableFromStart[t.dest]) {
+	reachableFromStart[t.dest] = true;
 	queue.push_back (t.dest);
+      }
   }
+
+  vguard<bool> endReachableFrom (comp.size(), false);
+  vguard<vguard<State> > sources (comp.size());
+  for (State s = 0; s < comp.size(); ++s)
+    for (const auto& t: comp[s].trans)
+      sources[t.dest].push_back (s);
+  queue.push_back (compState(first.nStates()-1,second.nStates()-1));
+  endReachableFrom[queue.front()] = true;
+  while (queue.size()) {
+    const State c = queue.front();
+    queue.pop_front();
+    for (State src: sources[c])
+      if (!endReachableFrom[src]) {
+	endReachableFrom[src] = true;
+	queue.push_back (src);
+      }
+  }
+
   map<State,State> nullEquiv;
   for (State s = 0; s < comp.size(); ++s)
-    if (seen[s]) {
+    if (reachableFromStart[s] && endReachableFrom[s]) {
       State d = s;
       while (comp[d].trans.size() == 1 && comp[d].trans.front().isNull())
 	d = comp[d].trans.front().dest;
@@ -561,20 +583,20 @@ Machine Machine::compose (const Machine& first, const Machine& origSecond) {
   vguard<State> old2new (comp.size());
   State nStates = 0;
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx] && !nullEquiv.count(oldIdx))
+    if (reachableFromStart[oldIdx] && endReachableFrom[oldIdx] && !nullEquiv.count(oldIdx))
       old2new[oldIdx] = nStates++;
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx] && nullEquiv.count(oldIdx))
+    if (reachableFromStart[oldIdx] && endReachableFrom[oldIdx] && nullEquiv.count(oldIdx))
       old2new[oldIdx] = old2new[nullEquiv.at(oldIdx)];
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx])
+    if (reachableFromStart[oldIdx] && endReachableFrom[oldIdx])
       for (auto& t: comp[oldIdx].trans)
 	t.dest = old2new[t.dest];
   LogThisAt(3,"Transducer composition yielded " << nStates << "-state machine; " << plural (comp.size() - nStates, "more state was", "more states were") << " unreachable" << endl);
   Machine compMachine;
   compMachine.state.reserve (nStates);
   for (State oldIdx = 0; oldIdx < comp.size(); ++oldIdx)
-    if (seen[oldIdx] && !nullEquiv.count(oldIdx))
+    if (reachableFromStart[oldIdx] && endReachableFrom[oldIdx] && !nullEquiv.count(oldIdx))
       compMachine.state.push_back (comp[oldIdx]);
   return compMachine;
 }
