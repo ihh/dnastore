@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
 use strict;
-use Getopt::Long;
+use Getopt::Long qw(:config no_ignore_case);
 use List::Util qw(min max sum);
 use Math::Round qw(:all);
 use File::Temp;
@@ -35,6 +35,7 @@ my $mutrates = 1;
 my ($reps, $trainalign) = (1, 1);
 my $rndseed = 123456789;
 my ($ldpcdir, $hamming, $mixradar2, $mixradar6, $syncfreq, $waterfreq, $exacterrs, $keeptmp, $help, @dnastore_opt);
+my $ldpc_bits = 2048;
 my ($verbose, $dnastore_verbose) = (2, 2);
 my ($colwidth, $cmdwidth) = (80, 200);
 
@@ -47,6 +48,7 @@ my $usage = "Usage: $0 [options]\n"
     . " -syncfreq,-q <n>      precompose with synchronizer that inserts control word after every n bits (n=16,32,128...)\n"
     . " -watermark,-w <x>     precompose with watermark synchronizer x (x=128, 128.16, 128.16b, 128n ...)\n"
     . " -ldpc,-c <dir>        wrap with a Low Density Parity Check code using Radford Neal's LDPC package downloaded from https://github.com/radfordneal/LDPC-codes\n"
+    . " -ldpclen,-L <dir>     block length for LDPC code\n"
     . " -mutrate,-m <n>       comma-separated list of scale factors for all mutation rates (default $mutrates)\n"
     . " -duprate,-d <n>       comma-separated list of duplication rates (default $duprates)\n"
     . " -maxdupsize,-z <n>    maximum length of duplications (default $maxdupsize)\n"
@@ -73,6 +75,7 @@ GetOptions ("bits=i" => \$bitseqlen,
 	    "syncfreq|q=i" => \$syncfreq,
 	    "watermark|w=s" => \$waterfreq,
 	    "ldpc|c=s" => \$ldpcdir,
+	    "ldpclen|L=i" => \$ldpc_bits,
 	    "mutrate|m=s" => \$mutrates,
 	    "duprate|d=s" => \$duprates,
 	    "maxdupsize|z=f" => \$maxdupsize,
@@ -110,7 +113,7 @@ my ($ldpc_pchk, $ldpc_gen);
 if (defined $ldpcdir) {
     $ldpc_pchk = tempfile (SUFFIX => '.pchk');
     $ldpc_gen = tempfile (SUFFIX => '.gen');
-    my ($ldpc_checks, $ldpc_bits) = ($bitseqlen, 2 * $bitseqlen);  # hardcoded
+    my $ldpc_checks = $ldpc_bits / 2;
     my $ldpc_seed = 1;
     my $ldpc_checks_per_col = 3;
     syswarn ("$ldpcdir/make-ldpc $ldpc_pchk $ldpc_checks $ldpc_bits $ldpc_seed evenboth $ldpc_checks_per_col no4cycle");

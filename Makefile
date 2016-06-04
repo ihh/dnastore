@@ -89,15 +89,18 @@ data/sync%.json: bin/syncer.pl
 	perl $< $* >$@
 
 # WMARK
-WATER128 = $(addprefix data/water,$(addsuffix .json,128 128.16 128.16b 128n 128a2))
-WATER64 = $(addprefix data/water,$(addsuffix .json,64 64.16 64.16b 64n 64a2))
+WATER128 = $(addprefix data/water,$(addsuffix .json,128 128.16 128.16b 128n 128a2 128.1))
+WATER64 = $(addprefix data/water,$(addsuffix .json,64 64.16 64.16b 64n 64a2 64.1))
 watermark_codes: $(WATER128) $(WATER64)
+
+data/water%.1.json:
+	bin/watermark.pl $* -sub 1 >$@
 
 data/water%.16.json:
 	bin/watermark.pl $* -sub 16 >$@
 
 data/water%.16b.json:
-	bin/watermark.pl $* -sub 16 -subctrl >$@
+	bin/watermark.pl $* -sub 16 -word >$@
 
 data/water%n.json:
 	bin/watermark.pl $* -nomixwater >$@

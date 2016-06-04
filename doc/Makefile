@@ -122,7 +122,7 @@ dnastoretab.tex: dnastoretab.pl
 # Simulations of decoding with errors:
 errtabs: deltabs duptabs subtabs
 
-deltabs: len4.mix2.dels.tab len4.wat128.ldpc.dels.tab len4.wat128.16.ldpc.dels.tab
+deltabs: len4.mix2.dels.tab len4.wat128.1.ldpc.dels.tab len4.wat64.1.ldpc.dels.tab
 
 duptabs: len4.mix2.dups.tab len8.mix2.dups.tab
 
@@ -188,6 +188,9 @@ len4.wat128n.ldpc.dels.tab:
 len4.wat128a2.ldpc.dels.tab:
 	$(ERRDECODE) -length 4 -watermark 128a2 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
+len4.wat128.1.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128.1 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
 
 len4.wat64.ldpc.dels.tab:
 	$(ERRDECODE) -length 4 -watermark 64 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
@@ -203,6 +206,9 @@ len4.wat64n.ldpc.dels.tab:
 
 len4.wat64a2.ldpc.dels.tab:
 	$(ERRDECODE) -length 4 -watermark 64a2 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat64.1.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64.1 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
 # R
 RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript

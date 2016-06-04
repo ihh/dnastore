@@ -5,21 +5,23 @@ use Math::Combinatorics;
 use Digest::MD5 qw(md5_hex);
 use Getopt::Long;
 
-my ($subperiod, $subctrl, $nomixwater);
+my ($subperiod, $subctrl, $nomixwater, $eofok);
 my $seedstr = "THEKID";
 my $copies = 1;
 
 my $usage = "Usage: $0 [options] <period>\n"
     .       "    -copies <n> number of copies of control word after each period\n"
     .       "       -sub <n> specify a sub-period, send a watermark bit after each sub-period\n"
-    .       "       -subctrl send a control word after each sub-period, instead of a watermark bit\n"
+    .       "          -word send a control word after each sub-period, instead of a watermark bit\n"
     .       "    -nomixwater do not use mixed-radix encoding for watermark bits\n"
+    .       "           -eof allow premature EOF (so #input bits doesn't have to be multiple of period)\n"
     .       " -seed <string> seed string for random-number generator (default is '$seedstr')\n";
 
 GetOptions ("copies=i" => \$copies,
 	    "sub=i" => \$subperiod,
-	    "subctrl" => \$subctrl,
+	    "word" => \$subctrl,
 	    "nomixwater" => \$nomixwater,
+	    "eof" => \$eofok,
 	    "seed=s" => \$seedstr)
     or die $usage;
 
@@ -29,7 +31,7 @@ my ($period) = @ARGV;
 die "-subctrl without -sub is useless\n" if defined($subctrl) && !defined($subperiod);
 $subperiod = $period + 1 unless defined $subperiod;
 $subperiod = int($subperiod);
-die "Subperiod must be >1\n" unless $subperiod > 1;
+die "Subperiod must be >0\n" unless $subperiod > 0;
 
 my $seed = hex (substr (md5_hex ($seedstr), 0, 8));
 my $gen = Math::Random::MT->new($seed);
@@ -51,7 +53,7 @@ for my $n (1..$states) {
     while ($perm4-- > 0) { @perm4 = $comb4->next_permutation() }
     print ' {"n":', $n, ',"id":"S', $n,
     '","trans":[',
-    $n % $subperiod == 0
+    ($n - 1) % ($subperiod + 1) == $subperiod
 	? (defined($subctrl)
 	   ? ('{"out":"B","to":', $n+1, '}')
 	   : ('{"out":"',$perm2[0],'","to":', $n+1,
@@ -64,7 +66,7 @@ for my $n (1..$states) {
 	   '},{"in":"1","out":"',$perm3[1],'","to":', $n+1,
 	   '},{"in":"0","out":"',$perm4[0],'","to":', $n+1,
 	   '},{"in":"1","out":"',$perm4[1],'","to":', $n+1,
-	   '},{"in":"$","out":"$","to":', $states+$copies+1,
+	   ($eofok || $n == 1) ? ('},{"in":"$","out":"$","to":', $states+$copies+1) : (),
 	   '}'),
 	']}', "\n";
 }
