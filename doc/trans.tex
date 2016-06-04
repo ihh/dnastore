@@ -95,14 +95,13 @@ Transducers have been previously used in bioinformatics for
 protein classification \cite{EskinEtAl2000},
 phylogenetic indel models \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
 and cancer informatics \cite{SchwarzEtAl2014}
+
 To construct the non-repeating transducer
-we make use De Bruijn graphs
+we employ De Bruijn graphs
 and their relationship to automata with limited context (``order-$N$ Markov models'').
-Transducers are widely used for genome assembly \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012},
+De Bruijn graphs are widely used for genome assembly \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012},
 while order-$N$ Markov models are often employed for gene-finding \cite{BurgeKarlin1997,SalzbergEtAl1999}.
-To convert a binary sequence into a mixed-radix sequence we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}
-and from data compression in generally; similar concepts have been used to design compression schemes for high-volume
-bioinformatics datasets \cite{HsiYangEtAl2011}.
+To convert a binary sequence into a mixed-radix sequence, suitable for input to this transducer, we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
 
 \section{Methods}
 
