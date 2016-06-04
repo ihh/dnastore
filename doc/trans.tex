@@ -49,13 +49,6 @@ MacKay et al developed synchronizing error-correcting codes that are resistant t
 substitutions, insertions and deletions (``indels''),
 including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
 and marker codes \cite{RatzerMackay2000}.
-These synchronization codes are certainly relevant to error-resistant DNA coding,
-though error models typically used to motivate such codes
-(such as the binary erasure channel or single-bit deletion channels)
-may rather poorly characterize the nature of such errors in DNA:
-biological indels are very often burst errors,
-affecting multiple consecutive nucleotides in a single event.
-(Burst substitution errors are not uncommon either.)
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
@@ -75,9 +68,9 @@ We may also wish to introduce error-correcting codes such as Hamming codes \cite
 turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Gallager codes \cite{Mackay1997}.
 
 In short, different applications may require different codes.
-As noted above, several researchers have presented solutions to some of these problems.
+As noted above, several researchers have developed solutions to some of these problems.
 Here, we combine some of these ideas, and introduce some new ones, using a modular strategy for code design.
-Codes can be designed using this method to meet flexible needs
+With this method, codes can be assembled to meet requirements
 including error-avoidance, error-correction, and demarcation of metadata.
 
 The core idea of our approach is to convert raw binary data into a mixed-radix sequence
