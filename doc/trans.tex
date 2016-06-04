@@ -1278,8 +1278,12 @@ Up to four nucleotides randomly duplicated
 ...
 Levenshtein edit distance
 ...
-Discretized ``edits per bit'' arise because the 8192-bit message is split into 8 1024-bit blocks for LDPC.
-The LDPC decoder discards incomplete blocks, and the edit distance is consequently rounded to (close to) the nearest multiple of 1024
+Discretized ``edits per bit'' arise because the 8192-bit message is split into eight 1024-bit blocks for LDPC.
+The LDPC decoder discards incomplete blocks,
+so the decoded sequence is close to a multiple of 1024 in length.
+The length difference between the sequences dominates the edit distance,
+so---once the decoder starts missing whole blocks---the
+dit distance per bit tends to be rounded up to the next multiple of 1/8.
 }
 
 \newpage
