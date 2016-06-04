@@ -1042,7 +1042,7 @@ software available from \url{https://github.com/radfordneal/LDPC-codes}.
 We varied substitution, deletion and insertion rates, repeating the experiment 12 times at each setting,
 and measuring the Levenshtein edit distance (normalized by the number of input bits) between the original and recovered bit-sequences.
 
-The results of these computational experiments are summarized in \figref{DupPlot}, \figref{SubPlot} and \figref{DelPlot}.
+The results of these computational experiments are summarized in \figref{DupPlot}, \figref{SubPlot}, \figref{DelPlot} and \figref{WatPlot}.
 % WRITE ME
 
 % Plot: per-bit edit distance vs per-base prob of substitutions, duplications, single-base deletions, multi-base deletions
@@ -1258,7 +1258,18 @@ Levenshtein edit distance
 }
 
 \easyfig{delplot.ps}{width=\textwidth}{DelPlot}{
-  Effect of simulated deletions on decoder accuracy for three different codes.
+  Effect of simulated deletions on decoder accuracy for four different codes.
+...
+10 repetitions,
+1 kilobyte random sequence
+...
+Up to four nucleotides randomly duplicated
+...
+Levenshtein edit distance
+}
+
+\easyfig{watplot.ps}{width=\textwidth}{WatPlot}{
+  Effect of watermark scheme on decoder accuracy in presence of simulated deletions.
 ...
 10 repetitions,
 1 kilobyte random sequence
