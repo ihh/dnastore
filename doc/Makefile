@@ -128,6 +128,10 @@ duptabs: len4.mix2.dups.tab len8.mix2.dups.tab
 
 subtabs: len4.subs.tab len4.mix2.subs.tab len4.ham.subs.tab len4.wat128.ldpc.subs.tab
 
+w128deltabs: len4.wat128.ldpc.dels.tab len4.wat128.16.ldpc.dels.tab len4.wat128.16b.ldpc.dels.tab len4.wat128n.ldpc.dels.tab len4.wat128a2.ldpc.dels.tab
+
+w64deltabs: len4.wat64.ldpc.dels.tab len4.wat64.16.ldpc.dels.tab len4.wat64.16b.ldpc.dels.tab len4.wat64n.ldpc.dels.tab len4.wat64a2.ldpc.dels.tab
+
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
 ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 12 -u 3
 
@@ -155,11 +159,9 @@ len4.ham.subs.tab:
 len4.sync64.mix2.dels.tab:
 	$(ERRDECODE) -length 4 -syncfreq 64 -mix2 -subrate 0 -delrate 0,$(LOGSCALE) -duprate 0 >$@
 
+
 len4.wat128.ldpc.subs.tab:
 	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
-
-len4.wat128.ldpc.dels.tab:
-	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
 len4.wat128.ldpc.dups.tab:
 	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0 -delrate 0 -duprate $(LOGSCALE) >$@
@@ -167,11 +169,40 @@ len4.wat128.ldpc.dups.tab:
 len4.wat128.16.ldpc.subs.tab:
 	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
 
+len4.wat128.16.ldpc.dups.tab:
+	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0 -delrate 0 -duprate $(LOGSCALE) >$@
+
+
+len4.wat128.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
 len4.wat128.16.ldpc.dels.tab:
 	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
-len4.wat128.16.ldpc.dups.tab:
-	$(ERRDECODE) -length 4 -watermark 128.16 -ldpc $(LDPCDIR) -subrate 0 -delrate 0 -duprate $(LOGSCALE) >$@
+len4.wat128.16b.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128.16b -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat128n.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128n -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat128a2.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 128a2 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+
+len4.wat64.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat64.16.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64.16 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat64.16b.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64.16b -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat64n.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64n -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+
+len4.wat64a2.ldpc.dels.tab:
+	$(ERRDECODE) -length 4 -watermark 64a2 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
 # R
 RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript

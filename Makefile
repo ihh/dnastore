@@ -68,19 +68,45 @@ clean:
 debug: all
 
 # Codes
-codes: data/hamming74.json data/mixradar2.json data/mixradar6.json data/sync16.json data/sync64.json data/sync128.json data/water128.json data/water128.16.json
+codes: hamming_codes sync_codes mixradar_codes watermark_codes
+
+# HAMMING
+hamming_codes: data/hamming74.json
 
 data/hamming74.json: bin/hamming74.pl
 	perl $< --json >$@
 
+# MIXRADAR
+mixradar_codes: data/mixradar2.json data/mixradar6.json
+
 data/mixradar%.json: bin/mixradar.pl
 	perl $< --flush --json --verbose $* .001 >$@
+
+# SYNC
+sync_codes: data/sync16.json data/sync64.json data/sync128.json
 
 data/sync%.json: bin/syncer.pl
 	perl $< $* >$@
 
-data/water%.json: bin/watermark.pl
-	perl $< $* >$@
+# WMARK
+WATER128 = $(addprefix data/water,$(addsuffix .json,128.16 128.16b 128n 128a2))
+WATER64 = $(addprefix data/water,$(addsuffix .json,64.16 64.16b 64n 64a2))
+watermark_codes: $(WATER128) $(WATER64)
+
+data/water%.16.json:
+	bin/watermark.pl $* -sub 16 >$@
+
+data/water%.16b.json:
+	bin/watermark.pl $* -sub 16 -subctrl >$@
+
+data/water%n.json:
+	bin/watermark.pl $* -nomixwater >$@
+
+data/water%a2.json:
+	bin/watermark.pl $* -copies 2 >$@
+
+data/water%.json:
+	bin/watermark.pl $* >$@
 
 # Tests
 TEST = t/testexpect.pl
