@@ -36,18 +36,18 @@ treating DNA storage as a noisy channel coding problem.
 Recently, several coding schemes for DNA storage have been proposed
 that address the interrelated issues of error avoidance, error correction and redundancy
 \cite{GoldmanEtAl2013,MilenkovicEtAl2005,YazdiEtAl2015,GuptaEtAl2015,MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016,BornholtEtAl2016}.
-Goldman {\em et al} \cite{GoldmanEtAl2013} synthesized DNA using a ternary (radix-3) code that avoids repeated nucleotides
-(somewhat similarly to a technique known as ``run-length limitation'' in coding theory),
+Goldman {\em et al} \cite{GoldmanEtAl2013} made DNA using a ternary (radix-3) code that avoids repeated nucleotides,
 synthesizing to fourfold redundancy for additional error correction.
 Gupta {\em et al} introduced a ternary Golay code for error correction \cite{GuptaEtAl2015}.
-Strauss {\em et al} improved on Goldman {\em et al}'s redundancy using an exclusive-or method.
+Strauss {\em et al} used a Huffman code to map binary to ternary, and further improved on Goldman {\em et al}'s redundancy coding using an exclusive-or method \cite{BornholtEtAl2016}.
 Milenkovic {\em et al} have considered
 the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
-proposed several codes and analyzing their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
-and devised a random-access rewritable filesystem \cite{YazdiEtAl2015}.
-In work not specifically oriented to DNA storage,
-Davey and MacKay describe error-correcting ``watermark'' codes that are resistant to
-substitutions, insertions and deletions \cite{DaveyMackay2000,DaveyMackay2001}.
+proposed several codes with analysis of their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
+and presented a design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
+In earlier work not specifically oriented to DNA storage,
+MacKay et al developed error-correcting codes that are resistant to
+substitutions, insertions and deletions, including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
+and marker codes \cite{RatzerMackay2000}.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
@@ -76,7 +76,7 @@ wherein successive digits may be binary (radix-2), ternary (radix-3) or quaterna
 The radix at any given position is effectively specified by the number of nucleotides available for coding at that position
 (which may vary due to avoidance of repeats or reserved motifs).
 The mixed-radix sequence can then be efficiently converted to a DNA sequence.
-Error-correcting codes (for example, Hamming codes that introduce parity bits, or watermark codes for synchronization in the presence of insertions and deletions)
+Error-correcting codes (for example, Hamming codes that introduce parity bits, or codes that maintain synchronization in the presence of insertions and deletions)
 can be applied upstream of the conversion from binary to mixed-radix,
 while the readout process (errors from which may reintroduce repeats and prohibited motifs)
 can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA.
@@ -112,7 +112,7 @@ facilitating error models that use this context to identify local duplications o
 \secref{Arithmetic} develops a transducer motivated by arithmetic coding
 that converts a binary input sequence into a mixed-radix sequence suitable for subsequent encoding as DNA.
 \secref{ErrorModel} describes an error-model transducer that mutates and deletes bases and reintroduces repeats.
-\secref{Watermarks} describes a transducer that introduces a watermark for synchronization.
+\secref{Watermarks} describes a transducer that introduces markers and a watermark pilot sequence for synchronization.
 \secref{CombinedCode} shows how all these transducers can be combined.
 
 \subsection{Preliminary concepts}
@@ -836,21 +836,26 @@ In \secref{Arithmetic} we described a code that attempted to pack as much encode
 However, we can also use the extra information in the ternary and quaternary bits for error-correction purposes:
 either to store parity bits, or to store a watermark.
 
-The watermark was introduced by Davey and MacKay as a frame-preserving signal that can be used as an ``inner code'' to correct for insertion and deletion errors
+The watermark was introduced by Davey and MacKay as an ``inner code'' to correct for insertion and deletion errors
 in combination with an ``outer code'', such as a low-density parity check (LDPC) code, to correct substitution errors \cite{DaveyMackay2000,DaveyMackay2001}.
-Using transducers we can introduce watermark-type synchronization in several ways:
-(i) we can construct an $M$-state cyclic transducer that
-introduces one of the control signals from \secref{DeBruijnTransducer}
-(i.e. a reserved word) into the output DNA after every $M$ input bits;
-(ii) we can give each of the $M$ states a unique pseudorandom signature for radix conversion,
-so that every (binary) input digits is mapped uniquely to a single (binary, ternary or quaternary) output digit,
-but this mapping is performed slightly differently by each of the $M$ states;
-(iii) for additional synchronization we can have the transducer interleave extra (fixed-value) bits into the encoded sequence,
-for example after every $k$ states.
+The watermark is a pilot sequence, known to encoder and decoder, which is XOR'd with a sparsified transform of the input signal
+(so that some or most of the watermark is transmitted unmodified).
+Deletions may corrupt a few bits of the input signal, but the extent of the deletion can be identified with reference to the watermark.
+Watermark codes stand in contrast to ``marker'' codes, another strategy for insertion-deletion correction which explicitly flags the boundaries of blocks \cite{RatzerMackay2000}.
 
-When using watermark codes, we first encode the message using an LDPC code,
+Using transducers we can readily introduce both watermark- and marker-style synchronization in several ways:
+(i) as a marker approach that uses the ``reserved words'' developed in \secref{DeBruijnTransducer},
+we can construct an $M$-state cyclic transducer that introduces a reserved word into the output DNA after every $M$ input bits;
+(ii) as a watermark approach that uses the spare information in the higher-radix digits, we can give each of the $M$ states a unique pseudorandom signature for radix conversion,
+so that every (binary) input digits is mapped uniquely to a single (binary, ternary or quaternary) output digit,
+with this mapping performed in a pseudorandom way by each of the $M$ states;
+(iii) for additional synchronization, we can use an approach closer to Davey and MacKay's original watermark technique
+and have the transducer interleave input bits with watermark bits at some ratio.
+
+When using synchronization codes, we first encode the message using an LDPC code,
 which we then apply to the decoded sequence at the other end.
-The block length of the LDPC code can be matched to the block length of the watermark code
+The block length of the LDPC code can be matched to the block length of the synchronization code
+(i.e. the length of the watermark, or the spacing between markers)
 to facilitate decoding of message fragments obtained via DNA sequencing.
 
 \subsection{Combining the component transducers}
@@ -1025,7 +1030,7 @@ We explored several different composite codes, with components including
 the length-4 and length-8 codes from \tabref{DNASTORE.codes};
 the mixed-radix block code of 2-bit codewords from \tabref{MIXRADAR.codes};
 the Hamming(7,4) error-correction code of \subfigref{HammingTransducer}{b};
-the watermark synchronization codes of \secref{Watermarks};
+the synchronization codes of \secref{Watermarks};
 and an outer LDPC(16384,8192) code implemented using Neal's LDPC-codes
 software available from \url{https://github.com/radfordneal/LDPC-codes}.
 We varied substitution, deletion and insertion rates, repeating the experiment 12 times at each setting,
@@ -1044,14 +1049,17 @@ by converting a binary sequence to a mixed-radix sequence and then a nonrepeatin
 A distinct feature of our approach is its modularity,
 which allows integrated simultaneous decoding of multi-layer codes as long as they can be represented by state machines.
 This allows for straightforward incorporation of improved state machines for
-inserting watermarks or metadata, adding parity bits, converting binary to mixed-radix, generating repeat-free DNA,
-or modeling errors, or for other tasks that we have not thought to include.
+interleaving signals with watermarks, inserting markers or metadata, adding parity bits, converting binary to mixed-radix, generating repeat-free DNA,
+modeling errors, or other tasks as yet unspecified.
 
-We have not addressed the higher-level organization of the DNA ``filesystem'',
-which has been explored in work by others \cite{YazdiEtAl2015,BornholtEtAl2016}.
+An important aspect of DNA storage which we have not explicitly addressed
+is the higher-level organization of the DNA ``filesystem'',
+including aspects such as block or packet structure, redundancy, addressing,
+versioning, and metadata.
+This has been explored in work by others \cite{YazdiEtAl2015,BornholtEtAl2016}.
 The code described here operates at a lower level.
 However, our allowance for reserved ``control words''
-can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks.
+can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks or packets.
 
 
 % WRITE ME
