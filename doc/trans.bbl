@@ -87,6 +87,18 @@ M.~C. Davey and D.~J.~C. MacKay.
   substitutions.
 \newblock {\em IEEE Transactions on Information Theory}, 47(2):687--698, 2001.
 
+\bibitem{RatzerMackay2000}
+Edward~A. Ratzer and David~J.C. MacKay.
+\newblock Codes for channels with insertions, deletions and substitutions.
+\newblock In {\em In 2nd International Symposium on Turbo Codes and Related
+  Topics}, pages 149--156, 2000.
+
+\bibitem{LaehnemannEtAl2016}
+D.~Laehnemann, A.~Borkhardt, and A.~C. McHardy.
+\newblock {{D}enoising {D}{N}{A} deep sequencing data-high-throughput
+  sequencing errors and their correction}.
+\newblock {\em Briefings in Bioinformatics}, 17(1):154--179, Jan 2016.
+
 \bibitem{Mackay2003}
 D.~J.~C. Mackay.
 \newblock {\em Information Theory, Inference and Learning Algorithms}.
@@ -227,6 +239,11 @@ I.~Holmes.
   Transducer Indel Models}.
 \newblock {\em Bioinformatics}, 23(23):3263--3264, Dec 2007.
 
+\bibitem{Ellegren2004}
+H.~Ellegren.
+\newblock {{M}icrosatellites: simple sequences with complex evolution}.
+\newblock {\em Nature Reviews Genetics}, 5(6):435--445, Jun 2004.
+
 \bibitem{ChuGill1992}
 K.-C. Chu and J.~Gill.
 \newblock Computer science.
@@ -249,12 +266,5 @@ F.~R. Kschischang, B.~J. Frey, and H.~A. Loeliger.
 \newblock {\em IEEE Transactions on Information Theory}, 47(2):498--519,
   September 2006.
 \newblock \url{http://dx.doi.org/10.1109/18.910572}.
-
-\bibitem{GrayCodes}
-W.~H. Press, S.~A. Teukolsky, W.~T. Vetterling, and B.~P. Flannery.
-\newblock {\em Numerical Recipes: The Art of Scientific Computing}, chapter
-  Section 22.3. Gray Codes.
-\newblock Cambridge University Press, 3rd ed. edition, 2007.
-\newblock ISBN 978-0-521-88068-8.
 
 \end{thebibliography}

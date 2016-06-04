@@ -45,43 +45,52 @@ the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
 proposed several codes with analysis of their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
 and presented a design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
 In earlier work not specifically oriented to DNA storage,
-MacKay et al developed error-correcting codes that are resistant to
-substitutions, insertions and deletions, including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
+MacKay et al developed synchronizing error-correcting codes that are resistant to
+substitutions, insertions and deletions (``indels''),
+including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
 and marker codes \cite{RatzerMackay2000}.
+These synchronization codes are certainly relevant to error-resistant DNA coding,
+though error models typically used to motivate such codes
+(such as the binary erasure channel or single-bit deletion channels)
+may rather poorly characterize the nature of such errors in DNA:
+biological indels are very often burst errors,
+affecting multiple consecutive nucleotides in a single event.
+(Burst substitution errors are not uncommon either.)
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
-The ternary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position, hence the radix of 3.
+The ternary code arises from avoidance of dinucleotide repeats, which leaves 3 available possibilities at each position; hence the radix of 3.
 The rationale for this system advanced by Goldman {\em et al} is that it guards against the most common class of errors in DNA resequencing which occur at homopolymer runs.
-However, there are hidden assumptions in this reasoning, specifically that it is worth making synthesis a bit more expensive in order to improve sequencing.
-This may indeed be the case, but (for the moment at least) synthesis is vastly more expensive than sequencing,
-so we might want to pack in more information---and yet still (perhaps) reserve certain motifs,
+However, there are hidden assumptions in this reasoning, specifically that it is worth investing a particular amount on synthesis in order to improve sequencing by another particular amount.
+It may indeed be worth making this trade-off under some circumstances, but (for the moment at least) synthesis is vastly more expensive than sequencing.
+It is, therefore, conceivable that we might want to pack in more information and assume that sequencing will be cheap enough to correct errors.
+Even so, we might still want to constrain the coding scheme somewhat: for example, we might reserve certain codewords,
 whether for biological function (e.g. restriction enzyme binding sites for convenient cleavage of DNA at pre-specified locations)
 or to organize our nucleic acid filesystem (e.g. barcodes, synchronization signals, or metadata block boundaries).
-Alternatively, assuming a world where synthesis is cheap and yet sequencing and bioinformatics have not solved the problem of decoding homopolymer runs
-(an assumption which might motivate the ternary code),
-it may also be desirable to avoid other motifs prone to sequencing error, such as repeated dinucleotides, trinucleotides or longer repeats.
-Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate.
+Alternatively, assuming that it is worth spending more on synthesis to avoid sequencing error
+(for example, in a future where synthesis is cheaper, or a scenario where arguments of economics or scale mandate the use of error-prone sequencing methods),
+it may also be desirable to avoid other error-prone motifs, such as repeated dinucleotides, trinucleotides or longer repeats.
+Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate \cite{LaehnemannEtAl2016}.
 We may also wish to introduce error-correcting codes such as Hamming codes \cite{Mackay2003}, Golay codes \cite{GuptaEtAl2015},
 turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Gallager codes \cite{Mackay1997}.
 
 In short, different applications may require different codes.
 As noted above, several researchers have presented solutions to some of these problems.
-Here, we combine some of the ideas using a modular strategy for code design.
+Here, we combine some of these ideas, and introduce some new ones, using a modular strategy for code design.
 Codes can be designed using this method to meet flexible needs
 including error-avoidance, error-correction, and demarcation of metadata.
 
-The core idea of our approach is to convert raw binary data (possibly interleaved with filesystem metadata) into a mixed-radix sequence
+The core idea of our approach is to convert raw binary data into a mixed-radix sequence
 wherein successive digits may be binary (radix-2), ternary (radix-3) or quaternary (radix-4).
 The radix at any given position is effectively specified by the number of nucleotides available for coding at that position
 (which may vary due to avoidance of repeats or reserved motifs).
 The mixed-radix sequence can then be efficiently converted to a DNA sequence.
-Error-correcting codes (for example, Hamming codes that introduce parity bits, or codes that maintain synchronization in the presence of insertions and deletions)
+Error-correcting codes (for example, Hamming codes that introduce parity bits, or codes that maintain synchronization in the presence of indels)
 can be applied upstream of the conversion from binary to mixed-radix,
 while the readout process (errors from which may reintroduce repeats and prohibited motifs)
 can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA.
 
-Our strategy uses several techniques familiar in bioinformatics and signal processing:
+Our strategy uses several techniques borrowed from other areas of bioinformatics and information theory:
 De Bruijn graphs, finite-state transducers, and arithmetic coding.
 Transducers \cite{MohriPereiraRiley2000,WikipediaTransducers} are used as automata-theoretic models of sequence transformation
 to represent in a uniform way the various steps of error-correction (e.g. via introduction of parity bits),
@@ -283,6 +292,9 @@ A direct tandem repeat of length $k$ is a nucleotide sequence followed by an exa
 Similarly, a direct inverted repeat of length $k$ is a $k$-nucleotide sequence followed by its reverse complement, $\someseq \revcomp{\someseq}$.
 A local inverted repeat of length $k$ and separation $l$ is a $k$-nucleotide sequence, followed an $l$-nucleotide sequence, followed by the reverse complement
 of the first sequence; that is, $\someseq \otherseq \revcomp{\someseq}$, where $\seqlen{\someseq}=k$ and $\seqlen{\otherseq}=l$.
+
+These repeats arise very commonly in naturally occurring DNA (e.g. see \cite{Ellegren2004}),
+and are also hotspots for sequencing error \cite{LaehnemannEtAl2016}.
 
 \subsubsection{Arithmetic coding}
 \seclabel{ArithmeticCoding}
