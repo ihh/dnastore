@@ -28,7 +28,7 @@
 
 % \easyfig{filename.png}{width=...}{label}{caption}
 \newcommand{\easyfig}[4]{
-\begin{figure}
+\begin{figure}[h!t]
 \includegraphics[#2]{#1}
 \caption{ \figlabel{#3} #4}
 \end{figure}}
@@ -41,7 +41,7 @@
 % \dotfig{filenameprefix}{width=...}{label}{caption}
 \newcommand{\dotfig}[4]{
 \includedot{#1}{#2}
-\begin{figure}
+\begin{figure}[h!t]
 \caption{ \figlabel{#3} #4}
 \end{figure}}
 

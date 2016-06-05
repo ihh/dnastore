@@ -19,11 +19,23 @@ $\ast$ E-mail: ihh@berkeley.edu
 \authorstring
 \end{flushleft}
 
-%\section{Abstract}
-% Algorithms, implementations, empirical results
+\section{Abstract}
+We describe a strategy for constructing codes for DNA-based information storage
+by serial composition of weighted finite-state transducers.
+The resulting state machines integrate correction of substitution errors;
+synchronization by interleaving watermark and periodic marker signals;
+conversion from binary to ternary, quaternary or mixed-radix sequences via an efficient block code;
+encoding into a DNA sequence that avoids homopolymer, dinucleotide, or trinucleotide runs and other short local repeats;
+and detection of errors (including local duplications, burst deletions, and substitutions)
+that are characteristic of DNA sequencing technologies.
+We present software implementing these codes, available at {\tt github.com/ihh/dnastore},
+with simulation results demonstrating that the generated DNA is both free of short repeats
+and can be accurately decoded even in the presence of substitutions, short duplications and deletions.
 
-%\paragraph{Keywords:}
-%\tableofcontents
+\paragraph{Keywords:}
+DNA storage, finite-state transducers, mixed-radix trees, deletion-insertion correcting codes
+
+\tableofcontents
 
 \section{Introduction}
 
@@ -805,8 +817,8 @@ $\ptandup$ for a tandem duplication,
 $\pfwddup$ for a forward inverse duplication,
 $\prevdup$ for a reverse inverse duplication,
 $\pnogap$ for no gap,
-$\ptransition$ for a transition substitution,
-$\ptransversion$ for a transversion substitution,
+$\ptransition$ for a transition substitution (A$\leftrightarrow$G or C$\leftrightarrow$T),
+$\ptransversion$ for a transversion substitution (A$\leftrightarrow$C, A$\leftrightarrow$T, C$\leftrightarrow$G, G$\leftrightarrow$T),
 $\pmatch$ for no substitution, and
 $\plen{k}$ for the probability that a duplication has length $k$.
 The constraints on these parameters are
@@ -930,30 +942,6 @@ and scripts to generate those codes.
 \subsection{MIXRADAR}
 \seclabel{MIXRADAR}
 
-\begin{table}
-\begin{tabular}{rrrrrrr}
-& & & & \multicolumn{3}{c}{Mean output symbols/input bit} \\
-\cline{5-7}
-$N$ & $\nu$ & States & Transitions & Radix 2 & Radix 3 & Radix 4 \\
-\hline
-\input{mixradtab.tex}
-% 2 & 0.01 & 32 & 96 & 1.125 & 0.875 & 0.625 \\
-% 3 & 0.01 & 102 & 306 & 1.042 & 0.6667 & 0.6667 \\
-% 4 & 0.001 & 287 & 861 & 1.016 & 0.7344 & 0.5156 \\
-% 5 & 0.001 & 865 & 2595 & 1.006 & 0.6687 & 0.6 \\
-% 6 & 0.001 & 2125 & 6375 & 1.003 & 0.6667 & 0.5026 \\
-\hline
-\multicolumn{4}{r}{Theoretical minima:} & $\log_2(2) = 1$ & $\log_3(2) \simeq 0.631$ & $\log_4(2) = 0.5$
-\end{tabular}
-\caption{
-  \tablabel{MIXRADAR.codes}
-  Statistics for several code transducers generated using MIXRADAR (\secref{MIXRADAR}).
-$N$ is the block length in bits; $\nu$ is the probability of the end-of-block symbol
-(signifying premature termination of the codeword) appearing at any position.
-...
-}
-\end{table}
-
 \tabref{MIXRADAR.codes} shows statistics for codes generated with MIXRADAR.
 It is straightforward to achieve (near-)ideal performance in converting bits to quats,
 but to approach ideal performance in bit-to-trit conversion requires a block code.
@@ -1005,25 +993,6 @@ using the algorithm of \secref{DeBruijnTransducer}.
 For most of the simulations and composite codes in this paper, we have used a short code of $\kmerlen=4$ nucleotides,
 which avoids single-base and dinucleotide repeats,
 but not trinucleotide (or longer) repeats.
-
-\begin{table}
-  \begin{tabular}{rrrrrrrll}
-    $\kmerlen$ & $\invreplen$ & $\ncontrols$ & Repeats? & States & Transitions & Bases/bit & Control words & Notes \\
-    \hline
-\input{dnastoretab.tex}
-\end{tabular}
-\caption{
-  \tablabel{DNASTORE.codes}
-  Statistics for several code transducers generated using DNASTORE (\secref{DNASTORE}).
-  $\kmerlen$ is the codeword length,
-  $\invreplen$ is the minimum length for excluding nonlocal exact inverted repeats
-  (which must be separated by at least 2 nucleotides),
-  and $\ncontrols$ is the number of control words.
-  The first six rows correspond to the transducers shown in \figref{DNAStore}.
-  In general the expected bases/bit rise with the codeword length $\kmerlen$,
-  since more repeats are excluded from the De Bruijn graph.
-}
-\end{table}
 
 \subsection{Error correction}
 \seclabel{Viterbi}
@@ -1112,10 +1081,10 @@ the better chance the decoder has of recovering from large and/or frequent delet
 We have outlined general design principles for efficiently encoding signals in DNA
 by converting a binary sequence to a mixed-radix sequence and then a nonrepeating nucleotide sequence.
 A distinct feature of our approach is its modularity,
-which allows integrated simultaneous decoding of multi-layer codes as long as they can be represented by state machines.
-This allows for straightforward incorporation and refinement of specialized automata for
+which allows integrated simultaneous decoding of multi-layer codes that are representable as finite-state transducers.
+This allows for straightforward combination and refinement of component automata for
 interleaving signals with watermarks, inserting markers or metadata, adding parity bits, converting binary to mixed-radix, generating repeat-free DNA,
-modeling errors, or other tasks as yet unnoted.
+modeling errors, or other tasks.
 
 An important aspect of DNA storage which we have not explicitly addressed
 is the higher-level organization of the DNA ``filesystem'',
@@ -1126,27 +1095,75 @@ The code described here operates at a lower level.
 However, our allowance for reserved ``control words''
 can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks or packets.
 
+The decoding approach that we have used (Viterbi decoding, followed by decoding of any outer codes such as LDPC) is rather simple.
+It does not use the posterior probability information available from the HMM, or allow any other cross-talk between the (cyclic) LDPC factor graph and the (trellis) HMM graph.
+It also does not incorporate multiple reads from the same DNA sequence,
+and it is subject to computational resource constraints due to the number of states and transitions in the composite transducer,
+which grow quickly when multiple coding layers are composed on top of one another.
+However these are all, in principle, features that could be addressed within the probabilistic framework by approximate or stochastic inference algorithms,
+such as loopy belief propagation or Markov Chain Monte Carlo.
 
-% WRITE ME
-Filesystem may include redundancy measures (c.f. RAID)
-Further redundancy in readout arises because we are likely have multiple reads covering the same region
-This point could in principle be addressed using transducer operations
-(such as transducer intersection) to develop a transducer that converts a single binary sequence
-into multiple error-prone reads.
-In practice, the state space of such a transducer would be very large, and it might be better
-to decode by MCMC or iterative improvement, as in applications of the transducer theory
-to phylogenetic models \cite{Holmes2003}
 
-Nanotechnology, DNA computing...
-CRISPR directed substitution...
-DNA origami, programmable DNA structures, nucleic acid logic...
+% Nanotechnology, DNA computing...
+% CRISPR directed substitution...
+% DNA origami, programmable DNA structures, nucleic acid logic...
 
+\newpage
+\section{References}
+\bibliography{trans}
+
+\newpage
+\section{Tables}
+
+\newpage
+\begin{table}[h!t]
+\begin{tabular}{rrrrrrr}
+& & & & \multicolumn{3}{c}{Mean output symbols/input bit} \\
+\cline{5-7}
+$N$ & $\nu$ & States & Transitions & Radix 2 & Radix 3 & Radix 4 \\
+\hline
+\input{mixradtab.tex}
+% 2 & 0.01 & 32 & 96 & 1.125 & 0.875 & 0.625 \\
+% 3 & 0.01 & 102 & 306 & 1.042 & 0.6667 & 0.6667 \\
+% 4 & 0.001 & 287 & 861 & 1.016 & 0.7344 & 0.5156 \\
+% 5 & 0.001 & 865 & 2595 & 1.006 & 0.6687 & 0.6 \\
+% 6 & 0.001 & 2125 & 6375 & 1.003 & 0.6667 & 0.5026 \\
+\hline
+\multicolumn{4}{r}{Theoretical minima:} & $\log_2(2) = 1$ & $\log_3(2) \simeq 0.631$ & $\log_4(2) = 0.5$
+\end{tabular}
+\caption{
+  \tablabel{MIXRADAR.codes}
+  Statistics for several code transducers generated using MIXRADAR (\secref{MIXRADAR}).
+$N$ is the block length in bits; $\nu$ is the probability of the end-of-block symbol
+(signifying premature termination of the codeword) appearing at any position.
+}
+\end{table}
+
+\newpage
+\begin{table}[h!t]
+  \begin{tabular}{rrrrrrrll}
+    $\kmerlen$ & $\invreplen$ & $\ncontrols$ & Repeats? & States & Transitions & Bases/bit & Control words & Notes \\
+    \hline
+\input{dnastoretab.tex}
+\end{tabular}
+\caption{
+  \tablabel{DNASTORE.codes}
+  Statistics for several code transducers generated using DNASTORE (\secref{DNASTORE}).
+  $\kmerlen$ is the codeword length,
+  $\invreplen$ is the minimum length for excluding nonlocal exact inverted repeats
+  (which must be separated by at least 2 nucleotides),
+  and $\ncontrols$ is the number of control words.
+  The first six rows correspond to the transducers shown in \figref{DNAStore}.
+  In general the expected bases/bit rise with the codeword length $\kmerlen$,
+  since more repeats are excluded from the De Bruijn graph.
+}
+\end{table}
 
 \newpage
 \section{Figures}
 
 \newpage
-\begin{figure}
+\begin{figure}[h!t]
 \begin{tabular}{ll}
 (a) \includedot{hamming31}{width=.45\textwidth}
 &
@@ -1215,7 +1232,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 }
 
 \newpage
-\begin{figure}
+\begin{figure}[h!t]
 \begin{tabular}{ccc}
 (a) \includedot{dna2full}{width=.3\textwidth}
 &
@@ -1256,7 +1273,8 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 }
 \end{figure}
 
-\begin{figure}
+\newpage
+\begin{figure}[h!t]
 \begin{tabular}{c}
 (a) \includedot{blocks}{width=.9\textwidth}
 \\
@@ -1290,63 +1308,82 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 }
 \end{figure}
 
+\newpage
 \easyfig{dupplot.ps}{width=\textwidth}{DupPlot}{
-  Effect of simulated duplications on decoder accuracy for two different error models.
-  ...
-  MIXRADAR(2)+DNASTORE(4) with 2 bases of error-model context, MIXRADAR(2)+DNASTORE(8) with 4 bases of error-model context
-  ...
-10 repetitions,
-1 kilobyte random sequence
-...
-Up to four nucleotides randomly duplicated
-...
-Overlapping (nested) duplications were excluded
-...
-Levenshtein edit distance
-}
-
-\easyfig{subplot.ps}{width=\textwidth}{SubPlot}{
-  Effect of simulated substitution errors on decoder accuracy for four different codes.
-...
-10 repetitions,
-1 kilobyte random sequence
-...
-Transition/transversion ratio of 10
-...
-Levenshtein edit distance
-}
-
-\easyfig{delplot.ps}{width=\textwidth}{DelPlot}{
-  Effect of simulated deletions on decoder accuracy for four different codes.
-...
-10 repetitions,
-1 kilobyte random sequence
-...
-Up to four nucleotides randomly duplicated
-...
-Levenshtein edit distance
-}
-
-\easyfig{watplot.ps}{width=\textwidth}{WatPlot}{
-  Effect of watermark scheme on decoder accuracy in presence of simulated deletions.
-...
-10 repetitions,
-1 kilobyte random sequence
-...
-Up to four nucleotides randomly duplicated
-...
-Levenshtein edit distance
-...
-Discretized ``edits per bit'' arise because the 8192-bit message is split into eight 1024-bit blocks for LDPC.
-The LDPC decoder discards incomplete blocks,
-so the decoded sequence is close to a multiple of 1024 in length.
-The length difference between the sequences dominates the edit distance,
-so---once the decoder starts missing whole blocks---the
-dit distance per bit tends to be rounded up to the next multiple of 1/8.
+  Effect of simulated duplications on decoder accuracy for two different codes with
+  error models of different context length.
+  The codes combine the 2-nucleotide mixed-radix arithmetic code of \figref{Arithmetic}
+  (MIXRADAR(2))
+  with the 4- and 8-nucleotide non-repeating codes of
+  \tabref{DNASTORE.codes}
+  (DNASTORE(4) and DNASTORE(8)).
+  MIXRADAR(2)+DNASTORE(4) has 2 bases of error-model context;
+  MIXRADAR(2)+DNASTORE(8) has 4 bases of error-model context.
+  The x-axis is the probability of initiating a duplication event at each base;
+  from one to four nucleotides were copied in each random duplication event.
+  Overlapping (nested) duplications were excluded.
+  The y-axis is the Levenshtein edit distance scaled by the length of the input sequence
+  (8192 bits). Median and interquartile range are shown.
+  The decoder with 2 bases of error context is unable to recognize duplications of 3 or 4
+  nucleotides, and so introduces errors during decoding.
 }
 
 \newpage
-\bibliography{trans}
+\easyfig{subplot.ps}{width=\textwidth}{SubPlot}{
+  Effect of simulated substitution errors on decoder accuracy for four different codes.
+  The codes all start with the 4-nucleotide non-repeating code of
+  \tabref{DNASTORE.codes}
+  (DNASTORE(4)).
+  On top of this are layered the 2-nucleotide mixed-radix arithmetic code of \figref{Arithmetic}
+  (MIXRADAR(2)),
+  a 2048-bit, 1024-parity bit low-density parity check code combined with a 64-bit watermark code
+  (LDPC(2k,1k)+WMARK(64)),
+  and the Hamming(7,4) code as implemented in \subfigref{HammingTransducer}{b}.
+  The x-axis is the probability of substituting each base,
+  with a transition/transversion ratio of 10.
+  The y-axis is the Levenshtein edit distance scaled by the length of the input sequence
+  (8192 bits). Median and interquartile range are shown.
+}
+
+\newpage
+\easyfig{delplot.ps}{width=\textwidth}{DelPlot}{
+  Effect of simulated deletions on decoder accuracy for four different codes.
+  The codes are as described in \figref{SubPlot}.
+  The x-axis is the probability of initiating a deletion event at each base;
+  a random number of nucleotides (uniformly sampled from one to four)
+  were erased in each deletion event, so that the probability of a nucleotide
+  being deleted is $\sim 2.5\times$ the deletion initiation probability.
+  The y-axis is the Levenshtein edit distance scaled by the length of the input sequence
+  (8192 bits). Median and interquartile range are shown.
+}
+
+\newpage
+\easyfig{watplot.ps}{width=\textwidth}{WatPlot}{
+  Effect of watermark scheme on decoder accuracy in presence of simulated deletions.
+  The inner code was the 4-nucleotide nonrepeating DNASTORE code
+  (\tabref{DNASTORE.codes}).
+  Next were various watermarking options:
+  (i) 64 bits of signal flanked by a 4-nucleotide control word,
+  with a small amount of watermarking information
+  encoded in the choice of ternary and quaternary digits used to encode each bit;
+  (ii) as (i) but with one pure watermark bit for every 16 signal bits;
+  (iii) as (i) but with one pure watermark bit for every signal bit;
+  (iv) as (iii) but with a longer period of 128 signal bits
+  (and 128 watermark bits) between each control word.
+  The outermost code was 2048-bit, 1024-parity bit LDPC.
+  The x-axis is the probability of initiating a deletion event at each base;
+  the probability of deleting a nucleotide
+  is $\sim 2.5\times$ this, as outlined in the caption to \figref{DelPlot}.
+  The y-axis is the Levenshtein edit distance scaled by the input sequence length
+  (8192 bits). Median and interquartile range are shown.
+  The y-axis values are apparently discretized
+  because the 8192-bit message is split into eight 1024-bit blocks for LDPC.
+  The LDPC decoder discards incomplete blocks,
+  so the decoded sequence is close to a multiple of 1024 in length.
+  The length difference between the sequences dominates the edit distance:
+  once the decoder starts missing whole blocks, the
+  per-bit edit distance tends to be rounded up to the next multiple of 1/8.
+}
 
 
 
