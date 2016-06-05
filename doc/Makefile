@@ -133,7 +133,7 @@ w128deltabs: len4.wat128.ldpc.dels.tab len4.wat128.16.ldpc.dels.tab len4.wat128.
 w64deltabs: len4.wat64.ldpc.dels.tab len4.wat64.16.ldpc.dels.tab len4.wat64.16b.ldpc.dels.tab len4.wat64n.ldpc.dels.tab len4.wat64a2.ldpc.dels.tab
 
 LOGSCALE = .001,.0014,.002,.0028,.004,.0057,.008,.011,.016,.023,.032,.045,.064,.09,.128,.18,.26,.36,.5
-ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 12 -u 3
+ERRDECODE = perl errdecode.pl -bits 8192 -trainalign 10 -reps 20 -u 3
 
 len4.subs.tab:
 	$(ERRDECODE) -length 4 -subrate 0,$(LOGSCALE) -delrate 0 -duprate 0 >$@
