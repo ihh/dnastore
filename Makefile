@@ -88,28 +88,28 @@ sync_codes: data/sync16.json data/sync64.json data/sync128.json
 data/sync%.json: bin/syncer.pl
 	perl $< $* >$@
 
-# WMARK
+# WATMARK
 WATER128 = $(addprefix data/water,$(addsuffix .json,128 128.16 128.16b 128n 128a2 128.1))
 WATER64 = $(addprefix data/water,$(addsuffix .json,64 64.16 64.16b 64n 64a2 64.1))
 watermark_codes: $(WATER128) $(WATER64)
 
 data/water%.1.json:
-	bin/wmark.pl $* -sub 1 >$@
+	bin/watmark.pl $* -sub 1 >$@
 
 data/water%.16.json:
-	bin/wmark.pl $* -sub 16 >$@
+	bin/watmark.pl $* -sub 16 >$@
 
 data/water%.16b.json:
-	bin/wmark.pl $* -sub 16 -word >$@
+	bin/watmark.pl $* -sub 16 -word >$@
 
 data/water%n.json:
-	bin/wmark.pl $* -nomixwater >$@
+	bin/watmark.pl $* -nomixwater >$@
 
 data/water%a2.json:
-	bin/wmark.pl $* -copies 2 >$@
+	bin/watmark.pl $* -copies 2 >$@
 
 data/water%.json:
-	bin/wmark.pl $* >$@
+	bin/watmark.pl $* >$@
 
 # Tests
 TEST = t/testexpect.pl

@@ -846,7 +846,7 @@ The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
 By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
 
-\subsection{Adding codes to correct insertion, deletion and substitution errors}
+\subsection{Codes to correct insertion, deletion and substitution errors}
 \seclabel{Watermarks}
 
 In \secref{Arithmetic} we described a code that attempted to pack as much encoded information as possible into the mixed-radix sequence.
@@ -933,7 +933,7 @@ MIXRADAR implements the MIXed-RADix ARithmetic code of \secref{Arithmetic}.
 DNASTORE implements the non-repeating DNA code of \secref{DeBruijnTransducer},
 a subset of the error-correcting code of \secref{CombinedCode},
 and the transducer composition algorithm from \secref{TransducerComposition}.
-WMARK generates transducers that implement the watermark synchronization of \secref{Watermarks}.
+WATMARK generates transducers that implement the watermark synchronization of \secref{Watermarks}.
 
 All these programs are available at \url{https://github.com/ihh/dnastore}
 along with auxiliary codes (for example the Hamming(7,4) code of \subfigref{HammingTransducer}{b})
@@ -1337,7 +1337,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   On top of this are layered the 2-nucleotide mixed-radix arithmetic code of \figref{Arithmetic}
   (MIXRADAR(2)),
   a 2048-bit, 1024-parity bit low-density parity check code combined with a 64-bit watermark code
-  (LDPC(2k,1k)+WMARK(64)),
+  (LDPC(2k,1k)+WATMARK(64)),
   and the Hamming(7,4) code as implemented in \subfigref{HammingTransducer}{b}.
   The x-axis is the probability of substituting each base,
   with a transition/transversion ratio of 10.
