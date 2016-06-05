@@ -270,7 +270,7 @@ and a directed edge $u \to v$ between any two vertices
 $u=\sym_1 \sym_2 \ldots \sym_\kmerlen$ and $v=\sym_2 \ldots \sym_\kmerlen \sym_{\kmerlen+1}$
 that overlap by $\kmerlen-1$ symbols; this edge is labeled with symbol $\sym_{\kmerlen+1}$ (the last symbol of $v$).
 Thus, each vertex has $|\somealph|$ incoming and $|\somealph|$ outgoing edges \cite{DeBruijn1946,PevznerEtAl2001}.
-Denote this graph by $\debruijngraph(\somealph^\kmerlen) = (\somealph^\kmerlen,\debruijnedges(\somealph^\kmerlen))$.
+Denote this graph by $\debruijngraph = (\somealph^\kmerlen,\debruijnedges)$.
 
 \subsubsection{DNA alphabets and repeats}
 
@@ -338,7 +338,7 @@ which force the machine to output predictable, recognizable nucleotide sequences
 that can be used to flag metadata, demarcate boundaries,
 or to embed biologically functional motifs.
 
-Start with $\debruijngraph(\nucalph^\kmerlen)$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
+Start with $\debruijngraph$, the $\kmerlen$-dimensional De Bruijn graph over $\nucalph$.
 Delete all nodes corresponding to sequences that are (or contain substrings which are)
 direct tandem repeats of any length,
 direct inverted repeats of length $\geq 2$,
@@ -357,8 +357,9 @@ if such a value of $N$ exists; otherwise, let $\stepsto(D,A)$ be $\infty$.
 We can find $\prequels(D,A,N)$ from $\prequels(D,A,N-1)$ by recursive backtracking,
 and so determine in $k$ steps whether $\stepsto(D,A) \leq k$.
 
-We now allocate $\ncontrols$ ``control words'': $\kmerlen$-mers are reserved for marking metadata boundaries,
-including the starts and ends of messages.
+We now allocate $\ncontrols$ ``control words'': $\kmerlen$-mers
+that will be reserved for marking metadata boundaries,
+such as the start and end of messages.
 In the transducer, these will be unreachable except by specially constructed paths of uniform length.
 Specifically, we seek an indexed set of vertices
 $\controlset = \{ \controlword_1, \controlword_2 \ldots \controlword_{\ncontrols} \}$
