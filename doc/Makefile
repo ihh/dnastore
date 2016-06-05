@@ -217,7 +217,7 @@ len4.wat64.1.ldpc.dels.tab:
 	$(ERRDECODE) -length 4 -watermark 64.1 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
 
 len4.wat64.1.ldpc.subs.tab:
-	$(ERRDECODE) -length 4 -watermark 64.1 -ldpc $(LDPCDIR) -subrate 0 -delrate $(LOGSCALE) -duprate 0 >$@
+	$(ERRDECODE) -length 4 -watermark 64.1 -ldpc $(LDPCDIR) -subrate $(LOGSCALE) -delrate 0 -duprate 0 >$@
 
 # R
 RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript
