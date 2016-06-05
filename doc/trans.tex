@@ -22,11 +22,11 @@ $\ast$ E-mail: ihh@berkeley.edu
 \section{Abstract}
 We describe a strategy for constructing codes for DNA-based information storage
 by serial composition of weighted finite-state transducers.
-The resulting state machines integrate correction of substitution errors;
+The resulting state machines can integrate correction of substitution errors;
 synchronization by interleaving watermark and periodic marker signals;
 conversion from binary to ternary, quaternary or mixed-radix sequences via an efficient block code;
 encoding into a DNA sequence that avoids homopolymer, dinucleotide, or trinucleotide runs and other short local repeats;
-and detection of errors (including local duplications, burst deletions, and substitutions)
+and detection/correction of errors (including local duplications, burst deletions, and substitutions)
 that are characteristic of DNA sequencing technologies.
 We present software implementing these codes, available at {\tt github.com/ihh/dnastore},
 with simulation results demonstrating that the generated DNA is both free of short repeats
