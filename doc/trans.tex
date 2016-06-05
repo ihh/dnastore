@@ -1098,8 +1098,13 @@ And fourth, for all the codes tried, when the deletion rate exceeds around 0.13 
 no signal is recoverable at all.
 
 To further explore the optimal design of watermark codes, we repeated the deletion experiment
-with several different code formats (\figref{WatPlot}).
-% WRITE ME
+while varying the number of watermark bits and the length of the watermark signal (\figref{WatPlot}).
+Empirically, it appears from this preliminary experiment that the single most influential factor on code accuracy is the
+correct recovery of LDPC block boundaries, since missed boundaries cause large chunks of the signal
+to be dropped, and if not dropped then they can still be impossible to error-correct if the block alignment is wrong.
+The single factor that seems most important for correct block boundary identification and alignment
+is the ratio of signal bits to watermark bits: the sparser the signal relative to the watermark,
+the better chance the decoder has of recovering from large and/or frequent deletions.
 
 \section{Discussion}
 \seclabel{Discussion}
