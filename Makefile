@@ -94,22 +94,22 @@ WATER64 = $(addprefix data/water,$(addsuffix .json,64 64.16 64.16b 64n 64a2 64.1
 watermark_codes: $(WATER128) $(WATER64)
 
 data/water%.1.json:
-	bin/watermark.pl $* -sub 1 >$@
+	bin/wmark.pl $* -sub 1 >$@
 
 data/water%.16.json:
-	bin/watermark.pl $* -sub 16 >$@
+	bin/wmark.pl $* -sub 16 >$@
 
 data/water%.16b.json:
-	bin/watermark.pl $* -sub 16 -word >$@
+	bin/wmark.pl $* -sub 16 -word >$@
 
 data/water%n.json:
-	bin/watermark.pl $* -nomixwater >$@
+	bin/wmark.pl $* -nomixwater >$@
 
 data/water%a2.json:
-	bin/watermark.pl $* -copies 2 >$@
+	bin/wmark.pl $* -copies 2 >$@
 
 data/water%.json:
-	bin/watermark.pl $* >$@
+	bin/wmark.pl $* >$@
 
 # Tests
 TEST = t/testexpect.pl

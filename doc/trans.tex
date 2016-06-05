@@ -68,19 +68,19 @@ The ternary code arises from avoidance of dinucleotide repeats, which leaves 3 a
 The rationale advanced by Goldman {\em et al} for this system is that it guards against the most common class of errors in DNA resequencing, which occur at homopolymer runs.
 However, there are hidden assumptions in this reasoning; specifically, that it is worth spending a particular amount on synthesis
 in order to mitigate a certain class of technology-dependent sequencing error.
-It may indeed be worth making this trade-off under some circumstances, but (for the moment at least) synthesis is vastly more expensive than sequencing.
-It is, therefore, conceivable that we might want to pack in more information and assume that sequencing will be cheap enough to correct errors.
-On the other hand, for entirely independent reasons, we might still want to constrain the coding scheme somewhat: for example, we might reserve certain codewords,
-whether for biological function (e.g. restriction enzyme binding sites for convenient cleavage of DNA at pre-specified locations)
-or to organize our nucleic acid filesystem (e.g. barcodes, synchronization signals, or metadata block boundaries).
-Alternatively, assuming that it is worth spending more on synthesis to avoid sequencing error
-(for example, in a future where synthesis is cheaper, or a scenario where arguments of economics or scale mandate the use of error-prone sequencing methods),
-it may also be desirable to avoid other error-prone motifs, such as repeated dinucleotides, trinucleotides or longer repeats.
-Avoiding these sequences does not reduce the information content of DNA much, but they are comparable to homopolymer runs in their error rate \cite{LaehnemannEtAl2016}.
+Assuming that this is the case, it may also be desirable to avoid other error-prone motifs, such as repeated dinucleotides, trinucleotides or longer repeats.
+Avoiding these sequences does not reduce the information content of DNA much, but they are not too far off homopolymer runs in their error rate \cite{LaehnemannEtAl2016}.
 We may also wish to introduce error-correcting codes such as Hamming codes \cite{Mackay2003}, Golay codes \cite{GuptaEtAl2015},
 turbo codes \cite{FreyMackay98,MurphyEtAl1999}, or Gallager codes \cite{Mackay1997}.
+For entirely independent reasons, we might also want to constrain the coding scheme to avoid certain reserved codewords,
+whether for biological function (e.g. binding sites for restriction enzymes or other factors)
+or to organize our nucleic acid filesystem (e.g. barcodes, synchronization signals, or metadata block boundaries).
+And yet none of this strategy can be taken for granted:
+much of the above reasoning is predicated on the idea that it's worth mitigating error by synthesizing more DNA,
+but (for the moment at least) synthesis is vastly more expensive than sequencing.
+An alternate strategy would be to pack in as much information as possible and assume that sequencing will be cheap enough to correct errors.
 
-In short, different applications may require different codes.
+In short, different application requirements and changing economics may require different codes.
 As noted above, several researchers have developed solutions to some of these problems.
 Here, we combine some of these ideas, and introduce some new ones, using a modular strategy for code design.
 With this method, codes can be assembled to meet requirements
@@ -97,23 +97,22 @@ while the readout process (errors from which may reintroduce repeats and prohibi
 can be integrated into the decoding model as a step that follows the conversion from mixed-radix to DNA.
 
 Our strategy uses several techniques borrowed from other areas of bioinformatics and information theory:
-De Bruijn graphs, finite-state transducers, and arithmetic coding.
-Transducers \cite{MohriPereiraRiley2000,WikipediaTransducers} are used as automata-theoretic models of sequence transformation
-to represent in a uniform way the various steps of error-correction (e.g. via introduction of parity bits),
-adix conversion, repeat-avoidant nucleotide encoding, and a statistical error model.
-Standard algorithms for transducer combination (e.g. transducer composition)
-and decoding (Viterbi) can then be used.
+finite-state transducers, De Bruijn graphs, arithmetic coding, and synchronization codes.
+Foremost among these are transducers \cite{MohriPereiraRiley2000,WikipediaTransducers}, automata-theoretic models of sequence transformation
+which we use to represent in a uniform way the various steps of error-correction (e.g. via introduction of parity or watermark bits),
+radix conversion, repeat-avoidant nucleotide encoding, and random sequencing error.
+Standard algorithms for combining and decoding transducers can then be applied.
 Transducers have been previously used in bioinformatics for
 protein classification \cite{EskinEtAl2000},
 phylogenetic indel models \cite{PatenEtAl2008,WestessonEtAlArxiv2012,WestessonEtAl2012},
 and cancer informatics \cite{SchwarzEtAl2014}
-
-To construct the non-repeating transducer
-we employ De Bruijn graphs
-and their relationship to automata with limited context (``order-$N$ Markov models'').
+To build the transducer that converts a mixed-radix sequence into a non-repeating DNA sequence,
+we make use of De Bruijn graphs
+and their relationship to finite-context automata (the probabilistic versions of which are known as order-$N$ Markov models).
 De Bruijn graphs are widely used for genome assembly \cite{DeBruijn1946,PevznerEtAl2001,ZerbinoBirney2008,IqbalEtAl2012},
 while order-$N$ Markov models are often employed for gene-finding \cite{BurgeKarlin1997,SalzbergEtAl1999}.
-To convert a binary sequence into a mixed-radix sequence, suitable for input to this transducer, we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
+To build the transducer that converts a binary sequence into a mixed-radix sequence,
+we borrow concepts from the arithmetic coding algorithm \cite{Rissanen1976,Mackay2003}.
 
 \section{Methods}
 
@@ -536,7 +535,7 @@ Thus, if $N=2$ then the input word set is $\{\$,0\$,1\$,00,01,10,11\}$.
 There are $2^{N+1}-1$ words in the input word set.
 
 We assume that a probability model as described above is defined over this input set;
-typically we will use a simple model that assigns a small probability $\nu$ to '\$' at any position,
+typically we will use a simple model that assigns a small probability $\nu$ to `\$' at any position,
 independently of previous context,
 and splits the remaining probability evenly between $0$ and $1$.
 Each input word $w$ is then associated with an interval $[A_w,B_w)$ of size $P(w) = B_w-A_w$.
@@ -929,13 +928,14 @@ could inform the second stage of LDPC bit-correction.
 \section{Results}
 \seclabel{Results}
 
-We have developed two open-source computer programs implementing the algorithms in this paper.
+We have developed open-source computer programs implementing the algorithms in this paper.
 MIXRADAR implements the MIXed-RADix ARithmetic code of \secref{Arithmetic}.
 DNASTORE implements the non-repeating DNA code of \secref{DeBruijnTransducer},
 a subset of the error-correcting code of \secref{CombinedCode},
 and the transducer composition algorithm from \secref{TransducerComposition}.
+WMARK generates transducers that implement the watermark synchronization of \secref{Watermarks}.
 
-Both programs are available at \url{https://github.com/ihh/dnastore}
+All these programs are available at \url{https://github.com/ihh/dnastore}
 along with auxiliary codes (for example the Hamming(7,4) code of \subfigref{HammingTransducer}{b})
 and scripts to generate those codes.
 
