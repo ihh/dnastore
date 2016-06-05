@@ -230,7 +230,7 @@ and $\trs$-transitions
 $\tps{\trans} = (\tps{\src},\midlab,\outlab,\tps{\weight},\tps{\dest})$
 which share the same intermediate label $\midlab$.
 The composite transition weight $\tpt{\weight}$ is the product $\tpr{\weight} \srtimes \tps{\weight}$.
-\item $\trt$-transitions can also represent transitions wherein only one of $\trs$ or $\trt$ changes state.
+\item $\trt$-transitions can also represent transitions wherein only one of $\trr$ or $\trs$ changes state.
 In these transitions, the intermediate label ($\midlab$) and either the input or output label ($\inlab$ or $\outlab$)
 must be empty.
 Some further synchronization may be required; for example, we can require that $\trs$ is a waiting machine,
@@ -253,7 +253,7 @@ Suppose
  $\trb = (\inalph, \outalph, \tpb{\states}, \tpb{\transitions}, \tpb{\initstate}, \tpb{\finalstate})$
 are transducers with the same input and output alphabets and disjoint state spaces.
 The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed by
-taking the union of the state spaces and adding a null ($\epsilon/\epsilon$) unit weight transition
+taking the union of the state spaces and adding an $\epsilon$-labeled unit weight transition
 from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
 This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
 
@@ -457,7 +457,7 @@ and $\kmerlen/2$ nucleotides of future output context.
 
 This can be a convenient way to think about context, for the purpose of modeling errors in DNA replication and sequencing.
 Common decoding and replication errors include local tandem and inverted duplications, as well as context-dependent substitutions.
-These can occur on either strand of and therefore (depending on the representation) may be best represented as depending
+These can occur on either strand of the DNA double helix and therefore (depending on the representation) may be best represented as depending
 on future context as well as past context.
 
 The transformation requires that the output sequence of all successful paths through the transducer
@@ -467,7 +467,7 @@ which can be ensured using the method described in \secref{DeBruijnTransducer}.
 Let $\seqpastsyms{1}{\kmerlen} = \seqpast$ be the past output context for a given state $\state$.
 All of the transitions $\trans$ into $\state$ have the same input label $\inlab[\trans] = \sympast_{\kmerlen}$,
 which corresponds to the most recent nucleotide of output context for that state.
-If, instead, we set $\inlab[\trans]$ to be $\sympast_{\kmerlen/2}$, the $(\kmerlen/2)$'th symbol of $\someseq$
+If, instead, we set $\inlab[\trans]$ to be $\sympast_{\kmerlen/2}$, the $(\kmerlen/2)$'th symbol of $\someseq$,
 for all transitions into $\state$, then we have effectively delayed all output by $\kmerlen/2$ symbols.
 We can now predict the next $\kmerlen/2$ symbols in the output sequence for the path from a state,
 so we have traded $\kmerlen/2$ of past output context for $\kmerlen/2$ of future output context.
@@ -492,8 +492,12 @@ We can always convert a binary sequence to a mixed-radix sequence trivially by e
 $\bit{0}$ and $\bit{1}$ as $0_R$ and $1_R$ in whatever radix $R$ is available;
 that is, we simply never use the extra symbols in our alphabet $\{ \trit{2}, \quat{2}, \quat{3} \}$.
 However, we can do better than this and pack some extra information into the additional symbols when they are available.
+There are at least two issues we need to consider here: (i) efficient conversion between binary and other radices
+(especially ternary, which is the trickiest) via block codes, while allowing for prematurely truncated blocks;
+(ii) the fact that our repeat-avoiding DNA code is mixed-radix, that is, it has a radix that varies from position to position.
 
-It is tempting to try something like the machine of \figref{BinaryToTrinary},
+Considering first the issue of conversion from binary to ternary,
+it is tempting to try something like the machine of \figref{BinaryToTrinary},
 which maps binary $\bit{0}\bit{0}$ to ternary $\trit{0}$,
 $\bit{0}\bit{1}$ to $\trit{1}$,
 and $\bit{1}$ to $\trit{2}$;
@@ -512,13 +516,19 @@ A fragile workaround to this problem is to send an extra padding bit in such cas
 more robustly, we can introduce an end-of-block symbol `\$',
 perhaps as part of a block code.
 Of course, once we start adding additional symbols like end-of-block, the number of input bits we can encode per output trit (or output bit, or quat) has to fall,
-but this effect 
 since we have to reserve some codewords for transmitting these symbols.
 
 The Huffman block code for binary encoding is well known, and generalizes readily to ternary \cite{BornholtEtAl2016}.
-For mixed-radix output, when the radices at each position are fully specified,
-the relevant code is the mixed-radix Huffman code, for which optimal dynamic programming strategies have been presented \cite{ChuGill1992,GolinEtAl2009}.
-However, this approach would require a different mixed-radix Huffman code for every possible combination of radices,
+This brings us, however, to the second issue we face in radix conversion.
+A ternary Huffman code is imperfectly suited to the coding of information of DNA wherein we are trying to avoid dinucleotide, trinucleotide or higher-order repeats;
+nor is it well-suited to the situation where we are allowing repeats but avoiding certain reserved words.
+The reason for the mismatch is that, in such situations, the number of available nucleotides at any given position may vary between 1, 2, 3 or 4.
+Positions where only one nucleotide is legal cannot carry information; but if there are 2, 3 or 4 options,
+then we need to think about encoding a binary, ternary, or quaternary digit, as appropriate.
+
+For mixed-radix output, in the special case where the radices at each position are fully specified,
+the relevant cousin of the Huffman code is the mixed-radix Huffman code, for the discovery of which optimal dynamic programming strategies have been presented \cite{ChuGill1992,GolinEtAl2009}.
+However, taking this approach in our situation would require a different mixed-radix Huffman code for every possible combination of radices,
 and so is not particularly convenient for the situation when the number of available coding nucleotides varies from site to site
 (as in the repeat-avoiding code).
 
@@ -646,7 +656,8 @@ tandem duplications (ACG$\to$ACG\underline{ACG}),
 forward inverse duplications (ACG$\to$ACG\underline{CGT}),
 reverse inverse duplications (ACG$\to$\underline{CGT}ACG),
 and point substitutions (ACG$\to$A\underline{T}G).
-The duplications can be imperfect: they can include substitutions.
+The duplications can be imperfect: they can include substitutions
+(e.g. ACG$\to$ACG\underline{A\underline{T}G}).
 We also describe how to account for partial observation of the sequence
 (at least at the level of reconstructing individual reads;
 the broader problem of reassembling a data file from fragments is not addressed here,
@@ -712,7 +723,7 @@ and the following state space:
   %
 \item There is a state $\symstate{f}(\emptystring,\emptystring)$ which is the final state
 \end{itemize}
-These states have the following significance (see \subfigref{PartialObservation}{a-b}:
+These states have the following significance (see \subfigrange{PartialObservation}{a}{b}):
 \begin{itemize}
   \item $\symstate{b}$ states load input symbols into the future context queue
   \item $\symstate{c}$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
@@ -839,7 +850,7 @@ The probability parameters can be estimated directly from trusted alignments usi
 
 To keep our implementation simple we used a basic error model.
 It would be straightforward to give the error model a richer parameterization;
-for example, allowing more free paramters in the substitution matrix,
+for example, allowing more free parameters in the substitution matrix,
 or allowing the mutation parameters to depend on the adjacent context.
 
 The transducer $\transerror$
@@ -890,12 +901,11 @@ Other relevant machines are depicted in the figures,
 such as $\hammingsevenfour$ for implementing the Hamming(7,4) error-correction code
 (\subfigref{HammingTransducer}{b}).
 
-These machines can be combined into a single integrated transducer suitable for coding
-by the process of transducer composition (\secref{TransducerComposition}).
+These machines can be combined by the process of transducer composition (\secref{TransducerComposition}) into a single integrated automaton suitable for coding.
 For example, $\hammingsevenfour \transcomp \transrad \transcomp \transcoder \transcomp \transerror$
 implements all four steps described in the previous paragraph.
 
-This procedure implicitly resolves the mixed-radix conversion.
+The transducer composition procedure implicitly resolves the mixed-radix conversion.
 Specifically, $\transrad$ converts a binary input into all possible mixed-radix sequences,
 but $\transcoder$ will only accept one series of radices (the radix at each point in the sequence depending
 on the most recent $\kmerlen$ nucleotides that have been emitted previously, and thus, the number of nucleotides available
@@ -919,7 +929,9 @@ Instead, LDPC codes are generally decoded using sum-product belief propagation o
 Following Davey and MacKay \cite{DaveyMackay2000},
 we have here implemented decoding as a two-stage process wherein the HMM corrects indel errors
 and the LDPC code corrects any remaining substitution errors.
-However, since LDPC codes and HMMs can both be represented as factor graphs
+Unlike Davey and MacKay, we do not currently make use of ``soft'' information from the
+first decoding stage.
+Since LDPC codes and HMMs can both be represented as factor graphs
 of (respectively) trellis and cyclic topology \cite{Kschischang2006},
 these could in principle offer a common likelihood framework in which uncertainty from the HMM decoding
 could inform the second stage of LDPC bit-correction.
@@ -1012,8 +1024,8 @@ the Hamming(7,4) error-correction code of \subfigref{HammingTransducer}{b};
 the synchronization codes of \secref{Watermarks};
 and an outer LDPC(16384,8192) code implemented using Neal's LDPC-codes
 software available from \url{https://github.com/radfordneal/LDPC-codes}.
-We varied substitution, deletion and insertion rates,
-using the Forward-Backward algorithm to estimate the rates from data,
+We varied substitution, deletion and insertion probabilities,
+using the Baum-Welch algorithm to estimate the probability parameters from data,
 repeating the experiment 12 times at each setting,
 and measuring the Levenshtein edit distance (normalized by the number of input bits) between the original and recovered bit-sequences.
 
@@ -1093,14 +1105,22 @@ versioning, and metadata.
 This has been explored in work by others \cite{YazdiEtAl2015,BornholtEtAl2016}.
 The code described here operates at a lower level.
 However, our allowance for reserved ``control words''
-can be used to embed in-band metadata that may be useful in organizing files into manageably-sized blocks or packets.
+can be used to embed in-band metadata that may be useful in organizing files into manageably-sized but readily-reassembled blocks or packets.
+Given that assembly of shorter DNA synthesis into longer contiguous sequences
+is currently one of the more expensive and tricky parts of DNA synthesis \cite{GibsonEtAl2009},
+and indeed one of the more algorithmically challenging steps of DNA sequencing \cite{PevznerEtAl2001},
+and given the difficulties we observe in maintaining code synchronization over longer sequences,
+the optimal structure for a DNA filesystem may be one in which a large file is broken into many short
+fragments, each individually addressed, which may be reassembled by the decoder, somewhat analogously to IP packets.
+In this case nucleic acid control words flanking encoded packet addresses could theoretically be recognized and selected by
+molecular hybridization.
 
 The decoding approach that we have used (Viterbi decoding, followed by decoding of any outer codes such as LDPC) is rather simple.
 It does not use the posterior probability information available from the HMM, or allow any other cross-talk between the (cyclic) LDPC factor graph and the (trellis) HMM graph.
 It also does not incorporate multiple reads from the same DNA sequence,
 and it is subject to computational resource constraints due to the number of states and transitions in the composite transducer,
 which grow quickly when multiple coding layers are composed on top of one another.
-However these are all, in principle, features that could be addressed within the probabilistic framework by approximate or stochastic inference algorithms,
+These are all, in principle, features that could be addressed within the probabilistic framework by approximate or stochastic inference algorithms,
 such as loopy belief propagation or Markov Chain Monte Carlo.
 
 
