@@ -1,5 +1,0 @@
-digraph G {
-	rankdir=LR;
-	S -> S [label="0_2/\epsilon"];
-	S -> S [label="!2"];
-}

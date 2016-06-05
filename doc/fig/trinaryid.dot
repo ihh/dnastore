@@ -1,6 +1,0 @@
-digraph G {
-	rankdir=LR;
-	S -> S [label="0_3/0_3"];
-	S -> S [label="1_3/1_3"];
-	S -> S [label="2_3/2_3"];
-}
