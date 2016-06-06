@@ -35,16 +35,9 @@
 \end{figure}}
 
 \newcommand{\includedot}[2]{
-\input{#1.tex}
 \includegraphics[#2]{#1.ps}
 }
 
-% \dotfig{filenameprefix}{width=...}{label}{caption}
-\newcommand{\dotfig}[4]{
-\includedot{#1}{#2}
-\begin{figure}[h!t]
-\caption{ \figlabel{#3} #4}
-\end{figure}}
 
 % ToDo
 \newcommand{\needfig}[1]{{\bf Need figure: } #1 }

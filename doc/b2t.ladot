@@ -1,9 +1,0 @@
-digraph G {
-	rankdir=LR;
-	
-	S -> 0 [label=$0_2/\epsilon$];
-	S -> S [label=$1_2/2_3$];
-	
-	0 -> S [label=$0_2/0_3$];
-	0 -> S [label=$1_2/1_3$];
-}

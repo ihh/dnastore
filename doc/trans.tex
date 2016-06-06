@@ -723,7 +723,7 @@ and the following state space:
   %
 \item There is a state $\symstate{f}(\emptystring,\emptystring)$ which is the final state
 \end{itemize}
-These states have the following significance (see \subfigrange{PartialObservation}{a}{b}):
+These states have the following significance (see \figref{PartialObservation}):
 \begin{itemize}
   \item $\symstate{b}$ states load input symbols into the future context queue
   \item $\symstate{c}$ states have fully loaded future context queues. They continue to load input symbols, but also start emitting output symbols and shifting input symbols to the past context queue
@@ -855,7 +855,9 @@ or allowing the mutation parameters to depend on the adjacent context.
 
 The transducer $\transerror$
 described in this section models errors but still assumes observation of the full-length sequence.
-By composing it with the transducer in \subfigref{PartialObservation}{c}, we can model errors and partial observation.
+By composing it with a 3-state transducer $L \to M \to R$ whose initial and final states ($L,R$) erase their input
+and whose middle state ($M$) echoes its input unmodified,
+we can model both errors and partial observation.
 
 \subsection{Codes to correct insertion, deletion and substitution errors}
 \seclabel{Watermarks}
@@ -1204,7 +1206,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \end{figure}
 
 \newpage
-\dotfig{b2t}{width=\textwidth}{BinaryToTrinary}{
+\easyfig{b2t.ps}{width=\textwidth}{BinaryToTrinary}{
   A transducer that converts binary to ternary.
   This machine maps $\bit{0}\bit{0} \to \trit{0}$,
   $\bit{0}\bit{1} \to \trit{1}$
@@ -1299,8 +1301,6 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 (a) \includedot{blocks}{width=.9\textwidth}
 \\
 (b) \includedot{error}{width=.9\textwidth}
-\\
-(c) \includedot{partial}{width=.9\textwidth}
 \end{tabular}
 \caption{
   \figlabel{PartialObservation}
@@ -1322,9 +1322,6 @@ as have the $\epsilon$ labels for empty inputs or outputs.
   $R1,R2,R3$ model reverse inverted duplications
   (given future context $ACG$, insert $CGT$, yielding the observed mutation $ACG \to CGTACG$).
   The probabilities and length distributions of these various events can be modeled.
-  Bottom: Transducer $\transpartial$ models partial observation of a sequence.
-  In the terminology of sequence alignment \cite{Durbin98},
-  this machine converts a global aligner into a local one.
 }
 \end{figure}
 

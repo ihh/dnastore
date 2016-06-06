@@ -7,20 +7,15 @@ LDPCDIR := $(TOP)/../../LDPC-codes
 # All source files
 # Figures:
 DNASTORE := dna1full dna2full dna2start dna2startend dna2norep dna2startnorep dna2startendnorep dna3
-DNASTORELACIRCO := $(addsuffix .lacirco,$(DNASTORE))
+DNASTORECIRCO := $(addsuffix .circo,$(DNASTORE))
 DNASTOREPS := $(addsuffix .ps,$(DNASTORE))
-DNASTORETEX := $(addsuffix .tex,$(DNASTORE))
 
 ALLDOT := $(wildcard *.dot)
-ALLLADOT := $(wildcard *.ladot)
-ALLLACIRCO := $(wildcard *.lacirco)
-ALLFIG := $(subst .dot,,$(ALLDOT))
-ALLLAFIG := $(subst .ladot,,$(ALLLADOT)) $(subst .lacirco,,$(ALLLACIRCO))
+ALLCIRCO := $(wildcard *.circo)
+ALLFIG := $(subst .dot,,$(ALLDOT)) $(subst .circo,,$(ALLCIRCO))
 ALLFIGPS := $(addsuffix .ps,$(ALLFIG))
-ALLFIGTEX := $(addsuffix .tex,$(ALLLAFIG))
-ALLFIGJUNK := $(ALLFIGTEX)
 
-FIGURES := $(ALLFIGPS) $(ALLFIGTEX) $(DNASTOREPS) $(DNASTORETEX) hamming74.ps eof2.ps subplot.ps
+FIGURES := $(ALLFIGPS) eof2.ps subplot.ps dupplot.ps delplot.ps watplot.ps
 
 # LaTeX:
 TEXINCLUDES := defs.tex notation.tex mixradtab.tex dnastoretab.tex
@@ -64,13 +59,9 @@ cleanstore:
 %.png: %.dot
 	dot -Tpng $< >$@
 
-# ladot
-%.tex %.ps: %.ladot ladot
-	./ladot $<
-
-# lacirco
-%.tex %.ps: %.lacirco lacirco
-	./lacirco $<
+# circo
+%.ps: %.circo
+	circo -Tps $< >$@
 
 # Hamming(7,4) transducer
 hamming74.dot: ../bin/hamming74.pl
@@ -85,28 +76,28 @@ eof3.dot: ../bin/mixradar.pl
 	perl ../bin/mixradar.pl -k 3 1/100 >$@
 
 # DNAstore machines
-dna1full.lacirco: filter.pl
+dna1full.circo: filter.pl
 	../bin/dnastore -l1 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
-dna2full.lacirco: filter.pl
+dna2full.circo: filter.pl
 	../bin/dnastore -l2 -c0 -t0 --no-start --no-end --dot | perl filter.pl >$@
 
-dna2start.lacirco: filter.pl
+dna2start.circo: filter.pl
 	../bin/dnastore -l2 -c1 -t0 --no-end --dot | perl filter.pl >$@
 
-dna2startend.lacirco: filter.pl
+dna2startend.circo: filter.pl
 	../bin/dnastore -l2 -c1 -t0 --dot | perl filter.pl >$@
 
-dna2norep.lacirco: filter.pl
+dna2norep.circo: filter.pl
 	../bin/dnastore -l2 -c0 --no-end --dot | perl filter.pl >$@
 
-dna2startnorep.lacirco: filter.pl
+dna2startnorep.circo: filter.pl
 	../bin/dnastore -l2 -c1 --no-end --dot | perl filter.pl >$@
 
-dna2startendnorep.lacirco: filter.pl
+dna2startendnorep.circo: filter.pl
 	../bin/dnastore -l2 -c1 --dot | perl filter.pl >$@
 
-dna3.lacirco: filter.pl
+dna3.circo: filter.pl
 	../bin/dnastore -l3 --dot | perl filter.pl >$@
 
 # Results data tables
@@ -233,6 +224,15 @@ RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript
 	latex -shell-escape $*
 	latex -shell-escape $*
 	dvips $*
+
+# arxiv
+ARXIV = trans.tex trans.bbl defs.tex notation.tex hamming31.ps hamming74.ps b2t.ps eof2.ps dna2full.ps dna2start.ps dna2startend.ps dna2norep.ps dna2startnorep.ps dna2startendnorep.ps blocks.ps error.ps partial.ps dupplot.ps subplot.ps delplot.ps watplot.ps mixradtab.tex dnastoretab.tex
+arxiv: $(ARXIV)
+	test -e $@ || mkdir $@
+	cp $(ARXIV) $@
+
+arxiv.tar: $(ARXIV)
+	tar cvf $@ $(ARXIV)
 
 # hey make! don't delete all my stuff
 .SECONDARY:
