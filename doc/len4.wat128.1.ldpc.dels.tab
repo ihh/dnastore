@@ -1,0 +1,4 @@
+ MutProb SubProb DupProb DelProb MeanEditsPerBit StDevEditsPerBit MedianEditsPerBit UpperQuartileEditsPerBit LowerQuartileEditsPerBit
+1 1 0 0 0.001 0 0 0 0 0
+2 1 0 0 0.0014 0 0 0 0 0
+3 1 0 0 0.002 0 0 0 0 0
