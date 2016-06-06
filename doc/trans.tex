@@ -1032,7 +1032,7 @@ and an outer LDPC(16384,8192) code implemented using Neal's LDPC-codes
 software available from \url{https://github.com/radfordneal/LDPC-codes}.
 We varied substitution, deletion and insertion probabilities,
 using the Baum-Welch algorithm to estimate the probability parameters from data,
-repeating the experiment 12 times at each setting,
+repeating the experiment 20 times at each setting,
 and measuring the Levenshtein edit distance (normalized by the number of input bits) between the original and recovered bit-sequences.
 
 The results of these computational experiments are summarized in \figrange{DupPlot}{WatPlot}.
@@ -1369,7 +1369,7 @@ as have the $\epsilon$ labels for empty inputs or outputs.
 \newpage
 \easyfig{delplot.ps}{width=\textwidth}{DelPlot}{
   Effect of simulated deletions on decoder accuracy for four different codes.
-  The codes are as described in \figref{SubPlot}.
+  The codes are as described in the caption to \figref{SubPlot}.
   The x-axis is the probability of initiating a deletion event at each base;
   a random number of nucleotides (uniformly sampled from one to four)
   were erased in each deletion event, so that the probability of a nucleotide
