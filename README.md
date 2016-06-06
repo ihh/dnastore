@@ -1,5 +1,5 @@
 # DNAstore
-Software for error-free coding of information into DNA sequences using finite-state transducers.
+Software for error-tolerant coding of information into DNA sequences using finite-state transducers.
 
 To build:
 
@@ -33,7 +33,7 @@ To construct a composite machine using the MIXRADAR6 block code for mixed-radix 
 
     bin/dnastore -l 4 --compose-machine data/flusher.json  --compose-machine data/mixradar6.json --save-machine mixradar6-dnastore4.json
 
-(The "flusher.json" is a precursor transducer that automatically flushes MIXRADAR6 whenever the end of the file is reached.)
+(The <code>flusher.json</code> file describes an outer transducer that automatically flushes MIXRADAR6 whenever the end of the file is reached.)
 
 To encode and decode using this transducer:
 
