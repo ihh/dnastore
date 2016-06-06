@@ -32,6 +32,11 @@ O.~Milenkovic and N.~Kashyap.
 \newblock August 2005.
 \newblock \url{http://arxiv.org/abs/cs.DM/0508055}.
 
+\bibitem{YachieEtAl2008}
+N.~Yachie, Y.~Ohashi, and M.~Tomita.
+\newblock {{S}tabilizing synthetic data in the {D}{N}{A} of living organisms}.
+\newblock {\em Syst Synth Biol}, 2(1-2):19--25, Jun 2008.
+
 \bibitem{YazdiEtAl2015}
 S.~M. Yazdi, Y.~Yuan, J.~Ma, H.~Zhao, and O.~Milenkovic.
 \newblock {{A} Rewritable, Random-Access {D}{N}{A}-Based Storage System}.
@@ -60,6 +65,20 @@ R.~Gabrys, H.~M. Kiah, and O.~Milenkovic.
 \newblock Asymmetric {L}ee distance codes for {DNA}-based storage.
 \newblock {\em Computing Research Repository}, abs/1506.00740, 2015.
 \newblock \url{http://arxiv.org/abs/1506.00740}.
+
+\bibitem{HuntEtAl2015}
+F.~H. Hunt, S.~Perkins, and D.~H. Smith.
+\newblock Channel models and error correction codes for {DNA} information
+  storage.
+\newblock {\em International Journal of Information and Coding Theory},
+  3(2):120--136, October 2015.
+
+\bibitem{JainEtAl2016}
+S.~Jain, F.~Farnoud, M.~Schwartz, and J.~Bruck.
+\newblock Duplication-correcting codes for data storage in the {DNA} of living
+  organisms.
+\newblock arXiv, 2016.
+\newblock 1606.00397.
 
 \bibitem{MilenkovicEtAl2016}
 R.~Gabrys, E.~Yaakobi, and O.~Milenkovic.
@@ -151,7 +170,7 @@ B.~Paten, J.~Herrero, S.~Fitzgerald, K.~Beal, P.~Flicek, I.~Holmes, and
 \newblock {\em Genome Research}, 18:1829--1843, Nov 2008.
 
 \bibitem{WestessonEtAlArxiv2012}
-O.~Westesson, L.~Lunter, B.~Paten, and I.~Holmes.
+O.~Westesson, G.~Lunter, B.~Paten, and I.~Holmes.
 \newblock Phylogenetic automata, pruning, and multiple alignment.
 \newblock arXiv, 2012.
 \newblock 1202.4026.
