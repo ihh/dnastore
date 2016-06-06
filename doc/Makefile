@@ -226,7 +226,7 @@ RSCRIPT = /Library/Frameworks/R.framework/Versions/3.2/Resources/Rscript
 	dvips $*
 
 # arxiv
-ARXIV = trans.tex trans.bbl defs.tex notation.tex hamming31.ps hamming74.ps b2t.ps eof2.ps dna2full.ps dna2start.ps dna2startend.ps dna2norep.ps dna2startnorep.ps dna2startendnorep.ps blocks.ps error.ps partial.ps dupplot.ps subplot.ps delplot.ps watplot.ps mixradtab.tex dnastoretab.tex
+ARXIV = trans.tex trans.bbl defs.tex notation.tex hamming31.ps hamming74.ps b2t.ps eof2.ps dna2full.ps dna2start.ps dna2startend.ps dna2norep.ps dna2startnorep.ps dna2startendnorep.ps blocks.ps error.ps dupplot.ps subplot.ps delplot.ps watplot.ps mixradtab.tex dnastoretab.tex
 arxiv: $(ARXIV)
 	test -e $@ || mkdir $@
 	cp $(ARXIV) $@
