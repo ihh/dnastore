@@ -1,6 +1,8 @@
 # DNAstore
 Software for error-tolerant coding of information into DNA sequences using finite-state transducers.
 
+For license, please see LICENSE.txt
+
 To build:
 
     make dnastore
