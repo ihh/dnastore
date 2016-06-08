@@ -317,6 +317,13 @@ D.~G. Gibson, L.~Young, R.~Y. Chuang, J.~C. Venter, C.~A. Hutchison, and H.~O.
   kilobases}.
 \newblock {\em Nature Methods}, 6(5):343--345, May 2009.
 
+\bibitem{Luby2002}
+Michael Luby.
+\newblock Lt codes.
+\newblock In {\em Proceedings of the 43rd Symposium on Foundations of Computer
+  Science}, FOCS '02, pages 271--, Washington, DC, USA, 2002. IEEE Computer
+  Society.
+
 \bibitem{Mackay2005fountain}
 D.J.C. MacKay.
 \newblock {Fountain codes}.
