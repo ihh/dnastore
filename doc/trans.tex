@@ -1130,6 +1130,12 @@ fragments, each individually addressed, which may be reassembled by the decoder,
 In this case nucleic acid control words flanking encoded packet addresses could theoretically be recognized and selected by
 molecular hybridization.
 
+Alternatively, since pulling out targeted fragments in this way is difficult and unreliable,
+it may be better to encode the fragments in such a way that a sufficiently large sample of them
+is asymptotically likely to guarantee exact recovery of the entire file.
+For example, one could construct each packet by XOR'ing a (quasi)random selection of blocks from the file,
+in the manner of fountain codes \cite{Mackay2005fountain}.
+
 The decoding approach that we have used (Viterbi decoding, followed by decoding of any outer codes such as LDPC) is rather simple.
 It does not use the posterior probability information available from the HMM, or allow any other cross-talk between the (cyclic) LDPC factor graph and the (trellis) HMM graph.
 It also does not incorporate multiple reads from the same DNA sequence,
