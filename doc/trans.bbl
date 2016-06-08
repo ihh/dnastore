@@ -94,6 +94,13 @@ J.~Bornholt, R.~Lopez, D.~M. Carmean, L.~Ceze, G.~Seelig, and K.~Strauss.
   ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
 \newblock \url{http://doi.acm.org/10.1145/2872362.2872397}.
 
+\bibitem{GrassEtAl2015}
+R.~N. Grass, R.~Heckel, M.~Puddu, D.~Paunescu, and W.~J. Stark.
+\newblock {{R}obust chemical preservation of digital information on {D}{N}{A}
+  in silica with error-correcting codes}.
+\newblock {\em Angewandte Chemie International Edition in English},
+  54(8):2552--2555, Feb 2015.
+
 \bibitem{DaveyMackay2000}
 M.~C. Davey and D.~J.~C. MacKay.
 \newblock Watermark codes: Reliable communication over insertion/deletion
@@ -111,6 +118,29 @@ Edward~A. Ratzer and David~J.C. MacKay.
 \newblock Codes for channels with insertions, deletions and substitutions.
 \newblock In {\em In 2nd International Symposium on Turbo Codes and Related
   Topics}, pages 149--156, 2000.
+
+\bibitem{BriffaEtAl2010}
+J.~A. Briffa, H.~G. Schaathun, and S.~Wesemeyer.
+\newblock An improved decoding algorithm for the {D}avey-{M}ac{K}ay
+  construction.
+\newblock {\em IEEE International Conference on Communications}, pages 1--5,
+  2010.
+
+\bibitem{JiaoEtAl2012}
+X.~Jiao and M.~A. Armand.
+\newblock Soft-input inner decoder for the {D}avey-{M}ac{K}ay construction.
+\newblock {\em IEEE Communications Letters}, 16(5):722--725, 2012.
+
+\bibitem{NguyenEtAl2013}
+P.-M. Nguyen, M.~A. Armand, and T.~Wu.
+\newblock On the watermark string in the {D}avey-{M}ac{K}ay construction.
+\newblock {\em IEEE Communications Letters}, 17(9):1830--1833, 2013.
+
+\bibitem{KrachtSchober2015}
+D.~Kracht and S.~Schober.
+\newblock {{I}nsertion and deletion correcting {D}{N}{A} barcodes based on
+  watermarks}.
+\newblock {\em BMC Bioinformatics}, 16:50, 2015.
 
 \bibitem{LaehnemannEtAl2016}
 D.~Laehnemann, A.~Borkhardt, and A.~C. McHardy.

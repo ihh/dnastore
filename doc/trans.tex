@@ -51,20 +51,29 @@ that address the interrelated issues of error avoidance, error correction and re
 Goldman {\em et al} \cite{GoldmanEtAl2013} made DNA using a ternary (radix-3) code that avoids repeated nucleotides,
 synthesizing to fourfold redundancy for additional error correction.
 Gupta {\em et al} introduced a ternary Golay code for error correction \cite{GuptaEtAl2015}.
-Strauss {\em et al} used a Huffman code to map binary to ternary, and further improved on Goldman {\em et al}'s redundancy coding using an exclusive-or method \cite{BornholtEtAl2016}.
+Strauss {\em et al} used a Huffman code to map binary to ternary,
+implemented a filesystem based on a random-access key-value store,
+and improved on Goldman {\em et al}'s redundancy coding using an exclusive-or method \cite{BornholtEtAl2016}.
 Milenkovic {\em et al} have considered
 the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
 proposed several codes with analysis of their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
-and presented a design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
+and presented an earlier design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
 Avoidance of secondary structure was also discussed by Hunt {\em et al} \cite{HuntEtAl2015}.
 Studies by Yachie {\em et al} \cite{YachieEtAl2008} and Jain {\em et al} \cite{JainEtAl2016}
 have specifically addressed the storage of information in the DNA of living organisms,
 the latter work (which appeared while this manuscript was in preparation) describing a duplication-correcting code.
-In earlier work not specifically oriented to DNA storage,
+Grass {\em et al} used a Reed-Solomon code for error correction \cite{GrassEtAl2015}.
+Most such error-correcting DNA codes have focused on substitution errors, but there is recent
+progress in the information theory field developing codes that correct insertions and deletions (``indels'').
+For example, in prior work not specifically oriented to DNA storage,
 MacKay {\em et al} developed synchronizing error-correcting codes that are resistant to
-substitutions, insertions and deletions (``indels''),
+both substitutions and indels,
 including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
 and marker codes \cite{RatzerMackay2000}.
+The Davey-MacKay watermark construction, in particular,
+has been improved upon by other researchers (e.g. \cite{BriffaEtAl2010,JiaoEtAl2012,NguyenEtAl2013})
+and even applied to DNA in the context of barcodes \cite{KrachtSchober2015},
+though not for general DNA information storage.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
