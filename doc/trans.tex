@@ -1131,10 +1131,19 @@ In this case nucleic acid control words flanking encoded packet addresses could 
 molecular hybridization.
 
 Alternatively, since pulling out targeted fragments in this way is difficult and unreliable,
-it may be better to encode the fragments in such a way that a sufficiently large sample of them
-is asymptotically likely to guarantee exact recovery of the entire file.
-For example, one could construct each packet by XOR'ing a (quasi)random selection of blocks from the file,
-in the manner of fountain codes \cite{Mackay2005fountain}.
+it may be better to encode the fragments in such a way that each fragment combines information
+from multiple blocks. This can be done in such a way that a sufficiently large sample of them
+is asymptotically likely to guarantee exact recovery of the entire file,
+with the asymptotic convergence occurring more rapidly than if each packet simply encodes a single block.
+For example, one could construct each fragment by XOR'ing a (quasi)random selection of $k$ blocks from the file,
+in the manner of fountain codes \cite{Luby2002,Mackay2005fountain}.
+A simpler XOR'ing strategy was partially pursued by Bornholt {\em et al},
+who XOR'd pairs of blocks in their DNA storage system \cite{BornholtEtAl2016},
+but it can be extended to larger numbers of blocks for more rapid recovery of the entire file
+at the expense of a moderate increase in the compute power of the decoder \cite{Mackay2003,Mackay2005fountain}.
+The distribution of $k$ can be chosen to optimize decoder convergence.
+Results from fountain codes suggest, in practice, the total size of fragments that need to be sequenced exceeds
+the file size by only around 5\% \cite{Mackay2003}.
 
 The decoding approach that we have used (Viterbi decoding, followed by decoding of any outer codes such as LDPC) is rather simple.
 It does not use the posterior probability information available from the HMM, or allow any other cross-talk between the (cyclic) LDPC factor graph and the (trellis) HMM graph.

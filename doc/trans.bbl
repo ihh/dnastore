@@ -82,7 +82,7 @@ S.~Jain, F.~Farnoud, M.~Schwartz, and J.~Bruck.
 
 \bibitem{MilenkovicEtAl2016}
 R.~Gabrys, E.~Yaakobi, and O.~Milenkovic.
-\newblock Codes in the damerau distance for {DNA} storage.
+\newblock Codes in the {D}amerau distance for {DNA} storage.
 \newblock {\em Computing Research Repository}, abs/1601.06885, 2016.
 \newblock \url{http://arxiv.org/abs/1601.06885}.
 
@@ -316,5 +316,11 @@ D.~G. Gibson, L.~Young, R.~Y. Chuang, J.~C. Venter, C.~A. Hutchison, and H.~O.
 \newblock {{E}nzymatic assembly of {D}{N}{A} molecules up to several hundred
   kilobases}.
 \newblock {\em Nature Methods}, 6(5):343--345, May 2009.
+
+\bibitem{Mackay2005fountain}
+D.J.C. MacKay.
+\newblock {Fountain codes}.
+\newblock {\em IEE Proceedings - Communications}, 152(6):1062--1068(6),
+  December 2005.
 
 \end{thebibliography}
