@@ -523,7 +523,7 @@ Machine Machine::compose (const Machine& first, const Machine& origSecond) {
       ms.name = compStateName(i,j);
       ms.leftContext = msj.leftContext;
       ms.rightContext = msj.rightContext;
-      if (msj.isWait()) {
+      if (msj.isWait() || msj.isEnd()) {
 	for (const auto& it: msi.trans)
 	  if (it.out == MachineNull) {
 	    ms.trans.push_back (MachineTransition (it.in, MachineNull, compState(it.dest,j)));
