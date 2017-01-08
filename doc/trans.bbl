@@ -82,7 +82,7 @@ S.~Jain, F.~Farnoud, M.~Schwartz, and J.~Bruck.
 
 \bibitem{MilenkovicEtAl2016}
 R.~Gabrys, E.~Yaakobi, and O.~Milenkovic.
-\newblock Codes in the damerau distance for {DNA} storage.
+\newblock Codes in the {D}amerau distance for {DNA} storage.
 \newblock {\em Computing Research Repository}, abs/1601.06885, 2016.
 \newblock \url{http://arxiv.org/abs/1601.06885}.
 
@@ -94,6 +94,13 @@ J.~Bornholt, R.~Lopez, D.~M. Carmean, L.~Ceze, G.~Seelig, and K.~Strauss.
   ASPLOS '16, pages 637--649, New York, NY, USA, 2016. ACM.
 \newblock \url{http://doi.acm.org/10.1145/2872362.2872397}.
 
+\bibitem{GrassEtAl2015}
+R.~N. Grass, R.~Heckel, M.~Puddu, D.~Paunescu, and W.~J. Stark.
+\newblock {{R}obust chemical preservation of digital information on {D}{N}{A}
+  in silica with error-correcting codes}.
+\newblock {\em Angewandte Chemie International Edition in English},
+  54(8):2552--2555, Feb 2015.
+
 \bibitem{DaveyMackay2000}
 M.~C. Davey and D.~J.~C. MacKay.
 \newblock Watermark codes: Reliable communication over insertion/deletion
@@ -102,7 +109,7 @@ M.~C. Davey and D.~J.~C. MacKay.
 
 \bibitem{DaveyMackay2001}
 M.~C. Davey and D.~J.~C. MacKay.
-\newblock Reliable communication over channels with insertions, ddeletions, and
+\newblock Reliable communication over channels with insertions, deletions, and
   substitutions.
 \newblock {\em IEEE Transactions on Information Theory}, 47(2):687--698, 2001.
 
@@ -111,6 +118,29 @@ Edward~A. Ratzer and David~J.C. MacKay.
 \newblock Codes for channels with insertions, deletions and substitutions.
 \newblock In {\em In 2nd International Symposium on Turbo Codes and Related
   Topics}, pages 149--156, 2000.
+
+\bibitem{BriffaEtAl2010}
+J.~A. Briffa, H.~G. Schaathun, and S.~Wesemeyer.
+\newblock An improved decoding algorithm for the {D}avey-{M}ac{K}ay
+  construction.
+\newblock {\em IEEE International Conference on Communications}, pages 1--5,
+  2010.
+
+\bibitem{JiaoEtAl2012}
+X.~Jiao and M.~A. Armand.
+\newblock Soft-input inner decoder for the {D}avey-{M}ac{K}ay construction.
+\newblock {\em IEEE Communications Letters}, 16(5):722--725, 2012.
+
+\bibitem{NguyenEtAl2013}
+P.-M. Nguyen, M.~A. Armand, and T.~Wu.
+\newblock On the watermark string in the {D}avey-{M}ac{K}ay construction.
+\newblock {\em IEEE Communications Letters}, 17(9):1830--1833, 2013.
+
+\bibitem{KrachtSchober2015}
+D.~Kracht and S.~Schober.
+\newblock {{I}nsertion and deletion correcting {D}{N}{A} barcodes based on
+  watermarks}.
+\newblock {\em BMC Bioinformatics}, 16:50, 2015.
 
 \bibitem{LaehnemannEtAl2016}
 D.~Laehnemann, A.~Borkhardt, and A.~C. McHardy.
@@ -286,5 +316,18 @@ D.~G. Gibson, L.~Young, R.~Y. Chuang, J.~C. Venter, C.~A. Hutchison, and H.~O.
 \newblock {{E}nzymatic assembly of {D}{N}{A} molecules up to several hundred
   kilobases}.
 \newblock {\em Nature Methods}, 6(5):343--345, May 2009.
+
+\bibitem{Luby2002}
+Michael Luby.
+\newblock Lt codes.
+\newblock In {\em Proceedings of the 43rd Symposium on Foundations of Computer
+  Science}, FOCS '02, pages 271--, Washington, DC, USA, 2002. IEEE Computer
+  Society.
+
+\bibitem{Mackay2005fountain}
+D.J.C. MacKay.
+\newblock {Fountain codes}.
+\newblock {\em IEE Proceedings - Communications}, 152(6):1062--1068(6),
+  December 2005.
 
 \end{thebibliography}

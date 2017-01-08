@@ -51,20 +51,29 @@ that address the interrelated issues of error avoidance, error correction and re
 Goldman {\em et al} \cite{GoldmanEtAl2013} made DNA using a ternary (radix-3) code that avoids repeated nucleotides,
 synthesizing to fourfold redundancy for additional error correction.
 Gupta {\em et al} introduced a ternary Golay code for error correction \cite{GuptaEtAl2015}.
-Strauss {\em et al} used a Huffman code to map binary to ternary, and further improved on Goldman {\em et al}'s redundancy coding using an exclusive-or method \cite{BornholtEtAl2016}.
+Strauss {\em et al} used a Huffman code to map binary to ternary,
+implemented a filesystem based on a random-access key-value store,
+and improved on Goldman {\em et al}'s redundancy coding using an exclusive-or method \cite{BornholtEtAl2016}.
 Milenkovic {\em et al} have considered
 the avoidance of DNA structure in codes \cite{MilenkovicEtAl2005},
 proposed several codes with analysis of their combinatoric properties \cite{MilenkovicEtAl2014,MilenkovicEtAl2015,GabrysEtAl2015,MilenkovicEtAl2016}
-and presented a design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
+and presented an earlier design for a random-access rewritable filesystem \cite{YazdiEtAl2015}.
 Avoidance of secondary structure was also discussed by Hunt {\em et al} \cite{HuntEtAl2015}.
 Studies by Yachie {\em et al} \cite{YachieEtAl2008} and Jain {\em et al} \cite{JainEtAl2016}
 have specifically addressed the storage of information in the DNA of living organisms,
 the latter work (which appeared while this manuscript was in preparation) describing a duplication-correcting code.
-In earlier work not specifically oriented to DNA storage,
+Grass {\em et al} used a Reed-Solomon code for error correction \cite{GrassEtAl2015}.
+Most such error-correcting DNA codes have focused on substitution errors, but there is recent
+progress in the information theory field developing codes that correct insertions and deletions (``indels'').
+For example, in prior work not specifically oriented to DNA storage,
 MacKay {\em et al} developed synchronizing error-correcting codes that are resistant to
-substitutions, insertions and deletions (``indels''),
+both substitutions and indels,
 including watermark codes \cite{DaveyMackay2000,DaveyMackay2001}
 and marker codes \cite{RatzerMackay2000}.
+The Davey-MacKay watermark construction, in particular,
+has been improved upon by other researchers (e.g. \cite{BriffaEtAl2010,JiaoEtAl2012,NguyenEtAl2013})
+and even applied to DNA in the context of barcodes \cite{KrachtSchober2015},
+though not for general DNA information storage.
 
 Here we describe a modular strategy for constructing error-tolerant DNA codes.
 As noted above, much recent work has used Goldman {\em et al}'s ternary code as a starting point.
@@ -259,7 +268,7 @@ are transducers with the same input and output alphabets and disjoint state spac
 The concatenated transducer $\trt = \tra \transconcat \trb$ can be constructed by
 taking the union of the state spaces and adding an $\epsilon$-labeled unit weight transition
 from $\tpa{\finalstate}$ to $\tpb{\initstate}$.
-This models feeding the part of a sequence through $\tra$ and then feeding the second part through $\trb$.
+This models feeding the first part of a sequence through $\tra$ and then feeding the second part through $\trb$.
 
 \subsubsection{Transducer union}
 
@@ -1120,6 +1129,21 @@ the optimal structure for a DNA filesystem may be one in which a large file is b
 fragments, each individually addressed, which may be reassembled by the decoder, somewhat analogously to IP packets.
 In this case nucleic acid control words flanking encoded packet addresses could theoretically be recognized and selected by
 molecular hybridization.
+
+Alternatively, since pulling out targeted fragments in this way is difficult and unreliable,
+it may be better to encode the fragments in such a way that each fragment combines information
+from multiple blocks. This can be done in such a way that a sufficiently large sample of them
+is asymptotically likely to guarantee exact recovery of the entire file,
+with the asymptotic convergence occurring more rapidly than if each packet simply encodes a single block.
+For example, one could construct each fragment by XOR'ing a (quasi)random selection of $k$ blocks from the file,
+in the manner of fountain codes \cite{Luby2002,Mackay2005fountain}.
+A simpler XOR'ing strategy was partially pursued by Bornholt {\em et al},
+who XOR'd pairs of blocks in their DNA storage system \cite{BornholtEtAl2016},
+but it can be extended to larger numbers of blocks for more rapid recovery of the entire file
+at the expense of a moderate increase in the compute power of the decoder \cite{Mackay2003,Mackay2005fountain}.
+The distribution of $k$ can be chosen to optimize decoder convergence.
+Results from fountain codes suggest, in practice, the total size of fragments that need to be sequenced exceeds
+the file size by only around 5\% \cite{Mackay2003}.
 
 The decoding approach that we have used (Viterbi decoding, followed by decoding of any outer codes such as LDPC) is rather simple.
 It does not use the posterior probability information available from the HMM, or allow any other cross-talk between the (cyclic) LDPC factor graph and the (trellis) HMM graph.
